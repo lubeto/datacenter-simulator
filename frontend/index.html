@@ -374,7 +374,8 @@ async function loadSSTStatus() {
 let ws = null;
 let wsReconnectTimer = null;
 function connectWS() {
-  const wsUrl = `ws://${location.host}/ws?token=${TOKEN}`;
+  const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProto}//${location.host}/ws?token=${TOKEN}`;
   ws = new WebSocket(wsUrl);
   ws.onopen = () => {
     document.getElementById('wsDot').className = 'ws-dot connected';
