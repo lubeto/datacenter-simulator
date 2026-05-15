@@ -1,0 +1,103 @@
+version: "3.9"
+
+# =============================================================================
+# DC Monitoring Simulator — docker-compose producción
+# =============================================================================
+
+services:
+  dc-simulator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: runtime          # build solo el stage final
+    image: dc-monitoring-simulator:latest
+    container_name: dc-monitoring-simulator
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+
+    # ── Volúmenes persistentes ──────────────────────────────────────────────
+    volumes:
+      - dc-data:/app/data          # base de datos SQLite + reportes
+      - dc-logs:/app/logs          # logs estructurados
+
+    # ── Variables de entorno ────────────────────────────────────────────────
+    environment:
+      # Seguridad (sobreescribir con .env en producción)
+      SECRET_KEY: ${SECRET_KEY:-CAMBIA_ESTE_SECRETO_EN_PRODUCCION_minimo32chars!!}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+
+      # Servidor
+      HOST: 0.0.0.0
+      PORT: 8000
+      DEBUG: ${DEBUG:-false}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+
+      # Base de datos
+      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///./data/simulator.db}
+
+      # Simulación
+      NUM_NODES: ${NUM_NODES:-12}
+      METRICS_INTERVAL_SECONDS: ${METRICS_INTERVAL_SECONDS:-2}
+      AUTO_ATTACK_ENABLED: ${AUTO_ATTACK_ENABLED:-true}
+      AUTO_ATTACK_MIN_INTERVAL_MIN: ${AUTO_ATTACK_MIN_INTERVAL_MIN:-5}
+      AUTO_ATTACK_MAX_INTERVAL_MIN: ${AUTO_ATTACK_MAX_INTERVAL_MIN:-20}
+
+      # Admin por defecto (CAMBIA en producción)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-instructor@datacenter.edu}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin1234!}
+      ADMIN_NAME: ${ADMIN_NAME:-Instructor Principal}
+
+      # CORS — lista de orígenes permitidos separados por coma
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
+
+      # Rate limiting
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      RATE_LIMIT_AUTH_PER_MINUTE: ${RATE_LIMIT_AUTH_PER_MINUTE:-10}
+
+    # ── Healthcheck ─────────────────────────────────────────────────────────
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8000/health',timeout=8); sys.exit(0 if r.status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    # ── Recursos ────────────────────────────────────────────────────────────
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+    # ── Política de reinicio ────────────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Seguridad del contenedor ────────────────────────────────────────────
+    security_opt:
+      - no-new-privileges:true
+    read_only: false            # false porque necesita escribir data/ y logs/
+    tmpfs:
+      - /tmp:size=64m           # /tmp en memoria (no persiste entre reinicios)
+
+    # ── Logging ─────────────────────────────────────────────────────────────
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ── Volúmenes ──────────────────────────────────────────────────────────────
+volumes:
+  dc-data:
+    driver: local
+    labels:
+      description: "Base de datos SQLite y reportes del simulador"
+  dc-logs:
+    driver: local
+    labels:
+      description: "Logs de la aplicación"

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — DC Simulator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d45;--accent:#3b82f6;--accent2:#06b6d4;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--text:#e2e8f0;--muted:#64748b;--font:'Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+header{background:linear-gradient(135deg,#0f172a,#1e2a50);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:.7rem;font-size:1.05rem;font-weight:700}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--purple),var(--accent));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.btn{padding:.4rem .9rem;border-radius:6px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-danger{background:var(--red);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-green{background:var(--green);color:#000;font-weight:700}
+.btn-sm{padding:.25rem .6rem;font-size:.75rem}
+.container{max-width:1400px;margin:0 auto;padding:1.2rem}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem}
+.full{grid-column:1/-1}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1rem;border-bottom:1px solid var(--border);background:var(--card2)}
+.card-title{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent2)}
+.card-body{padding:1rem}
+/* SUMMARY CARDS */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin-bottom:1.2rem}
+.s-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;position:relative;overflow:hidden}
+.s-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.s-card.blue::before{background:var(--accent)}.s-card.green::before{background:var(--green)}.s-card.yellow::before{background:var(--yellow)}.s-card.purple::before{background:var(--purple)}.s-card.orange::before{background:var(--orange)}
+.s-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.s-value{font-size:1.8rem;font-weight:800;line-height:1}
+.s-sub{font-size:.72rem;color:var(--muted);margin-top:.3rem}
+/* RANKING TABLE */
+.ranking-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.ranking-table th{color:var(--muted);font-weight:700;text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--border);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.ranking-table td{padding:.6rem .8rem;border-bottom:1px solid rgba(30,45,69,.4);vertical-align:middle}
+.ranking-table tr:last-child td{border-bottom:none}
+.ranking-table tr:hover td{background:rgba(59,130,246,.05);cursor:pointer}
+.rank-medal{font-size:1.2rem;text-align:center}
+.score-bar{width:100px;height:8px;background:var(--border);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:.4rem}
+.score-fill{height:100%;border-radius:4px;transition:width .5s}
+.badge{display:inline-flex;align-items:center;padding:.2rem .5rem;border-radius:10px;font-size:.68rem;font-weight:700}
+.badge-elite{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000}
+.badge-avanzado{background:rgba(168,85,247,.2);color:var(--purple)}
+.badge-intermedio{background:rgba(59,130,246,.2);color:var(--accent)}
+.badge-principiante{background:rgba(34,197,94,.2);color:var(--green)}
+.badge-formacion{background:rgba(100,116,139,.2);color:var(--muted)}
+.badge-ok{background:rgba(34,197,94,.15);color:var(--green)}.badge-warn{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-crit{background:rgba(239,68,68,.15);color:var(--red)}.badge-blue{background:rgba(59,130,246,.15);color:var(--accent)}
+/* MITIGATION RULES */
+.rule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem}
+.rule-card{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.8rem;cursor:pointer;transition:all .2s}
+.rule-card:hover{border-color:var(--accent2);transform:translateY(-1px)}
+.rule-name{font-size:.8rem;font-weight:700;margin-bottom:.3rem}
+.rule-meta{font-size:.68rem;color:var(--muted);display:flex;gap:.5rem;flex-wrap:wrap}
+/* APT CHAINS */
+.chain-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.7rem}
+.chain-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:1rem;border-left:3px solid var(--purple);transition:all .2s}
+.chain-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(168,85,247,.15)}
+.chain-name{font-size:.88rem;font-weight:700;margin-bottom:.2rem}
+.chain-desc{font-size:.72rem;color:var(--muted);margin-bottom:.6rem}
+.chain-phases{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.6rem}
+.phase-dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.phase-dot.d0{background:var(--green)}.phase-dot.d1{background:var(--yellow)}.phase-dot.d2{background:var(--orange)}.phase-dot.d3{background:var(--red)}
+.phase-label{font-size:.65rem;color:var(--muted);margin-top:.2rem}
+/* STUDENT DETAIL PANEL */
+.detail-panel{display:none;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:.6rem}
+.detail-panel.open{display:block}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.8rem}
+.stat-box{background:var(--card);border-radius:8px;padding:.6rem;text-align:center}
+.stat-label{font-size:.65rem;color:var(--muted)}
+.stat-value{font-size:1.1rem;font-weight:800}
+/* CHART */
+.chart-wrap{position:relative;height:200px}
+/* EXPORT */
+.export-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--card)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* LIVE badge */
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;margin-right:.3rem}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-icon">📈</div>Analytics & Rankings</div>
+  <div style="display:flex;gap:.8rem;align-items:center">
+    <span style="font-size:.75rem;color:var(--muted)"><span class="live-dot"></span>Actualización automática</span>
+    <a href="/" class="btn btn-outline btn-sm">Dashboard</a>
+    <a href="/instructor" class="btn btn-outline btn-sm" id="instLink" style="display:none">Instructor</a>
+    <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- SUMMARY CARDS -->
+  <div class="summary-grid">
+    <div class="s-card blue"><div class="s-label">Estudiantes</div><div class="s-value" id="sc-students">—</div><div class="s-sub">registrados</div></div>
+    <div class="s-card green"><div class="s-label">Score Promedio</div><div class="s-value" id="sc-score">—</div><div class="s-sub">del grupo</div></div>
+    <div class="s-card yellow"><div class="s-label">MTTD Promedio</div><div class="s-value" id="sc-mttd">—</div><div class="s-sub">segundos</div></div>
+    <div class="s-card orange"><div class="s-label">MTTR Promedio</div><div class="s-value" id="sc-mttr">—</div><div class="s-sub">segundos</div></div>
+    <div class="s-card purple"><div class="s-label">Sesiones Totales</div><div class="s-value" id="sc-sessions">—</div><div class="s-sub">del grupo</div></div>
+  </div>
+
+  <!-- RANKING TABLE -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header">
+      <span class="card-title">🏆 Ranking de Estudiantes</span>
+      <div style="display:flex;gap:.5rem">
+        <a href="/api/analytics/export/students-csv" class="btn btn-green btn-sm" id="exportBtn">⬇ CSV Ranking</a>
+        <button onclick="loadRanking()" class="btn btn-outline btn-sm">↻</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th style="width:50px;text-align:center">#</th>
+            <th>Estudiante</th>
+            <th>Nivel</th>
+            <th>Score</th>
+            <th>MTTD</th>
+            <th>MTTR</th>
+            <th>Sesiones</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="rankingTbody">
+          <tr><td colspan="8" style="color:var(--muted);text-align:center;padding:2rem">Cargando ranking...</td></tr>
+        </tbody>
+      </table>
+      <div id="studentDetail" class="detail-panel" style="margin:.5rem 1rem 1rem"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- SCORE DISTRIBUTION CHART -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">📊 Distribución de Scores</span></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="scoreChart"></canvas></div></div>
+    </div>
+
+    <!-- MTTD/MTTR COMPARISON -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">⏱️ Comparativa MTTD / MTTR</span></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="timeChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- APT ATTACK CHAINS -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔗 Cadenas de Ataque APT</span>
+        <span class="badge badge-crit" id="instOnlyBadge" style="display:none">Solo instructor</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">Escenarios de ataque en múltiples fases que simulan amenazas persistentes avanzadas (APT). Solo visibles para instructores.</p>
+        <div class="chain-grid" id="chainGrid">
+          <div style="color:var(--muted);font-size:.82rem">Cargando cadenas...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MITIGATION RULES CATALOG -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🛡️ Catálogo de Mitigación</span>
+        <span style="font-size:.72rem;color:var(--muted)" id="rulesCount">— reglas</span>
+      </div>
+      <div class="card-body">
+        <div class="rule-grid" id="ruleGrid">
+          <div style="color:var(--muted);font-size:.82rem">Cargando reglas...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT SECTION -->
+  <div class="card" style="margin-bottom:1rem" id="exportSection">
+    <div class="card-header"><span class="card-title">📁 Exportación de Datos</span></div>
+    <div class="card-body">
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">Descarga reportes en formato CSV para análisis en Excel o herramientas de BI.</p>
+      <div class="export-row" id="exportRow">
+        <a href="/api/analytics/export/students-csv" class="btn btn-primary btn-sm">⬇ Ranking Estudiantes.csv</a>
+        <a href="/api/analytics/export/incidents-csv" class="btn btn-primary btn-sm">⬇ Historial Incidentes.csv</a>
+        <a href="/api/analytics/export/metrics-csv/WEB-01?hours=1" class="btn btn-outline btn-sm">⬇ Métricas WEB-01 (1h)</a>
+        <a href="/api/analytics/export/metrics-csv/DB-01?hours=1" class="btn btn-outline btn-sm">⬇ Métricas DB-01 (1h)</a>
+      </div>
+      <p style="font-size:.7rem;color:var(--muted);margin-top:.6rem">* Las exportaciones requieren autenticación. Descarga directa si ya iniciaste sesión.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN   = localStorage.getItem('token');
+const STUDENT = JSON.parse(localStorage.getItem('student') || '{}');
+if (!TOKEN) { location.href = '/login'; }
+if (STUDENT.role === 'instructor') {
+  document.getElementById('instLink').style.display = '';
+  document.getElementById('instOnlyBadge').style.display = '';
+}
+
+// Add auth to export links
+function authLink(href) { return href + (href.includes('?') ? '&' : '?') + `token=${TOKEN}`; }
+
+let scoreChart = null, timeChart = null;
+let openStudentId = null;
+
+// ── RANKING ──────────────────────────────────────────────────
+async function loadRanking() {
+  try {
+    const r = await apiFetch('/api/analytics/ranking');
+    const tbody = document.getElementById('rankingTbody');
+    if (!r.length) { tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:2rem">Sin estudiantes registrados aún</td></tr>'; return; }
+
+    // Summary stats
+    const scored = r.filter(s => s.total_sessions > 0);
+    document.getElementById('sc-students').textContent = r.length;
+    document.getElementById('sc-score').textContent  = scored.length ? (scored.reduce((a,s)=>a+s.avg_score,0)/scored.length).toFixed(1) : '—';
+    document.getElementById('sc-mttd').textContent   = scored.length ? (scored.reduce((a,s)=>a+s.avg_mttd_seconds,0)/scored.length).toFixed(0) : '—';
+    document.getElementById('sc-mttr').textContent   = scored.length ? (scored.reduce((a,s)=>a+s.avg_mttr_seconds,0)/scored.length).toFixed(0) : '—';
+    document.getElementById('sc-sessions').textContent = r.reduce((a,s)=>a+s.total_sessions,0);
+
+    const medals = ['🥇','🥈','🥉'];
+    tbody.innerHTML = r.map(s => {
+      const medal = medals[s.rank-1] || `<span style="color:var(--muted)">#${s.rank}</span>`;
+      const scoreColor = s.avg_score>=80 ? 'var(--green)' : s.avg_score>=55 ? 'var(--yellow)' : 'var(--red)';
+      const badgeClass = {
+        'Elite':'badge-elite','Avanzado':'badge-avanzado','Intermedio':'badge-intermedio',
+        'Principiante':'badge-principiante','En formacion':'badge-formacion'
+      }[s.rank_label] || 'badge-blue';
+      return `<tr onclick="toggleDetail(${s.id})" title="Click para ver detalles">
+        <td class="rank-medal">${medal}</td>
+        <td>
+          <strong>${s.name}</strong>
+          <div style="font-size:.68rem;color:var(--muted)">${s.email}</div>
+        </td>
+        <td><span class="badge ${badgeClass}">${s.rank_label}</span></td>
+        <td>
+          <span style="font-weight:800;color:${scoreColor}">${s.avg_score || '—'}</span>
+          ${s.total_sessions>0 ? `<div class="score-bar"><div class="score-fill" style="width:${s.avg_score}%;background:${scoreColor}"></div></div>` : ''}
+        </td>
+        <td style="color:var(--accent2)">${s.avg_mttd_seconds > 0 ? s.avg_mttd_seconds.toFixed(0)+'s' : '—'}</td>
+        <td style="color:var(--orange)">${s.avg_mttr_seconds > 0 ? s.avg_mttr_seconds.toFixed(0)+'s' : '—'}</td>
+        <td><span class="badge badge-blue">${s.total_sessions}</span></td>
+        <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();toggleDetail(${s.id})">Detalles</button></td>
+      </tr>`;
+    }).join('');
+
+    updateCharts(r);
+  } catch(e) { console.warn(e); }
+}
+
+async function toggleDetail(id) {
+  const panel = document.getElementById('studentDetail');
+  if (openStudentId === id) {
+    panel.classList.remove('open');
+    openStudentId = null;
+    return;
+  }
+  openStudentId = id;
+  panel.classList.add('open');
+  panel.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Cargando...</div>';
+  try {
+    const s = await apiFetch(`/api/analytics/student/${id}`);
+    const st = s.student;
+    panel.innerHTML = `
+      <div style="font-size:.9rem;font-weight:700;margin-bottom:.8rem;color:var(--accent2)">
+        ${st.name} — <span class="badge badge-blue">${st.rank_label}</span>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-label">Score</div><div class="stat-value" style="color:var(--green)">${st.avg_score}</div></div>
+        <div class="stat-box"><div class="stat-label">MTTD</div><div class="stat-value" style="color:var(--accent2)">${st.avg_mttd_seconds}s</div></div>
+        <div class="stat-box"><div class="stat-label">MTTR</div><div class="stat-value" style="color:var(--orange)">${st.avg_mttr_seconds}s</div></div>
+        <div class="stat-box"><div class="stat-label">Sesiones</div><div class="stat-value">${st.total_sessions}</div></div>
+      </div>
+      <div style="font-size:.78rem;font-weight:700;margin-bottom:.4rem;color:var(--muted)">Últimos 5 incidentes:</div>
+      ${s.recent_incidents.slice(0,5).map(i => `
+        <div style="background:var(--card);border-radius:6px;padding:.5rem .8rem;margin-bottom:.3rem;display:flex;justify-content:space-between;font-size:.76rem">
+          <span><strong>${i.incident_type?.toUpperCase()}</strong> — ${i.node_affected}</span>
+          <span style="color:var(--muted)">MTTD:${i.mttd_seconds ?? '—'}s | MTTR:${i.mttr_seconds ?? '—'}s</span>
+        </div>`).join('') || '<div style="color:var(--muted);font-size:.76rem">Sin incidentes registrados aún</div>'}
+    `;
+  } catch(e) { panel.innerHTML = '<div style="color:var(--red);font-size:.82rem">Error cargando detalles</div>'; }
+}
+
+// ── CHARTS ───────────────────────────────────────────────────
+function updateCharts(ranking) {
+  const names  = ranking.map(s => s.name.split(' ')[0]);
+  const scores = ranking.map(s => s.avg_score);
+  const mttds  = ranking.map(s => s.avg_mttd_seconds);
+  const mttrs  = ranking.map(s => s.avg_mttr_seconds);
+
+  // Score chart
+  if (scoreChart) scoreChart.destroy();
+  const ctx1 = document.getElementById('scoreChart').getContext('2d');
+  scoreChart = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: names,
+      datasets: [{
+        label: 'Score',
+        data: scores,
+        backgroundColor: scores.map(s => s>=80?'rgba(34,197,94,.7)':s>=55?'rgba(234,179,8,.7)':'rgba(239,68,68,.7)'),
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { min:0, max:100, ticks:{color:'#64748b',font:{size:10}}, grid:{color:'rgba(30,45,69,.5)'} },
+        x: { ticks:{color:'#64748b',font:{size:10}}, grid:{display:false} }
+      },
+      plugins: { legend:{display:false} }
+    }
+  });
+
+  // MTTD/MTTR chart
+  if (timeChart) timeChart.destroy();
+  const ctx2 = document.getElementById('timeChart').getContext('2d');
+  timeChart = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: names,
+      datasets: [
+        { label:'MTTD (s)', data:mttds, backgroundColor:'rgba(6,182,212,.7)', borderRadius:4 },
+        { label:'MTTR (s)', data:mttrs, backgroundColor:'rgba(249,115,22,.7)', borderRadius:4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { ticks:{color:'#64748b',font:{size:10}}, grid:{color:'rgba(30,45,69,.5)'} },
+        x: { ticks:{color:'#64748b',font:{size:10}}, grid:{display:false} }
+      },
+      plugins: { legend:{ labels:{color:'#e2e8f0',font:{size:10},boxWidth:10} } }
+    }
+  });
+}
+
+// ── APT CHAINS ───────────────────────────────────────────────
+async function loadChains() {
+  try {
+    const chains = await apiFetch('/api/analytics/chains');
+    const grid = document.getElementById('chainGrid');
+    const entries = Object.entries(chains);
+    grid.innerHTML = entries.map(([id, c]) => `
+      <div class="chain-card">
+        <div class="chain-name">🔗 ${c.name}</div>
+        <div class="chain-desc">${c.description}</div>
+        <div class="chain-phases">
+          ${Array(c.phases).fill(0).map((_,i)=>`<div class="phase-dot d${i}" title="Fase ${i+1}"></div>`).join('')}
+          <span class="phase-label">${c.phases} fases — ${c.total_duration_sec}s total</span>
+        </div>
+        ${STUDENT.role === 'instructor' ? `<button class="btn btn-danger btn-sm" onclick="launchChain('${id}','${c.name}')">⚡ Lanzar</button>` : '<span style="font-size:.68rem;color:var(--muted)">Solo instructores pueden lanzar</span>'}
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function launchChain(id, name) {
+  if (!confirm(`¿Lanzar cadena APT "${name}"?\n\nEsto inyectará múltiples ataques en fases sucesivas.`)) return;
+  try {
+    const r = await apiFetch(`/api/analytics/chains/${id}/launch`, {method:'POST'});
+    alert(`✅ ${r.message}`);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── MITIGATION RULES ─────────────────────────────────────────
+async function loadMitigationRules() {
+  try {
+    const rules = await apiFetch('/api/analytics/mitigation/rules');
+    const grid = document.getElementById('ruleGrid');
+    const entries = Object.entries(rules);
+    document.getElementById('rulesCount').textContent = `${entries.length} reglas`;
+    const sevColor = {critical:'var(--red)',high:'var(--orange)',medium:'var(--yellow)',low:'var(--green)'};
+    grid.innerHTML = entries.map(([type, r]) => `
+      <div class="rule-card" onclick="showMitigationDetail('${type}')">
+        <div class="rule-name">🛡️ ${r.name}</div>
+        <div class="rule-meta">
+          <span style="color:${sevColor[r.severity_impact]||'var(--muted)'}">● ${r.severity_impact}</span>
+          <span>⚡ ${r.steps_count} pasos</span>
+          <span>⏱ ~${r.expected_recovery_sec}s</span>
+          <span style="color:var(--accent2)">${r.auto_actions.slice(0,2).join(', ')}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function showMitigationDetail(type) {
+  try {
+    const plan = await apiFetch(`/api/analytics/mitigation/plan/${type}?node_id=WEB-01`);
+    const steps = plan.steps.map((s,i) =>
+      `<div style="background:var(--card);border-radius:6px;padding:.6rem .8rem;margin-bottom:.4rem;border-left:2px solid ${i===0?'var(--green)':'var(--border)'}">
+        <div style="font-size:.78rem;font-weight:600">${i+1}. ${s.desc}</div>
+        <div style="font-size:.68rem;color:var(--muted);font-family:monospace;margin-top:.2rem">${s.command}</div>
+      </div>`
+    ).join('');
+    // Show in a simple overlay approach using alert with details
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem';
+    modal.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;border-bottom:1px solid var(--border);background:var(--card2)">
+        <div>
+          <div style="font-size:.95rem;font-weight:700">${plan.mitigation_name}</div>
+          <div style="font-size:.72rem;color:var(--muted)">Tipo: ${type} | Recuperación ~${plan.expected_recovery_sec}s</div>
+        </div>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:1.2rem">
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">Acciones automáticas: <strong style="color:var(--accent2)">${plan.auto_actions.join(', ')}</strong></div>
+        ${steps}
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  } catch(e) {}
+}
+
+// ── API HELPER ────────────────────────────────────────────────
+async function apiFetch(url, opts={}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: {'Authorization':`Bearer ${TOKEN}`,'Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if (res.status===401) { logout(); return; }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+function logout() { localStorage.removeItem('token'); localStorage.removeItem('student'); location.href='/login'; }
+
+// Fix export links with auth headers note
+document.querySelectorAll('#exportRow a, #exportBtn').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    // Open in new tab with fetch (since we need auth header)
+    const url = a.href;
+    fetch(url, {headers:{'Authorization':`Bearer ${TOKEN}`}})
+      .then(r => r.blob())
+      .then(blob => {
+        const a2 = document.createElement('a');
+        a2.href = URL.createObjectURL(blob);
+        a2.download = url.split('/').pop().split('?')[0] + '.csv';
+        a2.click();
+      });
+  });
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+loadRanking();
+loadChains();
+loadMitigationRules();
+setInterval(() => { loadRanking(); }, 15000);
+</script>
+</body>
+</html>

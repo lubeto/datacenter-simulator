@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC Monitoring Simulator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d45;--accent:#3b82f6;--accent2:#06b6d4;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--text:#e2e8f0;--muted:#64748b;--font:'Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+/* HEADER */
+header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:.7rem;font-size:1.1rem;font-weight:700;color:#fff}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.header-right{display:flex;align-items:center;gap:1rem}
+.ws-badge{display:flex;align-items:center;gap:.4rem;font-size:.78rem;padding:.3rem .7rem;border-radius:20px;background:var(--card2);border:1px solid var(--border)}
+.ws-dot{width:8px;height:8px;border-radius:50%;background:var(--red)}
+.ws-dot.connected{background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.user-info{font-size:.82rem;color:var(--muted)}
+.btn{padding:.4rem .9rem;border-radius:6px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-sm{padding:.25rem .6rem;font-size:.75rem}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+/* LAYOUT */
+.container{max-width:1600px;margin:0 auto;padding:1.2rem}
+/* SUMMARY CARDS */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin-bottom:1.2rem}
+.s-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;position:relative;overflow:hidden}
+.s-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.s-card.blue::before{background:var(--accent)}.s-card.green::before{background:var(--green)}.s-card.yellow::before{background:var(--yellow)}.s-card.red::before{background:var(--red)}.s-card.purple::before{background:var(--purple)}.s-card.cyan::before{background:var(--accent2)}
+.s-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.s-value{font-size:1.9rem;font-weight:800;line-height:1}
+.s-sub{font-size:.75rem;color:var(--muted);margin-top:.3rem}
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.full-width{grid-column:1/-1}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1rem;border-bottom:1px solid var(--border);background:var(--card2)}
+.card-title{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent2)}
+.card-body{padding:1rem}
+/* NODE GRID */
+.node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem}
+.node-card{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.7rem;cursor:pointer;transition:all .2s;position:relative}
+.node-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 20px rgba(59,130,246,.2)}
+.node-card.offline{opacity:.5;border-color:var(--red)}
+.node-card.warning{border-color:var(--yellow)}
+.node-card.critical{border-color:var(--red);animation:blink-border .8s infinite}
+@keyframes blink-border{0%,100%{border-color:var(--red)}50%{border-color:transparent}}
+.node-status-dot{width:8px;height:8px;border-radius:50%;position:absolute;top:.5rem;right:.5rem}
+.dot-green{background:var(--green)}.dot-yellow{background:var(--yellow)}.dot-red{background:var(--red);animation:pulse .8s infinite}
+.node-name{font-size:.78rem;font-weight:700;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node-type{font-size:.68rem;color:var(--muted);margin-bottom:.5rem}
+.mini-bar-label{font-size:.65rem;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:1px}
+.mini-bar{height:4px;background:var(--border);border-radius:2px;margin-bottom:.3rem;overflow:hidden}
+.mini-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.bar-green{background:var(--green)}.bar-yellow{background:var(--yellow)}.bar-red{background:var(--red)}
+/* CHARTS */
+.chart-container{position:relative;height:220px}
+.chart-tabs{display:flex;gap:.3rem;margin-bottom:.6rem;flex-wrap:wrap}
+.chart-tab{padding:.25rem .7rem;border-radius:5px;font-size:.73rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.chart-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* SST PANEL */
+.sst-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.6rem}
+.sst-sensor{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.8rem;display:flex;flex-direction:column;gap:.4rem}
+.sst-sensor.ok{border-left:3px solid var(--green)}.sst-sensor.warning{border-left:3px solid var(--yellow)}.sst-sensor.critical{border-left:3px solid var(--red)}
+.sst-header{display:flex;justify-content:space-between;align-items:flex-start}
+.sst-name{font-size:.78rem;font-weight:700}
+.sst-zone{font-size:.65rem;color:var(--muted)}
+.sst-value{font-size:1.4rem;font-weight:800}
+.sst-unit{font-size:.7rem;color:var(--muted);font-weight:400}
+.sst-bar-wrap{display:flex;align-items:center;gap:.4rem}
+.sst-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.sst-fill{height:100%;border-radius:3px;transition:width .5s}
+.badge{display:inline-flex;align-items:center;padding:.15rem .5rem;border-radius:10px;font-size:.65rem;font-weight:700}
+.badge-ok{background:rgba(34,197,94,.15);color:var(--green)}.badge-warn{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-crit{background:rgba(239,68,68,.15);color:var(--red)}.badge-blue{background:rgba(59,130,246,.15);color:var(--accent)}
+/* MITIGATION PANEL */
+.mit-panel{background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(249,115,22,.05));border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:1rem;margin-bottom:1rem;display:none}
+.mit-panel.open{display:block}
+.mit-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.8rem}
+.mit-title{font-size:.9rem;font-weight:800;color:var(--red)}
+.mit-step{background:rgba(255,255,255,.04);border-radius:6px;padding:.55rem .8rem;margin-bottom:.35rem;display:flex;align-items:flex-start;gap:.6rem;border-left:2px solid var(--border);cursor:pointer;transition:all .2s}
+.mit-step:hover{border-left-color:var(--green);background:rgba(34,197,94,.06)}
+.mit-step.applied{border-left-color:var(--green);opacity:.6}
+.mit-step-num{font-size:.68rem;color:var(--muted);flex-shrink:0;padding-top:.1rem}
+.mit-step-desc{font-size:.78rem;flex:1}
+.mit-step-cmd{font-size:.65rem;color:var(--muted);font-family:monospace;margin-top:.15rem}
+.mit-step-btn{flex-shrink:0;padding:.2rem .5rem;font-size:.68rem;border-radius:4px;border:1px solid var(--green);color:var(--green);background:transparent;cursor:pointer;transition:all .2s}
+.mit-step-btn:hover{background:var(--green);color:#000}
+/* ESCALATION TIMER */
+.esc-timer{background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:.6rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;font-size:.78rem;display:none}
+.esc-timer.visible{display:flex}
+.esc-timer.critical{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4)}
+.esc-bar-wrap{display:flex;align-items:center;gap:.5rem;flex:1;margin:0 1rem}
+.esc-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.esc-fill{height:100%;background:var(--yellow);border-radius:3px;transition:width 1s linear}
+.esc-timer.critical .esc-fill{background:var(--red)}
+/* INCIDENTS & ALERTS */
+.incident-list{display:flex;flex-direction:column;gap:.4rem;max-height:300px;overflow-y:auto}
+.incident-item{background:var(--card2);border-radius:6px;padding:.6rem .8rem;border-left:3px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+.incident-item.active{border-left-color:var(--red)}.incident-item.resolved{border-left-color:var(--green)}.incident-item.detected{border-left-color:var(--yellow)}
+.inc-info{flex:1}
+.inc-title{font-size:.8rem;font-weight:600}.inc-meta{font-size:.68rem;color:var(--muted);margin-top:.15rem}
+.inc-actions{display:flex;gap:.3rem;flex-shrink:0}
+/* SSL TABLE */
+.ssl-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.ssl-table th{color:var(--muted);font-weight:600;text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--border)}
+.ssl-table td{padding:.4rem .6rem;border-bottom:1px solid rgba(30,45,69,.5)}
+.ssl-table tr:last-child td{border-bottom:none}
+/* ALERTS */
+.alert-list{display:flex;flex-direction:column;gap:.35rem;max-height:250px;overflow-y:auto}
+.alert-item{background:var(--card2);border-radius:6px;padding:.5rem .8rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-left:3px solid var(--border)}
+.alert-item.warning{border-left-color:var(--yellow)}.alert-item.critical{border-left-color:var(--red)}.alert-item.info{border-left-color:var(--accent)}
+.alert-msg{font-size:.78rem;flex:1}
+.alert-time{font-size:.66rem;color:var(--muted);white-space:nowrap}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:720px;max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;border-bottom:1px solid var(--border)}
+.modal-title{font-size:1rem;font-weight:700}
+.modal-close{background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:1.2rem}
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem}
+.detail-metric{background:var(--card2);border-radius:8px;padding:.7rem;text-align:center}
+.dm-label{font-size:.68rem;color:var(--muted)}
+.dm-value{font-size:1.3rem;font-weight:800}
+.dm-unit{font-size:.68rem;color:var(--muted)}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--card)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* NOTIFICATION */
+.notif{position:fixed;bottom:1rem;right:1rem;z-index:300;display:flex;flex-direction:column;gap:.4rem;max-width:320px}
+.notif-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;display:flex;align-items:flex-start;gap:.6rem;animation:slide-in .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.notif-item.crit{border-left:3px solid var(--red)}.notif-item.warn{border-left:3px solid var(--yellow)}.notif-item.ok{border-left:3px solid var(--green)}
+@keyframes slide-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.notif-text{font-size:.78rem;flex:1}
+.notif-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1}
+/* RESPONSIVE */
+@media(max-width:900px){.main-grid{grid-template-columns:1fr}.detail-grid{grid-template-columns:repeat(2,1fr)}}
+/* ── LAB DE MITIGACIÓN ─────────────────────────────────────── */
+.lab-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}.lab-container{background:#0f1117;border:1px solid #334155;border-radius:16px;width:min(96vw,980px);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}.lab-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #1e2d45;background:#131825}.lab-header h2{font-size:1.1rem;font-weight:800;color:#a78bfa;margin:0}.lab-meta{font-size:.75rem;color:#64748b}.lab-close{background:none;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:1rem;cursor:pointer;padding:4px 10px}.lab-body{flex:1;overflow-y:auto;padding:20px 24px}.scenario-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px}.scenario-card{background:#1e2433;border:1px solid #334155;border-radius:10px;padding:14px;cursor:pointer;transition:all .15s}.scenario-card:hover{border-color:#7c3aed;background:#1a1f35;transform:translateY(-2px)}.scenario-card .sc-name{font-weight:700;font-size:.85rem;margin-bottom:4px}.scenario-card .sc-meta{font-size:.7rem;color:#64748b}.sc-sev-high{color:#f87171}.sc-sev-critical{color:#ef4444}.sc-sev-medium{color:#fbbf24}.sc-sev-low{color:#34d399}.lab-info-bar{display:flex;gap:20px;align-items:center;background:#131825;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#94a3b8}.lab-info-bar strong{color:#e2e8f0}.lab-steps-area{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}.lab-step{display:flex;align-items:center;gap:12px;background:#1e2433;border:1px solid #334155;border-radius:10px;padding:12px 16px;transition:all .2s}.lab-step.active{border-color:#7c3aed;background:#1a1535}.lab-step.done{border-color:#22c55e;background:#0f2318;opacity:.85}.lab-step.done .step-exec-btn{display:none}.lab-step.pending{opacity:.5}.step-num{width:28px;height:28px;border-radius:50%;background:#1e3050;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}.lab-step.done .step-num{background:#16a34a;color:white}.lab-step.active .step-num{background:#7c3aed;color:white}.step-info{flex:1}.step-desc{font-size:.82rem;font-weight:600}.step-cmd{font-size:.7rem;color:#64748b;font-family:monospace;margin-top:2px}.step-exec-btn{background:#7c3aed;border:none;border-radius:6px;color:white;font-size:.75rem;font-weight:700;padding:6px 14px;cursor:pointer;white-space:nowrap}.step-exec-btn:hover{background:#6d28d9}.step-exec-btn:disabled{opacity:.4;cursor:not-allowed}.step-check{color:#22c55e;font-size:1.1rem;display:none}.lab-step.done .step-check{display:block}.lab-terminal{background:#070b10;border:1px solid #1e3050;border-radius:8px;font-family:'Courier New',monospace;font-size:.75rem;min-height:140px;max-height:200px;overflow-y:auto}.term-hdr{background:#131825;border-bottom:1px solid #1e3050;padding:6px 14px;color:#64748b;font-size:.7rem;display:flex;align-items:center;gap:6px}.term-dot{width:10px;height:10px;border-radius:50%}.term-body{padding:12px 14px;color:#86efac;line-height:1.7}.term-line{white-space:pre-wrap;margin:0}.term-line.cmd{color:#60a5fa}.term-line.ok{color:#22c55e}.term-line.err{color:#ef4444}.term-cursor{display:inline-block;width:8px;height:14px;background:#60a5fa;animation:blink .7s infinite;vertical-align:text-bottom}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}.lab-score-wrap{text-align:center;padding:20px 0}.score-num{font-size:4rem;font-weight:900;line-height:1}.score-grade{font-size:1.3rem;font-weight:700;margin:8px 0}.score-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;text-align:center}.score-stat{background:#1e2433;border-radius:8px;padding:12px}.score-stat .sv{font-size:1.4rem;font-weight:800}.score-stat .sl{font-size:.7rem;color:#64748b;margin-top:2px}.lab-report-btn{background:#1d4ed8;border:none;border-radius:8px;color:white;font-size:.9rem;font-weight:700;padding:12px 28px;cursor:pointer;margin:8px;transition:all .15s}.lab-report-btn:hover{background:#2563eb;transform:translateY(-1px)}.lab-report-btn.secondary{background:#1e2433;border:1px solid #334155;color:#94a3b8}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🖥️</div>
+    DC Monitoring Simulator
+  </div>
+  <div class="header-right">
+    <div class="ws-badge"><div class="ws-dot" id="wsDot"></div><span id="wsStatus">Conectando...</span></div>
+    <span class="user-info" id="userInfo">Cargando...</span>
+    <a href="/instructor" class="btn btn-outline btn-sm" id="instLink" style="display:none">Panel Instructor</a>
+    <a href="/analytics-page" class="btn btn-outline btn-sm">Analytics</a>
+    <a href="/reports-page" class="btn btn-outline btn-sm">Reportes</a>
+    <button id="labNavBtn" onclick="openLab()" style="background:#7c3aed;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F9EA; Lab</button>
+    <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- SUMMARY CARDS -->
+  <div class="summary-grid">
+    <div class="s-card blue"><div class="s-label">Nodos Online</div><div class="s-value" id="sc-online">—</div><div class="s-sub" id="sc-total">de — total</div></div>
+    <div class="s-card green"><div class="s-label">CPU Promedio</div><div class="s-value" id="sc-cpu">—</div><div class="s-sub">% utilización</div></div>
+    <div class="s-card yellow"><div class="s-label">RAM Promedio</div><div class="s-value" id="sc-ram">—</div><div class="s-sub">% utilización</div></div>
+    <div class="s-card cyan"><div class="s-label">Net IN Total</div><div class="s-value" id="sc-netin">—</div><div class="s-sub">Mbps agregado</div></div>
+    <div class="s-card purple"><div class="s-label">Ataques Activos</div><div class="s-value" id="sc-attacks">0</div><div class="s-sub">en este momento</div></div>
+    <div class="s-card red"><div class="s-label">Incidentes</div><div class="s-value" id="sc-incidents">0</div><div class="s-sub">sin resolver</div></div>
+  </div>
+
+  <!-- ESCALATION TIMER -->
+  <div class="esc-timer" id="escTimer">
+    <div>
+      <span id="escIcon">⚠️</span>
+      <strong id="escMsg">Incidente sin detectar</strong>
+    </div>
+    <div class="esc-bar-wrap">
+      <div class="esc-bar"><div class="esc-fill" id="escFill" style="width:0%"></div></div>
+      <span id="escTime" style="font-size:.72rem;color:var(--yellow);min-width:2.5rem">0s</span>
+    </div>
+    <button class="btn btn-warn btn-sm" id="escDetectBtn" style="display:none" onclick="quickDetect()">⚡ Detectar ahora</button>
+  </div>
+
+  <!-- MITIGATION GUIDANCE PANEL -->
+  <div class="mit-panel" id="mitPanel">
+    <div class="mit-header">
+      <div>
+        <div class="mit-title" id="mitTitle">🚨 Ataque detectado — Plan de mitigación</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem" id="mitSubtitle"></div>
+      </div>
+      <button onclick="closeMitPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+    </div>
+    <div id="mitSteps"></div>
+    <div style="margin-top:.6rem;display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" id="mitResolveBtn" onclick="quickResolve()">✅ Marcar como resuelto</button>
+      <a href="/analytics-page" class="btn btn-outline btn-sm">📚 Ver catálogo completo</a>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- NODES -->
+    <div class="card full-width">
+      <div class="card-header">
+        <span class="card-title">🖥️ Nodos del Datacenter (click para detalles)</span>
+        <div style="display:flex;gap:.4rem;align-items:center">
+          <span class="badge badge-ok" id="badge-online">— online</span>
+          <span class="badge badge-crit" id="badge-offline">— offline</span>
+          <span class="badge badge-warn" id="badge-warn">— warning</span>
+        </div>
+      </div>
+      <div class="card-body"><div class="node-grid" id="nodeGrid"></div></div>
+    </div>
+
+    <!-- CHART: CPU/RAM Historical -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 Métricas en Tiempo Real</span>
+        <div class="chart-tabs" id="chartTabs"></div>
+      </div>
+      <div class="card-body">
+        <div class="chart-container"><canvas id="mainChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CHART: Network -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🌐 Tráfico de Red (Mbps)</span>
+        <select id="netNodeSelect" onchange="switchNetNode(this.value)" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:.2rem .5rem;font-size:.75rem"></select>
+      </div>
+      <div class="card-body">
+        <div class="chart-container"><canvas id="netChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- INCIDENTS -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🚨 Incidentes Activos</span>
+        <button onclick="loadIncidents()" class="btn btn-outline btn-sm">Actualizar</button>
+      </div>
+      <div class="card-body"><div class="incident-list" id="incidentList"><div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin incidentes activos</div></div></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⚠️ Alertas del Sistema</span>
+        <span class="badge badge-blue" id="alertCount">0 activas</span>
+      </div>
+      <div class="card-body"><div class="alert-list" id="alertList"><div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin alertas</div></div></div>
+    </div>
+
+    <!-- SST SENSORS -->
+    <div class="card full-width">
+      <div class="card-header">
+        <span class="card-title">🌡️ SST — Salud y Seguridad del Datacenter</span>
+        <span class="badge badge-ok" id="sst-ok-badge">— OK</span>
+        <span class="badge badge-warn" id="sst-warn-badge" style="margin-left:.3rem">— Warning</span>
+        <span class="badge badge-crit" id="sst-crit-badge" style="margin-left:.3rem">— Critical</span>
+      </div>
+      <div class="card-body"><div class="sst-grid" id="sstGrid"></div></div>
+    </div>
+
+    <!-- SSL CERTS -->
+    <div class="card full-width">
+      <div class="card-header">
+        <span class="card-title">🔒 Certificados SSL/TLS</span>
+        <span id="ssl-summary" class="badge badge-ok">Cargando...</span>
+      </div>
+      <div class="card-body" style="overflow-x:auto">
+        <table class="ssl-table">
+          <thead><tr><th>Nodo</th><th>Dominio</th><th>Estado</th><th>Algoritmo</th><th>Expira</th><th>Días Restantes</th></tr></thead>
+          <tbody id="sslTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NODE DETAIL MODAL -->
+<div class="modal-overlay" id="nodeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">Nodo</div>
+        <div style="font-size:.75rem;color:var(--muted)" id="modalSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="detailGrid"></div>
+      <div style="margin-top:.5rem">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.4rem">Historial últimos 60 puntos (2s/punto ≈ 2 min)</div>
+        <div style="position:relative;height:160px"><canvas id="modalChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="notif" id="notifContainer"></div>
+
+<script>
+const TOKEN = localStorage.getItem('token');
+const STUDENT = JSON.parse(localStorage.getItem('student') || '{}');
+if (!TOKEN) { location.href = '/login'; }
+
+// Show user info
+document.getElementById('userInfo').textContent = STUDENT.name || STUDENT.email || 'Estudiante';
+if (STUDENT.role === 'instructor') {
+  document.getElementById('instLink').style.display = '';
+}
+
+// ── STATE ──────────────────────────────────────────────────
+const MAX_HISTORY = 60;
+const nodeHistory = {}; // node_id → {cpu:[], ram:[], net_in:[], net_out:[], latency:[], labels:[]}
+let allNodes = {};
+let selectedChartNode = null;
+let selectedNetNode = null;
+let mainChart = null;
+let netChart = null;
+let modalChart = null;
+let currentSessionId = null;
+
+// ── SESSION INIT ──────────────────────────────────────────────
+async function initSession() {
+  if (!STUDENT.id) return;
+  try {
+    const r = await apiFetch('/api/students/sessions/start', {
+      method: 'POST',
+      body: JSON.stringify({ student_id: STUDENT.id })
+    });
+    currentSessionId = r.session_id;
+  } catch(e) { console.warn('initSession:', e); }
+}
+
+// ── SST STATUS POLLING ─────────────────────────────────────────
+async function loadSSTStatus() {
+  try {
+    const sensors = await apiFetch('/api/metrics/sst');
+    if (!sensors || !sensors.length) return;
+    const units = { temperature: '°C', humidity: '%', smoke: 'ppm', ups: 'V', power: 'kW', access_control: '' };
+    const mapped = sensors.map(s => {
+      const val = s.temperature_c !== undefined ? s.temperature_c
+                : s.humidity_pct  !== undefined ? s.humidity_pct
+                : s.smoke_ppm     !== undefined ? s.smoke_ppm
+                : s.battery_pct   !== undefined ? s.battery_pct
+                : s.voltage_v     !== undefined ? s.voltage_v
+                : s.value         !== undefined ? s.value : '--';
+      return {
+        id: s.id || s.sensor_id,
+        name: s.name || s.sensor_name,
+        zone: s.zone || '',
+        type: s.type || 'sensor',
+        status: s.alert_level === 'critical' ? 'critical' : s.alert_level === 'warning' ? 'warning' : 'ok',
+        value: val,
+        unit: units[s.type] || s.unit || '',
+        normal_min: s.normal_min,
+        normal_max: s.normal_max
+      };
+    });
+    updateSST(mapped);
+  } catch(e) { console.warn('SST polling:', e); }
+}
+
+// ── WEBSOCKET ───────────────────────────────────────────────
+let ws = null;
+let wsReconnectTimer = null;
+function connectWS() {
+  const wsUrl = `ws://${location.host}/ws?token=${TOKEN}`;
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => {
+    document.getElementById('wsDot').className = 'ws-dot connected';
+    document.getElementById('wsStatus').textContent = 'En vivo';
+  };
+  ws.onclose = () => {
+    document.getElementById('wsDot').className = 'ws-dot';
+    document.getElementById('wsStatus').textContent = 'Reconectando...';
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = setTimeout(connectWS, 3000);
+  };
+  ws.onmessage = (e) => {
+    try { handleWSMessage(JSON.parse(e.data)); } catch(_) {}
+  };
+}
+
+function handleWSMessage(msg) {
+  switch (msg.event) {
+    case 'metrics':              handleMetrics(msg.data); break;
+    case 'new_incident':         handleNewIncident(msg.data); break;
+    case 'incident_detected':    notify('🔍 Incidente detectado', msg.data.detected_by + ' detectó evento', 'warn'); break;
+    case 'incident_resolved':    notify('✅ Resuelto', 'Incidente cerrado', 'ok'); loadIncidents(); break;
+    case 'sst_alerts':           handleSSTAlert(msg.data); break;
+    case 'incident_escalated':   handleEscalation(msg.data); break;
+    case 'incident_auto_detected': handleAutoDetect(msg.data); break;
+    case 'apt_phase':            handleAPTPhase(msg.data); break;
+  }
+}
+
+// ── METRICS HANDLER ─────────────────────────────────────────
+function handleMetrics(data) {
+  allNodes = data.nodes || {};
+
+  // Summary cards
+  const nodes = Object.values(allNodes);
+  const total = nodes.length;
+  const online = nodes.filter(n => n.metrics?.is_online !== false).length;
+  const cpuAvg = nodes.reduce((s,n)=>s+(n.metrics?.cpu_pct||0),0)/Math.max(total,1);
+  const ramAvg = nodes.reduce((s,n)=>s+(n.metrics?.ram_pct||0),0)/Math.max(total,1);
+  const netIn  = nodes.reduce((s,n)=>s+(n.metrics?.net_in_mbps||0),0);
+  const warns  = nodes.filter(n => (n.metrics?.cpu_pct||0)>75 || (n.metrics?.ram_pct||0)>80).length;
+  const offline = total - online;
+
+  document.getElementById('sc-online').textContent = online;
+  document.getElementById('sc-total').textContent = `de ${total} total`;
+  document.getElementById('sc-cpu').textContent = cpuAvg.toFixed(1) + '%';
+  document.getElementById('sc-ram').textContent = ramAvg.toFixed(1) + '%';
+  document.getElementById('sc-netin').textContent = netIn.toFixed(0);
+  document.getElementById('sc-attacks').textContent = Object.keys(data.active_attacks||{}).length;
+  document.getElementById('badge-online').textContent = `${online} online`;
+  document.getElementById('badge-offline').textContent = `${offline} offline`;
+  document.getElementById('badge-warn').textContent = `${warns} warning`;
+
+  // Update history
+  const ts = new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  for (const [id, node] of Object.entries(allNodes)) {
+    if (!nodeHistory[id]) nodeHistory[id] = {cpu:[],ram:[],net_in:[],net_out:[],latency:[],labels:[]};
+    const h = nodeHistory[id];
+    const m = node.metrics || {};
+    h.cpu.push(+(m.cpu_pct||0).toFixed(1));
+    h.ram.push(+(m.ram_pct||0).toFixed(1));
+    h.net_in.push(+(m.net_in_mbps||0).toFixed(1));
+    h.net_out.push(+(m.net_out_mbps||0).toFixed(1));
+    h.latency.push(+(m.latency_ms||0).toFixed(1));
+    h.labels.push(ts);
+    if (h.cpu.length > MAX_HISTORY) {
+      ['cpu','ram','net_in','net_out','latency','labels'].forEach(k=>h[k].shift());
+    }
+  }
+
+  renderNodeGrid();
+  updateMainChart();
+  updateNetChart();
+  updateSST(data.sst || []);
+}
+
+// ── NODE GRID ────────────────────────────────────────────────
+function renderNodeGrid() {
+  const grid = document.getElementById('nodeGrid');
+  const nodeIds = Object.keys(allNodes);
+
+  // Initialize chart node selects
+  if (!selectedChartNode && nodeIds.length) {
+    selectedChartNode = nodeIds[0];
+    buildChartTabs(nodeIds);
+    buildNetSelect(nodeIds);
+    selectedNetNode = nodeIds[0];
+  }
+
+  let onlineC=0, offlineC=0, warnC=0;
+  grid.innerHTML = nodeIds.map(id => {
+    const n = allNodes[id];
+    const m = n.metrics || {};
+    const isOnline = m.is_online !== false;
+    const cpu = m.cpu_pct||0, ram = m.ram_pct||0;
+    const isCrit = cpu > 90 || ram > 92;
+    const isWarn = cpu > 75 || ram > 80;
+    const statusClass = !isOnline ? 'offline' : isCrit ? 'critical' : isWarn ? 'warning' : '';
+    const dotClass = !isOnline ? 'dot-red' : isCrit ? 'dot-red' : isWarn ? 'dot-yellow' : 'dot-green';
+    if (isOnline) { onlineC++; if (isCrit||isWarn) warnC++; } else offlineC++;
+
+    const cpuBarColor = cpu>80?'bar-red':cpu>60?'bar-yellow':'bar-green';
+    const ramBarColor = ram>85?'bar-red':ram>70?'bar-yellow':'bar-green';
+
+    return `<div class="node-card ${statusClass}" onclick="openNodeModal('${id}')">
+      <div class="node-status-dot ${dotClass}"></div>
+      <div class="node-name" title="${n.name||id}">${n.name||id}</div>
+      <div class="node-type">${n.type||''}</div>
+      <div class="mini-bar-label"><span>CPU</span><span>${cpu.toFixed(0)}%</span></div>
+      <div class="mini-bar"><div class="mini-bar-fill ${cpuBarColor}" style="width:${cpu}%"></div></div>
+      <div class="mini-bar-label"><span>RAM</span><span>${ram.toFixed(0)}%</span></div>
+      <div class="mini-bar"><div class="mini-bar-fill ${ramBarColor}" style="width:${ram}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── CHART TABS ───────────────────────────────────────────────
+function buildChartTabs(nodeIds) {
+  const tabs = document.getElementById('chartTabs');
+  // Show first 6 nodes as tabs
+  tabs.innerHTML = nodeIds.slice(0,6).map(id =>
+    `<button class="chart-tab ${id===selectedChartNode?'active':''}" onclick="selectChartNode('${id}',this)">${id}</button>`
+  ).join('');
+  initMainChart();
+}
+
+function selectChartNode(id, btn) {
+  selectedChartNode = id;
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  updateMainChart();
+}
+
+function initMainChart() {
+  if (mainChart) mainChart.destroy();
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: 'CPU %', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+      { label: 'RAM %', data: [], borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+      { label: 'Latencia ms', data: [], borderColor: '#f97316', backgroundColor: 'transparent', fill: false, tension: .4, pointRadius: 0, borderWidth: 1.5, yAxisID: 'y2' },
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 6, font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+        y: { min: 0, max: 100, ticks: { color: '#64748b', font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+        y2: { position: 'right', min: 0, ticks: { color: '#f97316', font:{size:10} }, grid: { display: false } },
+      },
+      plugins: { legend: { labels: { color: '#e2e8f0', font:{size:11}, boxWidth:10 } } }
+    }
+  });
+}
+
+function updateMainChart() {
+  if (!mainChart || !selectedChartNode) return;
+  const h = nodeHistory[selectedChartNode];
+  if (!h) return;
+  mainChart.data.labels = [...h.labels];
+  mainChart.data.datasets[0].data = [...h.cpu];
+  mainChart.data.datasets[1].data = [...h.ram];
+  mainChart.data.datasets[2].data = [...h.latency];
+  mainChart.update('none');
+}
+
+// ── NET CHART ────────────────────────────────────────────────
+function buildNetSelect(nodeIds) {
+  const sel = document.getElementById('netNodeSelect');
+  sel.innerHTML = nodeIds.map(id=>`<option value="${id}">${id}</option>`).join('');
+  selectedNetNode = nodeIds[0];
+  initNetChart();
+}
+
+function switchNetNode(id) {
+  selectedNetNode = id;
+  updateNetChart();
+}
+
+function initNetChart() {
+  if (netChart) netChart.destroy();
+  const ctx = document.getElementById('netChart').getContext('2d');
+  netChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: 'Net IN', data: [], borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+      { label: 'Net OUT', data: [], borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,.05)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 6, font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+        y: { min: 0, ticks: { color: '#64748b', font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+      },
+      plugins: { legend: { labels: { color: '#e2e8f0', font:{size:11}, boxWidth:10 } } }
+    }
+  });
+}
+
+function updateNetChart() {
+  if (!netChart || !selectedNetNode) return;
+  const h = nodeHistory[selectedNetNode];
+  if (!h) return;
+  netChart.data.labels = [...h.labels];
+  netChart.data.datasets[0].data = [...h.net_in];
+  netChart.data.datasets[1].data = [...h.net_out];
+  netChart.update('none');
+}
+
+// ── SST ──────────────────────────────────────────────────────
+function updateSST(sstData) {
+  if (!sstData || !sstData.length) return;
+  const grid = document.getElementById('sstGrid');
+  let okC=0, warnC=0, critC=0;
+  grid.innerHTML = sstData.map(s => {
+    const status = s.status || 'ok';
+    if (status==='ok') okC++; else if (status==='warning') warnC++; else critC++;
+    const val = s.value !== undefined ? s.value : s.temperature || s.humidity || s.battery_pct || s.voltage_v || '--';
+    const norm = s.normal_max && s.normal_min ? ((val - s.normal_min)/(s.normal_max - s.normal_min)*100) : 50;
+    const fillPct = Math.min(100, Math.max(0, norm));
+    const fillColor = status==='ok'?'var(--green)':status==='warning'?'var(--yellow)':'var(--red)';
+    const icon = {temperature:'🌡️',humidity:'💧',smoke:'🔥',ups:'⚡',power:'🔌',access_control:'🚪'}[s.type]||'📡';
+    const badgeClass = status==='ok'?'badge-ok':status==='warning'?'badge-warn':'badge-crit';
+    return `<div class="sst-sensor ${status}">
+      <div class="sst-header">
+        <div><div class="sst-name">${icon} ${s.name||s.id}</div><div class="sst-zone">${s.zone||''}</div></div>
+        <span class="badge ${badgeClass}">${status.toUpperCase()}</span>
+      </div>
+      <div><span class="sst-value">${typeof val==='number'?val.toFixed(1):val}</span><span class="sst-unit"> ${s.unit||''}</span></div>
+      <div class="sst-bar-wrap">
+        <div class="sst-bar"><div class="sst-fill" style="width:${fillPct}%;background:${fillColor}"></div></div>
+        <span style="font-size:.65rem;color:var(--muted)">${s.normal_min||''}–${s.normal_max||''}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('sst-ok-badge').textContent = `${okC} OK`;
+  document.getElementById('sst-warn-badge').textContent = `${warnC} Warning`;
+  document.getElementById('sst-crit-badge').textContent = `${critC} Critical`;
+  if (critC > 0) notify('🔥 Alerta SST', `${critC} sensor(es) en estado crítico`, 'crit');
+}
+
+// ── SSL ───────────────────────────────────────────────────────
+async function loadSSL() {
+  try {
+    const r = await apiFetch('/api/metrics/ssl');
+    const tbody = document.getElementById('sslTbody');
+    if (!r || !r.length) { tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center">Sin datos SSL aún (espera unos segundos)</td></tr>'; return; }
+    let expired=0, expiring=0, ok=0;
+    tbody.innerHTML = r.map(c => {
+      const days = c.days_until_expiry ?? c.days_remaining ??
+        (c.expires_at ? Math.round((new Date(c.expires_at) - new Date()) / 86400000) : '?');
+      const status = c.status || (days < 0 ? 'expired' : days < 30 ? 'expiring_soon' : 'valid');
+      const sc = status === 'valid' ? 'badge-ok' : status === 'expiring_soon' ? 'badge-warn' : 'badge-crit';
+      const label = status === 'valid' ? '✅ Válido' : status === 'expiring_soon' ? '⚠️ Por vencer' : '❌ Expirado';
+      if (status==='expired') expired++; else if (status==='expiring_soon') expiring++; else ok++;
+      const dColor = days < 0 ? 'color:var(--red)' : days < 30 ? 'color:var(--yellow)' : 'color:var(--green)';
+      return `<tr>
+        <td><strong>${c.node_id||'—'}</strong></td>
+        <td style="color:var(--accent2)">${c.domain||'—'}</td>
+        <td><span class="badge ${sc}">${label}</span></td>
+        <td style="color:var(--muted)">${c.algorithm||c.signature_algorithm||'RSA'}</td>
+        <td style="color:var(--muted)">${c.expires_at ? new Date(c.expires_at).toLocaleDateString('es') : '—'}</td>
+        <td style="${dColor};font-weight:700">${days} días</td>
+      </tr>`;
+    }).join('');
+    const total = r.length;
+    document.getElementById('ssl-summary').textContent = `${ok}/${total} válidos`;
+    document.getElementById('ssl-summary').className = `badge ${expired>0?'badge-crit':expiring>0?'badge-warn':'badge-ok'}`;
+  } catch(e) { console.warn('SSL load failed:', e); }
+}
+
+// ── INCIDENTS ────────────────────────────────────────────────
+async function loadIncidents() {
+  try {
+    const r = await apiFetch('/api/attacks/incidents/active');
+    const list = document.getElementById('incidentList');
+    document.getElementById('sc-incidents').textContent = r.length || 0;
+    if (!r.length) { list.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin incidentes activos ✅</div>'; return; }
+    list.innerHTML = r.map(i => {
+      const since = i.started_at ? new Date(i.started_at).toLocaleTimeString('es') : '—';
+      const sevClass = i.severity === 'critical' ? 'badge-crit' : i.severity === 'warning' ? 'badge-warn' : 'badge-blue';
+      return `<div class="incident-item ${i.status}">
+        <div class="inc-info">
+          <div class="inc-title">${i.incident_type?.toUpperCase()||'INCIDENTE'} — ${i.node_affected||'—'}</div>
+          <div class="inc-meta">${i.description||''} | ${since}</div>
+        </div>
+        <div class="inc-actions">
+          <span class="badge ${sevClass}">${i.severity||'—'}</span>
+          <button class="btn btn-sm btn-outline" onclick="detectIncident(${i.id})">Detectar</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function detectIncident(id) {
+  const sessId = 1; // usar sesión activa
+  try {
+    const r = await apiFetch(`/api/attacks/incidents/detect?incident_id=${id}&session_id=${sessId}`, {method:'POST'});
+    notify('🔍 Detectado', `MTTD: ${r.mttd_seconds?.toFixed(1)}s`, 'warn');
+    loadIncidents();
+  } catch(e) { notify('Error', 'No se pudo detectar', 'crit'); }
+}
+
+function handleNewIncident(data) {
+  notify('🚨 Nuevo Ataque', data.message || 'Incidente inyectado', 'crit');
+  loadIncidents();
+  loadAlerts();
+}
+
+// ── ALERTS ───────────────────────────────────────────────────
+async function loadAlerts() {
+  try {
+    const r = await apiFetch('/api/metrics/alerts');
+    const list = document.getElementById('alertList');
+    document.getElementById('alertCount').textContent = `${r.length} activas`;
+    if (!r.length) { list.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin alertas</div>'; return; }
+    list.innerHTML = r.slice(0,20).map(a => {
+      const t = a.created_at ? new Date(a.created_at).toLocaleTimeString('es') : '';
+      const cls = a.severity === 'critical' ? 'critical' : a.severity === 'warning' ? 'warning' : 'info';
+      return `<div class="alert-item ${cls}">
+        <div class="alert-msg">${a.message||a.alert_type||'Alerta'}</div>
+        <div style="display:flex;gap:.3rem;align-items:center;flex-shrink:0">
+          <span class="alert-time">${t}</span>
+          <button class="btn btn-sm btn-outline" onclick="ackAlert(${a.id})">ACK</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function ackAlert(id) {
+  try { await apiFetch(`/api/metrics/alerts/${id}/ack`, {method:'POST'}); loadAlerts(); } catch(e) {}
+}
+
+function handleSSTAlert(data) {
+  const alerts = data.alerts || [];
+  if (!alerts.length) return;
+  const units  = {temperature:'°C', humidity:'%', smoke:'ppm', ups:'V', power:'kW', access_control:''};
+  const ranges = {temperature:{min:18,max:35}, humidity:{min:30,max:70}, smoke:{min:0,max:10}, ups:{min:220,max:240}, power:{min:0,max:100}};
+  const mapped = alerts.map(s => {
+    const val = s.temperature_c ?? s.humidity_pct ?? s.smoke_ppm ?? s.battery_pct ?? s.voltage_v ?? s.value ?? '--';
+    const r = ranges[s.type] || {min:0, max:100};
+    return {
+      id: s.sensor_id,
+      name: s.sensor_name || s.sensor_id,
+      zone: s.zone || '',
+      type: s.type || 'sensor',
+      status: s.alert_level === 'critical' ? 'critical' : s.alert_level === 'warning' ? 'warning' : 'ok',
+      value: val,
+      unit: units[s.type] || '',
+      normal_min: r.min,
+      normal_max: r.max
+    };
+  });
+  updateSST(mapped);
+  const crit = mapped.filter(s => s.status === 'critical');
+  const warn = mapped.filter(s => s.status === 'warning');
+  if (crit.length) notify(`🌡️ SST Crítico`, `${crit[0].name}: valor fuera de rango`, 'crit');
+  else if (warn.length) notify(`⚠️ SST Alerta`, `${warn.length} sensor(es) con advertencia`, 'warn');
+}
+
+// ── NODE MODAL ────────────────────────────────────────────────
+function openNodeModal(nodeId) {
+  const node = allNodes[nodeId];
+  if (!node) return;
+  const m = node.metrics || {};
+  document.getElementById('modalTitle').textContent = `${node.name || nodeId}`;
+  document.getElementById('modalSubtitle').textContent = `${node.type||''} • IP: ${node.ip||'—'} • Zona: ${node.zone||'—'} • ${m.is_online!==false?'🟢 Online':'🔴 Offline'}`;
+
+  const metrics = [
+    {label:'CPU', value: (m.cpu_pct||0).toFixed(1), unit:'%'},
+    {label:'RAM', value: (m.ram_pct||0).toFixed(1), unit:'%'},
+    {label:'Disco Usado', value: (m.disk_used_pct||0).toFixed(1), unit:'%'},
+    {label:'Disk I/O', value: (m.disk_io_mbps||0).toFixed(1), unit:'MB/s'},
+    {label:'Net IN', value: (m.net_in_mbps||0).toFixed(1), unit:'Mbps'},
+    {label:'Net OUT', value: (m.net_out_mbps||0).toFixed(1), unit:'Mbps'},
+    {label:'Latencia', value: (m.latency_ms||0).toFixed(1), unit:'ms'},
+    {label:'Pérd. Paquetes', value: (m.packet_loss_pct||0).toFixed(2), unit:'%'},
+    {label:'Conexiones', value: m.connections||0, unit:''},
+  ];
+  document.getElementById('detailGrid').innerHTML = metrics.map(d =>
+    `<div class="detail-metric">
+      <div class="dm-label">${d.label}</div>
+      <div class="dm-value">${d.value}<span class="dm-unit"> ${d.unit}</span></div>
+    </div>`
+  ).join('');
+
+  // Mini chart
+  const h = nodeHistory[nodeId];
+  if (modalChart) modalChart.destroy();
+  const ctx = document.getElementById('modalChart').getContext('2d');
+  modalChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: h ? [...h.labels] : [],
+      datasets: [
+        { label:'CPU %', data: h ? [...h.cpu] : [], borderColor:'#3b82f6', fill:false, tension:.4, pointRadius:0, borderWidth:2 },
+        { label:'RAM %', data: h ? [...h.ram] : [], borderColor:'#a855f7', fill:false, tension:.4, pointRadius:0, borderWidth:2 },
+        { label:'Net IN', data: h ? [...h.net_in] : [], borderColor:'#22c55e', fill:false, tension:.4, pointRadius:0, borderWidth:1.5 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{duration:0},
+      scales: {
+        x:{ticks:{color:'#64748b',maxTicksLimit:5,font:{size:9}},grid:{color:'rgba(30,45,69,.5)'}},
+        y:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'rgba(30,45,69,.5)'}}
+      },
+      plugins:{legend:{labels:{color:'#e2e8f0',font:{size:10},boxWidth:8}}}
+    }
+  });
+
+  document.getElementById('nodeModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('nodeModal').classList.remove('open');
+  if (modalChart) { modalChart.destroy(); modalChart = null; }
+}
+document.getElementById('nodeModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('nodeModal')) closeModal();
+});
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────
+const shownNotifs = new Set();
+function notify(title, msg, type='ok') {
+  const key = title + msg;
+  if (shownNotifs.has(key)) return;
+  shownNotifs.add(key);
+  setTimeout(() => shownNotifs.delete(key), 10000);
+  const container = document.getElementById('notifContainer');
+  const div = document.createElement('div');
+  div.className = `notif-item ${type}`;
+  div.innerHTML = `<div class="notif-text"><strong>${title}</strong><br><span style="color:var(--muted)">${msg}</span></div><button class="notif-close" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(div);
+  setTimeout(() => div.remove && div.remove(), 6000);
+}
+
+// ── API HELPER ────────────────────────────────────────────────
+async function apiFetch(url, opts={}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+  });
+  if (res.status === 401) { logout(); return; }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function logout() {
+  localStorage.removeItem('token'); localStorage.removeItem('student');
+  location.href = '/login';
+}
+
+// ── ESCALATION & MITIGATION ────────────────────────────────
+let escIncidentId = null;
+let escStartTime = null;
+let escInterval = null;
+
+function handleEscalation(data) {
+  const timer = document.getElementById('escTimer');
+  const msg   = document.getElementById('escMsg');
+  const fill  = document.getElementById('escFill');
+  const time  = document.getElementById('escTime');
+  const btn   = document.getElementById('escDetectBtn');
+  const icon  = document.getElementById('escIcon');
+
+  escIncidentId = data.incident_id;
+  escStartTime  = Date.now() - (data.elapsed_sec * 1000);
+  timer.classList.add('visible');
+  msg.textContent = `${data.attack_type?.toUpperCase()} en ${data.node} — ${data.message}`;
+
+  if (data.level === 'critical') {
+    timer.classList.add('critical');
+    icon.textContent = '🔴';
+    btn.style.display = '';
+  } else {
+    timer.classList.remove('critical');
+    icon.textContent = '⚠️';
+  }
+
+  clearInterval(escInterval);
+  escInterval = setInterval(() => {
+    const elapsed = (Date.now() - escStartTime) / 1000;
+    const pct = Math.min(100, (elapsed / 300) * 100);
+    fill.style.width = pct + '%';
+    time.textContent = Math.round(elapsed) + 's';
+  }, 1000);
+}
+
+function handleAutoDetect(data) {
+  document.getElementById('escTimer').classList.remove('visible');
+  clearInterval(escInterval);
+  notify(`🤖 Auto-detectado (penalización ${data.penalty}%)`, data.message, 'crit');
+  loadIncidents();
+}
+
+function handleAPTPhase(data) {
+  notify(`🔗 APT Fase ${data.phase}/${data.total_phases}`, `${data.description} — ${data.node}`, 'crit');
+  loadMitigationSuggestion(data.incident_id, data.attack_type, data.node);
+  loadIncidents();
+}
+
+async function quickDetect() {
+  if (!escIncidentId) return;
+  try {
+    const r = await apiFetch(`/api/attacks/incidents/detect?incident_id=${escIncidentId}&session_id=1`, {method:'POST'});
+    notify('✅ Detectado', `MTTD: ${r.mttd_seconds?.toFixed(1)}s`, 'ok');
+    document.getElementById('escTimer').classList.remove('visible');
+    clearInterval(escInterval);
+    await loadMitigationSuggestion(escIncidentId, null, null);
+    loadIncidents();
+  } catch(e) {}
+}
+
+async function loadMitigationSuggestion(incidentId, attackType, nodeId) {
+  if (!attackType) return;
+  try {
+    const plan = await apiFetch(`/api/analytics/mitigation/plan/${attackType}?node_id=${nodeId||'WEB-01'}`);
+    const panel = document.getElementById('mitPanel');
+    document.getElementById('mitTitle').textContent = `🚨 ${plan.mitigation_name}`;
+    document.getElementById('mitSubtitle').textContent = `Nodo: ${nodeId} | Recuperación estimada: ~${plan.expected_recovery_sec}s | Incidente #${incidentId}`;
+    document.getElementById('mitResolveBtn').dataset.incidentId = incidentId;
+
+    const stepsHtml = plan.steps.map((s, i) => {
+      const isAuto = plan.auto_actions.includes(s.action);
+      return `<div class="mit-step" id="step-${s.action}" onclick="applyStep('${incidentId}','${s.action}',this)">
+        <div class="mit-step-num">${i+1}</div>
+        <div style="flex:1">
+          <div class="mit-step-desc">${isAuto ? '<span style="color:var(--green);font-size:.65rem">★ AUTO</span> ' : ''}${s.desc}</div>
+          <div class="mit-step-cmd">${s.command}</div>
+        </div>
+        <button class="mit-step-btn">Aplicar</button>
+      </div>`;
+    }).join('');
+    document.getElementById('mitSteps').innerHTML = stepsHtml;
+    panel.classList.add('open');
+    panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  } catch(e) {}
+}
+
+async function applyStep(incidentId, action, el) {
+  try {
+    const r = await apiFetch(`/api/analytics/mitigation/apply?incident_id=${incidentId}&action=${action}`, {method:'POST'});
+    el.classList.add('applied');
+    el.querySelector('.mit-step-btn').textContent = '✅';
+    notify(`✅ ${action}`, r.desc?.slice(0,60), 'ok');
+  } catch(e) { notify('Error', e.message?.slice(0,60), 'crit'); }
+}
+
+async function quickResolve() {
+  const btn = document.getElementById('mitResolveBtn');
+  const incId = parseInt(btn.dataset.incidentId || '0');
+  if (!incId) return;
+  try {
+    await apiFetch('/api/attacks/incidents/resolve', {
+      method:'POST',
+      body: JSON.stringify({incident_id: incId, notes:'Resuelto desde panel de mitigación', root_cause:'Ver plan de mitigación aplicado'})
+    });
+    closeMitPanel();
+    notify('✅ Incidente resuelto', `Incidente #${incId} cerrado`, 'ok');
+    loadIncidents();
+  } catch(e) { notify('Error', e.message?.slice(0,60), 'crit'); }
+}
+
+function closeMitPanel() {
+  document.getElementById('mitPanel').classList.remove('open');
+}
+
+// Override handleNewIncident to also show mitigation panel
+const _origHandleNewIncident = handleNewIncident;
+function handleNewIncident(data) {
+  _origHandleNewIncident(data);
+  if (data.attack?.attack_type || data.incident_id) {
+    const atype = data.attack?.attack_type;
+    const node  = data.attack?.node_id || 'WEB-01';
+    const incId = data.incident_id;
+    if (atype && incId) {
+      setTimeout(() => loadMitigationSuggestion(incId, atype, node), 500);
+    }
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+initSession();
+loadSSTStatus();
+connectWS();
+loadIncidents();
+loadAlerts();
+loadSSL();
+setInterval(() => { loadIncidents(); loadAlerts(); loadSSL(); }, 15000);
+setInterval(loadSSTStatus, 5000);
+
+// ── LAB DE MITIGACIÓN ─────────────────────────────────────────
+const LAB_TERM={rate_limit:['$ iptables -I INPUT -p tcp --syn -m limit --limit 100/s -j ACCEPT','iptables: rule inserted','$ iptables -I INPUT -p tcp --syn -m limit --limit 100/s -j DROP','Rate limiting: 100 SYN/s threshold enforced','[OK] Rate limiting active on eth0'],anycast_routing:['$ ip route add blackhole 0.0.0.0/0 metric 250','Blackhole route added','$ birdc configure','Reconfigured. BGP announcements updated','[OK] Anycast routing updated'],scrubbing:['$ tc qdisc add dev eth0 root tbf rate 100mbit burst 32kbit latency 400ms','qdisc tbf 8001: dev eth0','$ nftables-scrub --enable --threshold 500kpps','Scrubbing active: 500k pps threshold','[OK] DDoS scrubbing pipeline enabled'],syn_cookies:['$ sysctl -w net.ipv4.tcp_syncookies=1','net.ipv4.tcp_syncookies = 1','$ sysctl -w net.ipv4.tcp_max_syn_backlog=4096','net.ipv4.tcp_max_syn_backlog = 4096','[OK] SYN cookies enabled'],syn_backlog:['$ sysctl -w net.ipv4.tcp_max_syn_backlog=8192','net.ipv4.tcp_max_syn_backlog = 8192','$ sysctl -w net.core.somaxconn=65535','net.core.somaxconn = 65535','[OK] SYN backlog expanded'],fail2ban:['$ systemctl start fail2ban','Started fail2ban.service','$ fail2ban-client set sshd bantime 3600','1','$ fail2ban-client status sshd','Currently banned: 47 IPs','[OK] fail2ban active'],psad_enable:['$ systemctl start psad','Started psad - Port Scan Attack Detector','$ psad --sig-update','Signatures updated: 4821 rules','[OK] PSAD monitoring all interfaces'],stealth_mode:['$ iptables -A INPUT -p tcp --dport 22 -j DROP','Port 22 dropped externally','$ iptables -A OUTPUT -p icmp -j DROP','ICMP suppressed','[OK] Stealth mode active'],arp_static:['$ arp -s 192.168.1.1 aa:bb:cc:dd:ee:ff','ARP entry added (static)','$ arp -n | grep PERM','192.168.1.1  aa:bb:cc:dd:ee:ff  PERM','[OK] Static ARP configured'],arpwatch:['$ systemctl start arpwatch','Started arpwatch.service','Monitoring eth0 for ARP anomalies','[OK] arpwatch running'],oom_config:['$ sysctl -w vm.overcommit_memory=2','vm.overcommit_memory = 2','$ systemctl kill -s SIGTERM leaky-process','Process terminated','$ free -h','Mem: 16G | 4.2G used | 11.8G free','[OK] Memory leak contained'],snapshot_mount:['$ lvcreate -L10G -s -n snap_data /dev/vg0/data','Logical volume snap_data created','$ mount /dev/vg0/snap_data /mnt/recovery','Snapshot mounted at /mnt/recovery','[OK] Disk snapshot active'],cpu_throttle:['$ cpupower frequency-set -u 1200MHz','Max CPU frequency: 1200 MHz','$ thermald --no-daemon &','thermald: CPU temperature control active','[OK] CPU throttled to 60%'],ups_activate:['$ upsc myups@localhost ups.status','OL DISCHRG -> OB DISCHRG','$ apcupsd --killpower','UPS batteries engaged','[OK] UPS activated'],load_shed:['$ systemctl stop nginx','Stopped nginx','$ systemctl stop mysql','Stopped mysql','$ systemctl isolate rescue.target','Emergency mode — critical systems only','[OK] Load shedding complete'],fire_suppression:['$ fire-panel activate-zone --zone=DC-A1','Zone DC-A1: CO2 suppression ACTIVATED','$ alert-system notify --type=fire','Notification sent to building control','[OK] Fire suppression engaged'],evacuate:['$ building-control evacuate-zone --zone=DC-A1','EVACUATION ALERT: Zone DC-A1','$ pa-system broadcast --msg="Evacuation"','Broadcast active on all PA channels','[OK] Evacuation protocol initiated'],isolate_segment:['$ iptables -I FORWARD -s 10.10.5.0/24 -j DROP','Segment isolated','$ vlan-mgr set-port-mode --port=eth3 --mode=quarantine','Port eth3 -> quarantine VLAN 999','[OK] Compromised segment isolated'],lets_encrypt:['$ certbot renew --cert-name datacenter.edu','Renewing certificate...','Successfully renewed. Expires: 2027-05-14','[OK] SSL certificate renewed'],reload_nginx:['$ nginx -t','nginx: configuration test OK','$ systemctl reload nginx','nginx reloaded','[OK] nginx serving new SSL certificate'],schedule_renew:['$ certbot renew --dry-run','All renewals succeeded (dry run)','$ crontab -l | grep certbot','0 3 * * * /usr/bin/certbot renew','[OK] Auto-renewal scheduled'],force_tls12:['$ openssl ciphers -v "TLSv1.2+HIGH"','TLS_AES_256_GCM_SHA384 TLSv1.3','$ nginx -t','OK','[OK] TLS 1.2 minimum enforced'],hsts_enable:['$ grep Strict-Transport /etc/nginx/nginx.conf','add_header Strict-Transport-Security "max-age=31536000"','$ systemctl reload nginx','nginx reloaded with HSTS','[OK] HSTS enabled']};
+let labState={phase:0,scenarios:{},current:null,steps:[],currentStep:0,startTime:null,timerInterval:null,executingStep:false};
+async function openLab(){document.getElementById('labOverlay').style.display='flex';labState.phase=1;showLabPhase(1);if(!Object.keys(labState.scenarios).length)await loadScenarios();}
+function closeLab(){document.getElementById('labOverlay').style.display='none';clearInterval(labState.timerInterval);}
+async function loadScenarios(){try{const data=await apiFetch('/api/analytics/mitigation/rules');labState.scenarios=data;const grid=document.getElementById('scenarioGrid');const sc={high:'sc-sev-high',critical:'sc-sev-critical',medium:'sc-sev-medium',low:'sc-sev-low'};grid.innerHTML=Object.entries(data).map(([t,i])=>`<div class="scenario-card" onclick="startScenario('${t}')"><div class="sc-name">${i.name}</div><div class="sc-meta"><span class="${sc[i.severity_impact]||'sc-sev-medium'}">&#x25CF; ${i.severity_impact||'medium'}</span> &nbsp;&middot;&nbsp; ${i.steps_count} pasos &nbsp;&middot;&nbsp; ~${i.expected_recovery_sec}s</div></div>`).join('');}catch(e){document.getElementById('scenarioGrid').innerHTML='<p style="color:#ef4444">Error cargando escenarios</p>';}}
+async function startScenario(type){try{const plan=await apiFetch(`/api/analytics/mitigation/plan/${type}`);labState.current={type,plan};labState.steps=plan.steps||[];labState.currentStep=0;labState.startTime=Date.now();labState.executingStep=false;document.getElementById('labScenName').textContent=plan.mitigation_name||type;document.getElementById('labMeta').textContent=`Escenario: ${plan.mitigation_name}`;document.getElementById('labStepProg').textContent=`0 / ${labState.steps.length}`;const area=document.getElementById('labStepsArea');area.innerHTML=labState.steps.map((s,i)=>`<div class="lab-step ${i===0?'active':'pending'}" id="lstep-${i}"><div class="step-num">${i+1}</div><div class="step-info"><div class="step-desc">${s.desc||s.action}</div><div class="step-cmd">$ ${s.command||s.action}</div></div><span class="step-check">&#x2705;</span><button class="step-exec-btn" id="sbtn-${i}" onclick="execStep(${i})" ${i>0?'disabled':''}>&#x25B6; Ejecutar</button></div>`).join('');document.getElementById('labTermBody').innerHTML='<div class="term-line" style="color:#64748b"># Lab iniciado &mdash; presiona Ejecutar en el primer paso</div><span class="term-cursor"></span>';clearInterval(labState.timerInterval);labState.timerInterval=setInterval(()=>{const e=Math.floor((Date.now()-labState.startTime)/1000);document.getElementById('labTimer').textContent=`${String(Math.floor(e/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;},1000);showLabPhase(2);}catch(e){alert('Error: '+e.message);}}
+async function execStep(idx){if(labState.executingStep||idx!==labState.currentStep)return;labState.executingStep=true;const step=labState.steps[idx];const btn=document.getElementById(`sbtn-${idx}`);btn.disabled=true;btn.textContent='⏳';const outputs=LAB_TERM[step.action]||[`$ ${step.command||step.action}`,`Executing ${step.action}...`,`[OK] ${step.desc||step.action} completed`];const tb=document.getElementById('labTermBody');tb.innerHTML=tb.innerHTML.replace('<span class="term-cursor"></span>','');for(let i=0;i<outputs.length;i++){await new Promise(r=>setTimeout(r,280+Math.random()*220));const l=outputs[i];const cls=l.startsWith('$')?'cmd':l.startsWith('[OK]')?'ok':l.startsWith('[ERR]')?'err':'';tb.innerHTML+=`<div class="term-line ${cls}">${l}</div>`;tb.parentElement.scrollTop=tb.parentElement.scrollHeight;}tb.innerHTML+='<span class="term-cursor"></span>';document.getElementById(`lstep-${idx}`).classList.remove('active');document.getElementById(`lstep-${idx}`).classList.add('done');labState.currentStep++;labState.executingStep=false;const total=labState.steps.length;document.getElementById('labStepProg').textContent=`${labState.currentStep} / ${total}`;if(labState.currentStep<total){document.getElementById(`lstep-${labState.currentStep}`).classList.remove('pending');document.getElementById(`lstep-${labState.currentStep}`).classList.add('active');document.getElementById(`sbtn-${labState.currentStep}`).disabled=false;}else{clearInterval(labState.timerInterval);showLabResults((Date.now()-labState.startTime)/1000,total);}}
+async function showLabResults(duration,stepsCompleted){const plan=labState.current.plan;const expected=plan.expected_recovery_sec||120;let score=100;if(duration>expected)score-=Math.min(30,((duration-expected)/expected)*30);if(duration<expected*0.6)score=Math.min(100,score+10);score=Math.max(30,Math.round(score));const grade=score>=90?'🏆 Excelente':score>=75?'✅ Bueno':score>=60?'📈 Aceptable':'⚠️ Necesita práctica';const msg=score>=90?'Dominas este protocolo.':score>=75?'Buen manejo. Puedes mejorar velocidad.':score>=60?'Completaste el procedimiento.':'Repasa el catálogo y vuelve a intentar.';document.getElementById('labScoreNum').textContent=score;document.getElementById('labScoreNum').style.color=score>=90?'#22c55e':score>=75?'#60a5fa':score>=60?'#fbbf24':'#ef4444';document.getElementById('labScoreGrade').textContent=grade;document.getElementById('labScoreMsg').textContent=msg;const m=String(Math.floor(duration/60)).padStart(2,'0'),s=String(Math.floor(duration%60)).padStart(2,'0');document.getElementById('labStatTime').textContent=`${m}:${s}`;document.getElementById('labStatSteps').textContent=`${stepsCompleted}/${labState.steps.length}`;document.getElementById('labStatScen').textContent=labState.current.type.replace(/_/g,' ').toUpperCase();try{await apiFetch('/api/analytics/practice/complete',{method:'POST',body:JSON.stringify({scenario_type:labState.current.type,scenario_name:plan.mitigation_name||labState.current.type,score,duration_sec:duration,steps_completed:stepsCompleted,total_steps:labState.steps.length})});}catch(e){}showLabPhase(3);}
+function showLabPhase(n){[1,2,3].forEach(i=>{const el=document.getElementById(`labPhase${i}`);if(el)el.style.display=i===n?'':'none';});labState.phase=n;}
+function resetLab(){clearInterval(labState.timerInterval);document.getElementById('labMeta').textContent='Selecciona un escenario para practicar';showLabPhase(1);}
+function generateLabReport(){const plan=labState.current.plan,type=labState.current.type,score=document.getElementById('labScoreNum').textContent,grade=document.getElementById('labScoreGrade').textContent,ttime=document.getElementById('labStatTime').textContent,sname=STUDENT.name||STUDENT.email||'Estudiante',now=new Date().toLocaleString('es-CO');const sc=parseInt(score)>=90?'#16a34a':parseInt(score)>=75?'#2563eb':parseInt(score)>=60?'#d97706':'#dc2626';const stepsHtml=labState.steps.map((s,i)=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${i+1}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${s.desc||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-family:monospace;font-size:.85em">${s.command||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:green;text-align:center">✅ Completado</td></tr>`).join('');const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Lab</title><style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0}.cover{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:white;padding:40px 48px}.cover h1{margin:0 0 4px;font-size:1.8rem}.section{padding:0 48px 24px}h2{color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.meta-item{background:#f8fafc;border-radius:6px;padding:10px 14px}.meta-item .label{font-size:.72rem;color:#64748b;text-transform:uppercase}.meta-item .value{font-size:1rem;font-weight:700;margin-top:2px}.score-box{text-align:center;padding:20px;background:#f0fdf4;border:2px solid #86efac;border-radius:12px;margin-bottom:20px}.score-big{font-size:4rem;font-weight:900;color:${sc};line-height:1}table{width:100%;border-collapse:collapse;font-size:.88rem}thead th{background:#1e3a8a;color:white;padding:10px 12px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.footer{margin-top:32px;padding:16px 48px;background:#f1f5f9;font-size:.75rem;color:#64748b;display:flex;justify-content:space-between}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem"><strong>Reporte listo</strong> — Ctrl+P → Guardar como PDF<button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir</button></div><div class="cover"><div style="font-size:.8rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div><h1>Reporte de Práctica</h1><div style="opacity:.8">${plan.mitigation_name||type} · ${now}</div></div><div class="section"><h2>Información</h2><div class="meta-grid"><div class="meta-item"><div class="label">Estudiante</div><div class="value">${sname}</div></div><div class="meta-item"><div class="label">Escenario</div><div class="value">${plan.mitigation_name||type}</div></div><div class="meta-item"><div class="label">Tiempo empleado</div><div class="value">${ttime} min:seg</div></div><div class="meta-item"><div class="label">Fecha</div><div class="value">${now}</div></div></div><h2>Calificación</h2><div class="score-box"><div class="score-big">${score}<span style="font-size:2rem">/100</span></div><div style="font-size:1.2rem;font-weight:700;margin-top:4px">${grade}</div></div><h2>Pasos Ejecutados</h2><table><thead><tr><th>#</th><th>Descripción</th><th>Comando</th><th>Estado</th></tr></thead><tbody>${stepsHtml}</tbody></table></div><div class="footer"><span>DC Monitoring Simulator · Diseñado por Ing. Luis Alberto Vasquez Campos</span><span>${now}</span></div></body></html>`);win.document.close();}
+</script>
+
+<!-- LAB MODAL -->
+<div id="labOverlay" class="lab-overlay" style="display:none">
+  <div class="lab-container">
+    <div class="lab-header">
+      <h2>&#x1F9EA; Laboratorio de Mitigación</h2>
+      <div class="lab-meta" id="labMeta">Selecciona un escenario para practicar</div>
+      <button class="lab-close" onclick="closeLab()">&#x2715; Cerrar</button>
+    </div>
+    <div class="lab-body">
+      <div id="labPhase1">
+        <p style="color:#94a3b8;font-size:.82rem;margin-bottom:12px">Elige un escenario del catálogo. Practicarás cada paso como en un incidente real.</p>
+        <div class="scenario-grid" id="scenarioGrid"></div>
+      </div>
+      <div id="labPhase2" style="display:none">
+        <div class="lab-info-bar">
+          <span id="labScenName" style="color:#a78bfa;font-weight:700"></span>
+          <span>&#x23F1; <strong id="labTimer">00:00</strong></span>
+          <span>Pasos: <strong id="labStepProg">0 / 0</strong></span>
+        </div>
+        <div class="lab-steps-area" id="labStepsArea"></div>
+        <div class="lab-terminal">
+          <div class="term-hdr">
+            <span class="term-dot" style="background:#ef4444"></span>
+            <span class="term-dot" style="background:#fbbf24"></span>
+            <span class="term-dot" style="background:#22c55e"></span>
+            <span style="margin-left:6px">dc-lab@simulator &mdash; Terminal de Mitigación</span>
+          </div>
+          <div class="term-body" id="labTermBody"><span class="term-cursor"></span></div>
+        </div>
+      </div>
+      <div id="labPhase3" style="display:none">
+        <div class="lab-score-wrap">
+          <div class="score-num" id="labScoreNum"></div>
+          <div class="score-grade" id="labScoreGrade"></div>
+          <div style="color:#64748b;font-size:.8rem" id="labScoreMsg"></div>
+          <div class="score-stats">
+            <div class="score-stat"><div class="sv" id="labStatTime"></div><div class="sl">Tiempo total</div></div>
+            <div class="score-stat"><div class="sv" id="labStatSteps"></div><div class="sl">Pasos completados</div></div>
+            <div class="score-stat"><div class="sv" id="labStatScen"></div><div class="sl">Escenario</div></div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:16px">
+          <button class="lab-report-btn" onclick="generateLabReport()">&#x1F4C4; Generar Reporte PDF</button>
+          <button class="lab-report-btn secondary" onclick="resetLab()">&#x1F504; Practicar Otro</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FIRMA -->
+<div id="firma-footer" style="position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,0.95);border-top:1px solid #7c3aed;padding:4px 20px;display:flex;justify-content:space-between;align-items:center;font-size:.65rem;color:#64748b;z-index:99999">
+  <span>&#x1F5A5;&#xFE0F; DC Monitoring Simulator &copy; 2026</span>
+  <span style="color:#a78bfa;font-weight:700">Diseñado por Ing. de Sistemas Luis Alberto Vasquez Campos</span>
+  <span>Práctica Estudiantil &middot; SENA</span>
+</div>
+</body>
+</html>

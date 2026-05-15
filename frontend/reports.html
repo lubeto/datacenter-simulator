@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reportes — DC Simulator</title>
+<style>
+:root{--bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d45;--accent:#3b82f6;--accent2:#06b6d4;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--purple:#a855f7;--orange:#f97316;--text:#e2e8f0;--muted:#64748b;--font:'Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+header{background:linear-gradient(135deg,#0f172a,#1a3040);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:.7rem;font-size:1.05rem;font-weight:700}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--green),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.btn{padding:.4rem .9rem;border-radius:6px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-danger{background:var(--red);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:.25rem .6rem;font-size:.75rem}
+.container{max-width:1300px;margin:0 auto;padding:1.5rem}
+.page-title{font-size:1.3rem;font-weight:800;margin-bottom:.3rem}
+.page-sub{font-size:.82rem;color:var(--muted);margin-bottom:1.5rem}
+/* REPORT TYPE CARDS */
+.report-types{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin-bottom:2rem}
+.rtype-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.rtype-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.rtype-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.rtype-card.health::before{background:var(--green)}.rtype-card.incident::before{background:var(--red)}.rtype-card.ssl::before{background:var(--accent)}.rtype-card.sst::before{background:var(--orange)}.rtype-card.student_shift::before{background:var(--purple)}.rtype-card.full_summary::before{background:var(--accent2)}
+.rtype-card.selected{border-width:2px}
+.rtype-card.health.selected{border-color:var(--green)}.rtype-card.incident.selected{border-color:var(--red)}.rtype-card.ssl.selected{border-color:var(--accent)}.rtype-card.sst.selected{border-color:var(--orange)}.rtype-card.student_shift.selected{border-color:var(--purple)}.rtype-card.full_summary.selected{border-color:var(--accent2)}
+.rtype-icon{font-size:2rem;margin-bottom:.6rem}
+.rtype-name{font-size:.95rem;font-weight:700;margin-bottom:.3rem}
+.rtype-desc{font-size:.75rem;color:var(--muted);line-height:1.4}
+/* GENERATE PANEL */
+.gen-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:1.5rem}
+.gen-panel h3{font-size:.9rem;font-weight:700;margin-bottom:.8rem;color:var(--accent2)}
+.gen-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:.3rem}
+.form-group label{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase}
+input,select{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.5rem .7rem;font-size:.82rem;width:100%;outline:none}
+input:focus,select:focus{border-color:var(--accent)}
+/* REPORTS LIST */
+.reports-list{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.reports-list-header{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;background:var(--card2);border-bottom:1px solid var(--border)}
+.reports-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.reports-table th{color:var(--muted);font-weight:600;text-align:left;padding:.5rem 1rem;border-bottom:1px solid var(--border)}
+.reports-table td{padding:.6rem 1rem;border-bottom:1px solid rgba(30,45,69,.4)}
+.reports-table tr:last-child td{border-bottom:none}
+.reports-table tr:hover td{background:rgba(59,130,246,.04)}
+.badge{display:inline-flex;align-items:center;padding:.15rem .5rem;border-radius:10px;font-size:.65rem;font-weight:700}
+.badge-ok{background:rgba(34,197,94,.15);color:var(--green)}.badge-warn{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-crit{background:rgba(239,68,68,.15);color:var(--red)}.badge-blue{background:rgba(59,130,246,.15);color:var(--accent)}.badge-purple{background:rgba(168,85,247,.15);color:var(--purple)}.badge-orange{background:rgba(249,115,22,.15);color:var(--orange)}.badge-cyan{background:rgba(6,182,212,.15);color:var(--accent2)}
+.generating{display:none;text-align:center;padding:2rem;color:var(--muted)}
+.loading-spin{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:.5rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.notif{position:fixed;bottom:1rem;right:1rem;z-index:300;display:flex;flex-direction:column;gap:.4rem;max-width:300px}
+.notif-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;font-size:.78rem;animation:slide-in .3s;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.notif-item.crit{border-left:3px solid var(--red)}.notif-item.ok{border-left:3px solid var(--green)}.notif-item.warn{border-left:3px solid var(--yellow)}
+@keyframes slide-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--card)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-icon">📊</div>Reportes del Datacenter</div>
+  <div style="display:flex;gap:.8rem;align-items:center">
+    <a href="/" class="btn btn-outline btn-sm">Dashboard</a>
+    <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
+  </div>
+</header>
+<div class="container">
+  <div class="page-title">Generación de Reportes</div>
+  <div class="page-sub">Selecciona el tipo de reporte y genera un informe PDF/TXT del estado del datacenter</div>
+
+  <!-- REPORT TYPE SELECTOR -->
+  <div class="report-types">
+    <div class="rtype-card health" onclick="selectType('health',this)">
+      <div class="rtype-icon">🏥</div>
+      <div class="rtype-name">Health Check</div>
+      <div class="rtype-desc">Estado general de todos los nodos, CPU, RAM, red y disponibilidad del sistema</div>
+    </div>
+    <div class="rtype-card incident" onclick="selectType('incident',this)">
+      <div class="rtype-icon">🚨</div>
+      <div class="rtype-name">Informe de Incidentes</div>
+      <div class="rtype-desc">Registro de ataques detectados, tiempo de respuesta MTTD/MTTR y acciones tomadas</div>
+    </div>
+    <div class="rtype-card ssl" onclick="selectType('ssl',this)">
+      <div class="rtype-icon">🔒</div>
+      <div class="rtype-name">Certificados SSL/TLS</div>
+      <div class="rtype-desc">Estado de todos los certificados, fechas de vencimiento y algoritmos de cifrado</div>
+    </div>
+    <div class="rtype-card sst" onclick="selectType('sst',this)">
+      <div class="rtype-icon">🌡️</div>
+      <div class="rtype-name">Reporte SST</div>
+      <div class="rtype-desc">Lecturas de sensores de temperatura, humedad, humo, UPS y control de acceso</div>
+    </div>
+    <div class="rtype-card student_shift" onclick="selectType('student_shift',this)">
+      <div class="rtype-icon">👨‍🎓</div>
+      <div class="rtype-name">Turno del Estudiante</div>
+      <div class="rtype-desc">Resumen de la sesión: incidentes detectados, mitigaciones realizadas y puntuación</div>
+    </div>
+    <div class="rtype-card full_summary" onclick="selectType('full_summary',this)">
+      <div class="rtype-icon">📋</div>
+      <div class="rtype-name">Resumen Completo</div>
+      <div class="rtype-desc">Informe ejecutivo con todos los componentes: salud, seguridad, SST y métricas de estudiantes</div>
+    </div>
+  </div>
+
+  <!-- GENERATE PANEL -->
+  <div class="gen-panel">
+    <h3>⚙️ Configurar y Generar Reporte</h3>
+    <div class="gen-form">
+      <div class="form-group">
+        <label>Tipo seleccionado</label>
+        <input type="text" id="selectedTypeDisplay" readonly placeholder="Haz clic en una tarjeta arriba" style="cursor:default;color:var(--accent2)">
+      </div>
+      <div class="form-group">
+        <label>Título del reporte</label>
+        <input type="text" id="reportTitle" placeholder="Ej: Reporte semanal Mayo 2025">
+      </div>
+      <div class="form-group">
+        <label>ID de Sesión (opcional)</label>
+        <input type="number" id="sessionId" placeholder="Dejar vacío para general">
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" onclick="generateReport()" style="height:36px">📄 Generar Reporte</button>
+      </div>
+    </div>
+    <div class="generating" id="generatingIndicator">
+      <div class="loading-spin"></div>
+      <div>Generando reporte...</div>
+    </div>
+  </div>
+
+  <!-- REPORTS LIST -->
+  <div class="reports-list">
+    <div class="reports-list-header">
+      <span style="font-size:.85rem;font-weight:700;color:var(--accent2)">📁 Mis Reportes</span>
+      <button onclick="loadMyReports()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="reports-table">
+        <thead>
+          <tr><th>Título</th><th>Tipo</th><th>Formato</th><th>Generado</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="reportsTableBody">
+          <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:1.5rem">Cargando reportes...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="notif" id="notifContainer"></div>
+
+<script>
+const TOKEN = localStorage.getItem('token');
+const STUDENT = JSON.parse(localStorage.getItem('student')||'{}');
+if (!TOKEN) { location.href = '/login'; }
+
+let selectedType = '';
+
+const TYPE_LABELS = {
+  health:'Health Check', incident:'Incidentes', ssl:'SSL/TLS',
+  sst:'SST', student_shift:'Turno Estudiante', full_summary:'Resumen Completo'
+};
+const TYPE_BADGES = {
+  health:'badge-ok', incident:'badge-crit', ssl:'badge-blue',
+  sst:'badge-orange', student_shift:'badge-purple', full_summary:'badge-cyan'
+};
+
+function selectType(type, card) {
+  selectedType = type;
+  document.querySelectorAll('.rtype-card').forEach(c=>c.classList.remove('selected'));
+  card.classList.add('selected');
+  document.getElementById('selectedTypeDisplay').value = TYPE_LABELS[type] || type;
+  if (!document.getElementById('reportTitle').value) {
+    document.getElementById('reportTitle').value = `${TYPE_LABELS[type]} — ${new Date().toLocaleDateString('es')}`;
+  }
+}
+
+async function generateReport() {
+  if (!selectedType) { notify('⚠️ Selecciona un tipo', 'Haz clic en una de las tarjetas', 'warn'); return; }
+  const title = document.getElementById('reportTitle').value || `${TYPE_LABELS[selectedType]} — ${new Date().toLocaleDateString('es')}`;
+  const sessId = parseInt(document.getElementById('sessionId').value) || null;
+  const indicator = document.getElementById('generatingIndicator');
+  indicator.style.display = 'block';
+  try {
+    const r = await apiFetch('/api/reports/generate', {
+      method: 'POST',
+      body: JSON.stringify({ report_type: selectedType, student_id: STUDENT.id, title, session_id: sessId })
+    });
+    indicator.style.display = 'none';
+    notify('✅ Reporte generado', `ID: ${r.report_id}`, 'ok');
+    loadMyReports();
+  } catch(e) {
+    indicator.style.display = 'none';
+    notify('❌ Error', e.message?.slice(0,80)||'No se pudo generar', 'crit');
+  }
+}
+
+async function loadMyReports() {
+  try {
+    let r;
+    if (STUDENT.role === 'instructor') {
+      r = await apiFetch('/api/reports/all');
+    } else {
+      r = await apiFetch('/api/reports/my-reports');
+    }
+    const tbody = document.getElementById('reportsTableBody');
+    if (!r.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:1.5rem">No hay reportes generados aún. ¡Genera el primero!</td></tr>';
+      return;
+    }
+    tbody.innerHTML = r.map(rep => {
+      const t = rep.generated_at ? new Date(rep.generated_at).toLocaleString('es') : '—';
+      const fmtBadge = rep.format === 'pdf' ? 'badge-crit' : 'badge-blue';
+      const typeBadge = TYPE_BADGES[rep.report_type] || 'badge-blue';
+      return `<tr>
+        <td><strong>${rep.title || '—'}</strong>${rep.student_name?`<br><span style="font-size:.68rem;color:var(--muted)">${rep.student_name}</span>`:''}</td>
+        <td><span class="badge ${typeBadge}">${TYPE_LABELS[rep.report_type]||rep.report_type}</span></td>
+        <td><span class="badge ${fmtBadge}">${(rep.format||'txt').toUpperCase()}</span></td>
+        <td style="color:var(--muted)">${t}</td>
+        <td>
+          <a href="/api/reports/download/${rep.id}" class="btn btn-primary btn-sm" style="text-decoration:none" target="_blank">⬇ Descargar</a>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.warn(e); }
+}
+
+async function apiFetch(url, opts={}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: {'Authorization':`Bearer ${TOKEN}`,'Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if (res.status===401) { logout(); return; }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function notify(title, msg, type='ok') {
+  const c = document.getElementById('notifContainer');
+  const d = document.createElement('div');
+  d.className = `notif-item ${type}`;
+  d.innerHTML = `<strong>${title}</strong>${msg?'<br><span style="color:var(--muted)">'+msg+'</span>':''}`;
+  c.appendChild(d);
+  setTimeout(()=>d.remove&&d.remove(), 5000);
+}
+function logout() { localStorage.removeItem('token'); localStorage.removeItem('student'); location.href='/login'; }
+
+loadMyReports();
+setInterval(loadMyReports, 20000);
+</script>
+</body>
+</html>

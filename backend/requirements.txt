@@ -1,0 +1,36 @@
+# ============================================================
+# DC Monitoring Simulator - Dependencias Python
+# ============================================================
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+websockets==12.0
+
+# Base de datos
+sqlalchemy==2.0.30
+aiosqlite==0.20.0
+
+# Simulación estadística
+numpy==1.26.4
+scipy==1.13.0
+
+# Autenticación JWT
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.9
+
+# Generación de reportes PDF
+reportlab==4.2.0
+
+# Scheduler de eventos
+apscheduler==3.10.4
+
+# Utilidades
+python-dotenv==1.0.1
+pydantic==2.7.1
+pydantic-settings==2.2.1
+httpx==0.27.0
+
+# Rate limiting
+slowapi==0.1.9
+limits==3.12.0

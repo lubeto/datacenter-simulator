@@ -1,0 +1,96 @@
+# =============================================================================
+# DC Monitoring Simulator — Configuración para Render.com
+# Documentación: https://render.com/docs/blueprint-spec
+# =============================================================================
+
+services:
+  - type: web
+    name: dc-monitoring-simulator
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+
+    # ── Plan (free = 512MB RAM, 0.1 CPU compartido) ─────────────────────
+    plan: free          # cambia a "starter" ($7/mes) para más recursos
+
+    # ── Región ─────────────────────────────────────────────────────────
+    region: oregon      # us-west-2; otras: frankfurt, singapore, ohio
+
+    # ── Puerto de escucha ───────────────────────────────────────────────
+    port: 8000
+
+    # ── Health check ────────────────────────────────────────────────────
+    healthCheckPath: /health
+
+    # ── Variables de entorno ────────────────────────────────────────────
+    envVars:
+      # Seguridad — Render genera SECRET_KEY automáticamente
+      - key: SECRET_KEY
+        generateValue: true          # Render genera un valor aleatorio seguro
+
+      - key: ALGORITHM
+        value: HS256
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "480"
+
+      # Servidor
+      - key: DEBUG
+        value: "false"
+
+      - key: ENVIRONMENT
+        value: production
+
+      # Base de datos — usar disco persistente en Render
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./data/simulator.db
+
+      # Admin inicial (cambia desde el Dashboard de Render)
+      - key: ADMIN_EMAIL
+        value: instructor@datacenter.edu
+
+      - key: ADMIN_PASSWORD
+        sync: false      # Render te pedirá el valor al hacer deploy (no lo expone)
+
+      - key: ADMIN_NAME
+        value: "Instructor Principal"
+
+      # Simulación
+      - key: NUM_NODES
+        value: "12"
+
+      - key: METRICS_INTERVAL_SECONDS
+        value: "2"
+
+      - key: AUTO_ATTACK_ENABLED
+        value: "true"
+
+      - key: AUTO_ATTACK_MIN_INTERVAL_MIN
+        value: "5"
+
+      - key: AUTO_ATTACK_MAX_INTERVAL_MIN
+        value: "20"
+
+      # CORS — reemplaza con tu URL de Render después del primer deploy
+      # Ejemplo: https://dc-monitoring-simulator.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: "*"    # Cambia a tu dominio después del primer deploy
+
+      # Rate limiting
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
+
+      - key: RATE_LIMIT_AUTH_PER_MINUTE
+        value: "10"
+
+    # ── Disco persistente (SQLite + reportes) ───────────────────────────
+    # NOTA: Solo disponible en plan "starter" o superior ($7/mes)
+    # En el plan free, los datos se pierden al reiniciar el servicio.
+    # Para pruebas educativas el plan free es suficiente.
+    disk:
+      name: dc-simulator-data
+      mountPath: /app/data
+      sizeGB: 1        # 1 GB es suficiente para SQLite + reportes CSV/PDF
+
+    # ── Auto-deploy desde Git ───────────────────────────────────────────
+    autoDeploy: true    # re-deploy automático en cada push a main
