@@ -275,6 +275,7 @@ async def acknowledge_alert(db: AsyncSession, alert_id: int,
         alert.acknowledged = True
         alert.acknowledged_by = student_id
         alert.acknowledged_at = datetime.utcnow()
+        alert.is_active = False  # sacar de la lista activa tras ACK
         await db.commit()
         await db.refresh(alert)
     return alert

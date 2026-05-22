@@ -240,9 +240,9 @@ ATTACK_CHAINS: Dict[str, Dict] = {
 
 # ── ESCALATION RULES ──────────────────────────────────────────────────────────
 ESCALATION_CONFIG = {
-    "warning_after_sec":    60,    # 1 min sin detectar → Warning
-    "critical_after_sec":   120,   # 2 min sin detectar → Critical
-    "auto_detect_after_sec": 300,  # 5 min → sistema detecta automaticamente (penalizacion)
+    "warning_after_sec":    20,    # 20 seg sin detectar → Panel guiado abre (warning)
+    "critical_after_sec":   45,    # 45 seg sin detectar → Panel guiado abre (critical)
+    "auto_detect_after_sec": 120,  # 2 min → sistema detecta automaticamente (penalizacion)
     "score_penalty_pct":    25,    # % de penalizacion en score si el sistema detecta
 }
 

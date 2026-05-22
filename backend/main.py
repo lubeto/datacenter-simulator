@@ -26,6 +26,8 @@ from .api.routes_metrics  import router as metrics_router
 from .api.routes_attacks  import router as attacks_router
 from .api.routes_reports  import router as reports_router
 from .api.routes_analytics import router as analytics_router
+from .api.routes_bitacoras import router as bitacoras_router
+from .api.routes_sessions  import router as sessions_router
 from .api.websocket       import manager as ws_manager
 from .simulation.scheduler import scheduler
 from .simulation.engine   import generate_full_snapshot
@@ -186,6 +188,8 @@ app.include_router(metrics_router)
 app.include_router(attacks_router)
 app.include_router(reports_router)
 app.include_router(analytics_router)
+app.include_router(bitacoras_router)
+app.include_router(sessions_router)
 
 
 # ============================================================

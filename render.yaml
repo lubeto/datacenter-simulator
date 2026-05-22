@@ -10,8 +10,8 @@ services:
     dockerfilePath: ./docker/Dockerfile
     dockerContext: .
 
-    # ── Plan (free = 512MB RAM, 0.1 CPU compartido) ─────────────────────
-    plan: free          # cambia a "starter" ($7/mes) para más recursos
+    # ── Plan (starter = 512MB RAM, 0.5 CPU, sin sleep) ─────────────────
+    plan: starter       # $7/mes — sin inactividad, disco persistente incluido
 
     # ── Región ─────────────────────────────────────────────────────────
     region: oregon      # us-west-2; otras: frankfurt, singapore, ohio
@@ -74,7 +74,11 @@ services:
       # CORS — reemplaza con tu URL de Render después del primer deploy
       # Ejemplo: https://dc-monitoring-simulator.onrender.com
       - key: ALLOWED_ORIGINS
-        value: "*"    # Cambia a tu dominio después del primer deploy
+        value: "*"    # Cambia a tu dominio exacto después del primer deploy
+
+      # Token para registrar instructores nuevos (protege el endpoint /api/auth/register)
+      - key: INSTRUCTOR_REGISTER_TOKEN
+        generateValue: true
 
       # Rate limiting
       - key: RATE_LIMIT_PER_MINUTE

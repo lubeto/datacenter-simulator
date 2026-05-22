@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DC Monitoring Simulator</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='7' fill='%232563eb'/><rect x='4' y='6' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='14' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='22' width='24' height='6' rx='1.5' fill='white' opacity='0.6'/><circle cx='24.5' cy='9' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='17' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='25' r='1.8' fill='%23facc15'/><rect x='6' y='7.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='15.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='23.5' width='10' height='3' rx='1' fill='%23bfdbfe' opacity='0.6'/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d45;--accent:#3b82f6;--accent2:#06b6d4;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--text:#e2e8f0;--muted:#64748b;--font:'Segoe UI',sans-serif}
@@ -23,6 +24,9 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
 .btn-sm{padding:.25rem .6rem;font-size:.75rem}
 .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-session{background:#1e3a8a;border:none;border-radius:6px;padding:6px 13px;color:#93c5fd;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-session:hover{background:#1d4ed8;color:#fff}
+.btn-practice{border:none;border-radius:6px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
 /* LAYOUT */
 .container{max-width:1600px;margin:0 auto;padding:1.2rem}
@@ -133,7 +137,8 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--card)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 /* NOTIFICATION */
-.notif{position:fixed;bottom:1rem;right:1rem;z-index:300;display:flex;flex-direction:column;gap:.4rem;max-width:320px}
+.notif{position:fixed;bottom:1rem;right:1rem;z-index:300;display:flex;flex-direction:column;gap:.4rem;max-width:320px;transition:right .35s ease,left .35s ease}
+.notif.panel-open{right:auto;left:1rem}
 .notif-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;display:flex;align-items:flex-start;gap:.6rem;animation:slide-in .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .notif-item.crit{border-left:3px solid var(--red)}.notif-item.warn{border-left:3px solid var(--yellow)}.notif-item.ok{border-left:3px solid var(--green)}
 @keyframes slide-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
@@ -141,6 +146,139 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 .notif-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1}
 /* RESPONSIVE */
 @media(max-width:900px){.main-grid{grid-template-columns:1fr}.detail-grid{grid-template-columns:repeat(2,1fr)}}
+/* ── NETWORK MAP ────────────────────────────────────────────── */
+.nm-link{stroke:#1e3a5f;stroke-width:1.5;transition:stroke .5s,stroke-width .5s}
+.nm-link.attack{stroke:#ef4444;stroke-width:2.5;stroke-dasharray:8,4;animation:dashFlow .5s linear infinite}
+@keyframes dashFlow{to{stroke-dashoffset:-12}}
+.nm-node{cursor:pointer}.nm-node:hover circle{filter:brightness(1.3)}
+@keyframes nmPulse{0%,100%{r:24}50%{r:30}}
+/* ── GUIDED DIAGNOSIS ──────────────────────────────────────── */
+.guided-panel{position:fixed;right:-420px;top:60px;width:380px;max-height:calc(100vh - 72px);background:#111827;border-left:2px solid #7c3aed;border-bottom:2px solid #7c3aed;border-bottom-left-radius:12px;z-index:200;transition:right .35s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-4px 4px 24px rgba(124,58,237,.18)}
+.guided-panel.open{right:0}
+/* Estado RECOGIDO: pestaña vertical de 36px en el borde derecho */
+.guided-panel.minimized{right:0;width:36px}
+.guided-panel.minimized .guided-header,
+.guided-panel.minimized .guided-stages,
+.guided-panel.minimized .guided-body,
+.guided-panel.minimized .guided-footer{display:none}
+/* Pestaña lateral — siempre presente pero oculta hasta minimizar */
+.guided-minimize-tab{display:none;position:absolute;inset:0;width:36px;background:linear-gradient(180deg,#1a1040,#0f0a2e);border-right:2px solid #7c3aed;cursor:pointer;align-items:center;justify-content:flex-start;flex-direction:column;padding-top:16px;gap:8px;z-index:5}
+.guided-panel.minimized .guided-minimize-tab{display:flex}
+.guided-minimize-tab:hover{background:linear-gradient(180deg,#2d1f5e,#1a1040)}
+.guided-mini-label{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-size:.65rem;font-weight:700;color:#a78bfa;letter-spacing:.08em;margin-top:8px;white-space:nowrap}
+.guided-mini-phase{font-size:.6rem;color:#6d28d9;writing-mode:vertical-rl;transform:rotate(180deg)}
+.guided-min-btn{background:none;border:none;color:#7c3aed;font-size:.85rem;cursor:pointer;padding:4px;border-radius:4px;line-height:1}
+.guided-min-btn:hover{background:#2d1f5e;color:#a78bfa}
+.guided-header{background:#1a1040;padding:14px 16px 12px;border-bottom:1px solid #2d1f5e;position:relative}
+.guided-title{font-size:.9rem;font-weight:700;color:#a78bfa}
+.guided-subtitle{font-size:.72rem;color:#64748b;margin-top:2px}
+.guided-stages{display:flex;border-bottom:1px solid #1e2d45}
+.guided-stage-tab{flex:1;padding:8px 4px;text-align:center;font-size:.65rem;font-weight:700;color:#64748b;background:transparent;border:none;cursor:default;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.04em}
+.guided-stage-tab.active{color:#a78bfa;border-bottom-color:#7c3aed}
+.guided-stage-tab.done{color:#22c55e;border-bottom-color:#22c55e}
+.guided-body{flex:1;overflow-y:auto;padding:16px}
+.guided-question{font-size:.85rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;line-height:1.5}
+.guided-context{background:#0f172a;border:1px solid #1e2d45;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#94a3b8;line-height:1.7}
+.guided-options{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.guided-option{background:#1e2d45;border:1px solid #2d3d55;border-radius:8px;padding:10px 14px;font-size:.82rem;cursor:pointer;transition:all .2s;color:#cbd5e1;text-align:left}
+.guided-option:hover:not(:disabled){border-color:#7c3aed;color:#e2e8f0;background:#1a1040}
+.guided-option.correct{border-color:#22c55e!important;background:#14532d!important;color:#86efac!important}
+.guided-option.wrong{border-color:#ef4444!important;background:#450a0a!important;color:#fca5a5!important}
+.guided-feedback{border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.78rem;line-height:1.5;display:none}
+.guided-feedback.ok{background:#14532d;border:1px solid #22c55e;color:#86efac;display:block}
+.guided-feedback.err{background:#450a0a;border:1px solid #ef4444;color:#fca5a5;display:block}
+.guided-hint{background:#1a1040;border:1px solid #4c1d95;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.78rem;color:#c4b5fd;display:none}
+.guided-hint.show{display:block}
+.guided-footer{padding:12px 16px;border-top:1px solid #1e2d45;display:flex;gap:8px;flex-shrink:0}
+.guided-btn{flex:1;padding:10px;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer}
+.guided-btn-primary{background:#7c3aed;color:white}.guided-btn-primary:hover{background:#6d28d9}
+.guided-btn-hint{background:#1e2d45;color:#94a3b8}.guided-btn-hint:hover{background:#2d3d55;color:#e2e8f0}
+.guided-close-btn{position:absolute;top:10px;right:12px;background:none;border:none;color:#64748b;cursor:pointer;font-size:1.1rem}
+
+/* ── MODAL BITÁCORA ── */
+#bitacoraOverlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:none;align-items:center;justify-content:center;padding:1rem}
+#bitacoraOverlay.open{display:flex}
+#bitacoraModal{background:#111827;border:2px solid #7c3aed;border-radius:16px;width:100%;max-width:600px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(124,58,237,.35)}
+.bm-header{background:linear-gradient(135deg,#1a1040,#1e1b4b);padding:16px 20px;border-bottom:1px solid #2d1f5e}
+.bm-title{font-size:1rem;font-weight:800;color:#a78bfa;margin-bottom:2px}
+.bm-subtitle{font-size:.74rem;color:#64748b}
+.bm-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.bm-info-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#0f172a;border:1px solid #1e2d45;border-radius:10px;padding:10px 12px}
+.bm-info-item .bm-lbl{font-size:.63rem;color:#475569;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.bm-info-item .bm-val{font-size:.84rem;font-weight:700;color:#e2e8f0;margin-top:1px}
+.bm-field{display:flex;flex-direction:column;gap:4px}
+.bm-field label{font-size:.74rem;font-weight:700;color:#94a3b8}
+.bm-field label span{color:#ef4444;margin-left:2px}
+.bm-field textarea{background:#0f172a;border:1px solid #1e2d45;border-radius:8px;color:#e2e8f0;font-size:.82rem;padding:10px 12px;resize:vertical;min-height:70px;font-family:inherit;line-height:1.55;transition:border-color .15s;outline:none}
+.bm-field textarea:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+.bm-field textarea.error{border-color:#ef4444}
+.bm-char{font-size:.63rem;color:#334155;text-align:right;transition:color .2s}
+.bm-char.ok{color:#4ade80}
+.bm-footer{padding:12px 20px;border-top:1px solid #1e2d45;display:flex;gap:8px;flex-shrink:0;background:#0f172a}
+.bm-btn-submit{flex:1;padding:11px;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;transition:background .15s}
+.bm-btn-submit:hover{background:#6d28d9}
+.bm-btn-submit:disabled{opacity:.5;cursor:not-allowed}
+.bm-err{background:#450a0a;border:1px solid #dc2626;color:#fca5a5;padding:8px 12px;border-radius:8px;font-size:.78rem;display:none}
+.bm-err.show{display:block}
+
+/* ── SST PROTOCOL PANEL ─────────────────────────────────────── */
+.sst-panel{position:fixed;left:-420px;top:60px;width:400px;height:calc(100vh - 60px);background:#111827;border-right:2px solid #f97316;z-index:200;transition:left .35s ease,width .35s ease;display:flex;flex-direction:column;overflow:hidden}
+.sst-panel.open{left:0}
+.sst-panel.minimized{left:0;width:36px;overflow:hidden}
+.sst-panel.minimized .sst-header,.sst-panel.minimized .sst-stages,.sst-panel.minimized .sst-body,.sst-panel.minimized .sst-footer{display:none}
+.sst-minimize-tab{display:none;position:absolute;top:0;right:0;width:36px;height:100%;background:#1a0e00;border-left:2px solid #f97316;cursor:pointer;align-items:center;justify-content:flex-start;flex-direction:column;padding-top:14px;gap:6px;z-index:5}
+.sst-panel.minimized .sst-minimize-tab{display:flex}
+.sst-mini-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:.65rem;font-weight:700;color:#fb923c;letter-spacing:.08em;margin-top:8px;white-space:nowrap}
+.sst-mini-phase{font-size:.6rem;color:#c2410c;writing-mode:vertical-rl}
+.sst-min-btn{background:none;border:none;color:#ea580c;font-size:.85rem;cursor:pointer;padding:4px;border-radius:4px;line-height:1}
+.sst-min-btn:hover{background:#431407;color:#fb923c}
+.sst-header{background:#1a0e00;padding:14px 16px 12px;border-bottom:1px solid #431407;position:relative}
+.sst-badge{font-size:.65rem;font-weight:800;color:#fb923c;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.sst-title{font-size:.9rem;font-weight:700;color:#fed7aa}
+.sst-subtitle{font-size:.72rem;color:#92400e;margin-top:2px}
+.sst-stages{display:flex;border-bottom:1px solid #1e2d45}
+.sst-stage-tab{flex:1;padding:8px 4px;text-align:center;font-size:.65rem;font-weight:700;color:#64748b;background:transparent;border:none;cursor:default;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.04em}
+.sst-stage-tab.active{color:#fb923c;border-bottom-color:#f97316}
+.sst-stage-tab.done{color:#22c55e;border-bottom-color:#22c55e}
+.sst-body{flex:1;overflow-y:auto;padding:16px}
+.sst-q{font-size:.85rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;line-height:1.5}
+.sst-options{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.sst-option{background:#1e2433;border:1px solid #2d3d55;border-radius:8px;padding:10px 14px;font-size:.82rem;cursor:pointer;transition:all .2s;color:#cbd5e1;text-align:left}
+.sst-option:hover{border-color:#f97316;color:#fed7aa;background:#1a1000}
+.sst-option.correct{border-color:#22c55e!important;background:#14532d!important;color:#86efac!important}
+.sst-option.wrong{border-color:#ef4444!important;background:#450a0a!important;color:#fca5a5!important}
+.sst-hint{background:#1a0e00;border:1px solid #7c2d12;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.78rem;color:#fdba74;display:none;line-height:1.55}
+.sst-hint.show{display:block}
+.sst-footer{padding:12px 16px;border-top:1px solid #1e2d45;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.sst-escalation{flex:1;font-size:.68rem;color:#fb923c;font-weight:600;line-height:1.3}
+.sst-close-btn{position:absolute;top:10px;right:12px;background:none;border:none;color:#64748b;cursor:pointer;font-size:1.1rem}
+.sst-action-item{display:flex;align-items:center;gap:10px;background:#1e2433;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.82rem;transition:all .2s}
+.sst-action-item.active{border-color:#f97316;background:#1a0e00}
+.sst-action-item.done{border-color:#22c55e;background:#0f2318;opacity:.85}
+.sst-action-item.pending{opacity:.45}
+.sst-action-check{font-size:1.05rem;flex-shrink:0}
+.sst-action-typing{display:flex;align-items:center;gap:8px;background:#070b10;border:1px solid #431407;border-radius:8px;padding:8px 14px;margin:10px 0}
+.sst-report-input{width:100%;background:#0f1117;border:1px solid #431407;border-radius:8px;color:#e2e8f0;font-size:.8rem;padding:10px 12px;resize:vertical;box-sizing:border-box;line-height:1.6}
+.sst-report-input:focus{outline:none;border-color:#f97316}
+.sst-report-btn{width:100%;background:#ea580c;border:none;border-radius:8px;color:white;font-size:.82rem;font-weight:700;padding:10px;cursor:pointer;margin-top:8px}
+.sst-report-btn:hover{background:#c2410c}
+/* ── LAB TYPING MODE ──────────────────────────────────────── */
+.lab-typing-area{background:#070b10;border:1px solid #1e3050;border-radius:8px;margin-bottom:12px;overflow:hidden}
+.lab-typing-hdr{background:#131825;border-bottom:1px solid #1e3050;padding:6px 14px;font-size:.72rem;color:#64748b;display:flex;align-items:center;gap:8px}
+.lab-typing-row{display:flex;align-items:center;gap:8px;padding:8px 14px}
+.lab-typing-prompt{color:#60a5fa;font-family:'Courier New',monospace;font-size:.83rem;white-space:nowrap;flex-shrink:0}
+.lab-typing-input{flex:1;background:transparent;border:none;outline:none;color:#86efac;font-family:'Courier New',monospace;font-size:.83rem;caret-color:#60a5fa;min-width:0}
+.lab-typing-submit{background:#7c3aed;border:none;border-radius:4px;color:white;font-size:.72rem;padding:4px 10px;cursor:pointer;flex-shrink:0}
+.lab-typing-submit:hover{background:#6d28d9}
+.lab-typing-fb{padding:4px 14px 8px;font-size:.76rem;min-height:20px;font-family:'Courier New',monospace;transition:color .2s}
+.lab-typing-fb.ok{color:#22c55e}.lab-typing-fb.err{color:#f87171}
+.step-expl{background:#071a07;border-top:1px solid #1a3d1a;padding:10px 14px;font-size:.78rem;color:#86efac;display:none;line-height:1.6}
+.step-expl.show{display:block}
+.step-expl strong{color:#4ade80}
+.cmd-sum-item{background:#1e2433;border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid #7c3aed}
+.cmd-sum-title{font-size:.8rem;font-weight:700;color:#e2e8f0;margin-bottom:3px}
+.cmd-sum-code{font-family:'Courier New',monospace;font-size:.72rem;color:#60a5fa;margin-bottom:5px}
+.cmd-sum-exp{font-size:.75rem;color:#94a3b8;line-height:1.5}
 /* ── LAB DE MITIGACIÓN ─────────────────────────────────────── */
 .lab-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}.lab-container{background:#0f1117;border:1px solid #334155;border-radius:16px;width:min(96vw,980px);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}.lab-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #1e2d45;background:#131825}.lab-header h2{font-size:1.1rem;font-weight:800;color:#a78bfa;margin:0}.lab-meta{font-size:.75rem;color:#64748b}.lab-close{background:none;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:1rem;cursor:pointer;padding:4px 10px}.lab-body{flex:1;overflow-y:auto;padding:20px 24px}.scenario-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px}.scenario-card{background:#1e2433;border:1px solid #334155;border-radius:10px;padding:14px;cursor:pointer;transition:all .15s}.scenario-card:hover{border-color:#7c3aed;background:#1a1f35;transform:translateY(-2px)}.scenario-card .sc-name{font-weight:700;font-size:.85rem;margin-bottom:4px}.scenario-card .sc-meta{font-size:.7rem;color:#64748b}.sc-sev-high{color:#f87171}.sc-sev-critical{color:#ef4444}.sc-sev-medium{color:#fbbf24}.sc-sev-low{color:#34d399}.lab-info-bar{display:flex;gap:20px;align-items:center;background:#131825;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#94a3b8}.lab-info-bar strong{color:#e2e8f0}.lab-steps-area{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}.lab-step{display:flex;align-items:center;gap:12px;background:#1e2433;border:1px solid #334155;border-radius:10px;padding:12px 16px;transition:all .2s}.lab-step.active{border-color:#7c3aed;background:#1a1535}.lab-step.done{border-color:#22c55e;background:#0f2318;opacity:.85}.lab-step.done .step-exec-btn{display:none}.lab-step.pending{opacity:.5}.step-num{width:28px;height:28px;border-radius:50%;background:#1e3050;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}.lab-step.done .step-num{background:#16a34a;color:white}.lab-step.active .step-num{background:#7c3aed;color:white}.step-info{flex:1}.step-desc{font-size:.82rem;font-weight:600}.step-cmd{font-size:.7rem;color:#64748b;font-family:monospace;margin-top:2px}.step-exec-btn{background:#7c3aed;border:none;border-radius:6px;color:white;font-size:.75rem;font-weight:700;padding:6px 14px;cursor:pointer;white-space:nowrap}.step-exec-btn:hover{background:#6d28d9}.step-exec-btn:disabled{opacity:.4;cursor:not-allowed}.step-check{color:#22c55e;font-size:1.1rem;display:none}.lab-step.done .step-check{display:block}.lab-terminal{background:#070b10;border:1px solid #1e3050;border-radius:8px;font-family:'Courier New',monospace;font-size:.75rem;min-height:140px;max-height:200px;overflow-y:auto}.term-hdr{background:#131825;border-bottom:1px solid #1e3050;padding:6px 14px;color:#64748b;font-size:.7rem;display:flex;align-items:center;gap:6px}.term-dot{width:10px;height:10px;border-radius:50%}.term-body{padding:12px 14px;color:#86efac;line-height:1.7}.term-line{white-space:pre-wrap;margin:0}.term-line.cmd{color:#60a5fa}.term-line.ok{color:#22c55e}.term-line.err{color:#ef4444}.term-cursor{display:inline-block;width:8px;height:14px;background:#60a5fa;animation:blink .7s infinite;vertical-align:text-bottom}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}.lab-score-wrap{text-align:center;padding:20px 0}.score-num{font-size:4rem;font-weight:900;line-height:1}.score-grade{font-size:1.3rem;font-weight:700;margin:8px 0}.score-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;text-align:center}.score-stat{background:#1e2433;border-radius:8px;padding:12px}.score-stat .sv{font-size:1.4rem;font-weight:800}.score-stat .sl{font-size:.7rem;color:#64748b;margin-top:2px}.lab-report-btn{background:#1d4ed8;border:none;border-radius:8px;color:white;font-size:.9rem;font-weight:700;padding:12px 28px;cursor:pointer;margin:8px;transition:all .15s}.lab-report-btn:hover{background:#2563eb;transform:translateY(-1px)}.lab-report-btn.secondary{background:#1e2433;border:1px solid #334155;color:#94a3b8}
 </style>
@@ -159,9 +297,20 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
     <a href="/analytics-page" class="btn btn-outline btn-sm">Analytics</a>
     <a href="/reports-page" class="btn btn-outline btn-sm">Reportes</a>
     <button id="labNavBtn" onclick="openLab()" style="background:#7c3aed;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F9EA; Lab</button>
+    <button id="sessionReportBtn" class="btn-session" onclick="generateSessionReport()" title="Reporte PDF completo de la sesión">📄 Sesión</button>
+    <span id="evalNavBadge" style="display:none;align-items:center;gap:5px;background:rgba(34,197,94,.15);border:1px solid #16a34a;border-radius:20px;padding:3px 10px;font-size:.72rem;font-weight:700;color:#4ade80;white-space:nowrap">
+      <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;display:inline-block;animation:pulse 1.2s infinite"></span>
+      <span id="evalNavText">EN EVALUACIÓN</span>
+    </span>
     <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
   </div>
 </header>
+
+<div id="practiceBar" style="display:none;background:linear-gradient(90deg,#065f46,#047857);padding:6px 24px;align-items:center;gap:12px;font-size:.8rem;color:#6ee7b7;position:sticky;top:60px;z-index:150">
+  <span style="font-weight:700">🎯 MODO PRÁCTICA ACTIVO</span>
+  <span id="practiceCountdown" style="font-weight:900;color:#fff;font-size:.9rem">--:--</span>
+  <span style="color:#a7f3d0;font-size:.75rem">Los paneles de diagnóstico se activarán automáticamente con cada incidente</span>
+</div>
 
 <div class="container">
   <!-- SUMMARY CARDS -->
@@ -215,6 +364,17 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
         </div>
       </div>
       <div class="card-body"><div class="node-grid" id="nodeGrid"></div></div>
+    </div>
+
+    <!-- NETWORK MAP -->
+    <div class="card full-width">
+      <div class="card-header">
+        <span class="card-title">🗺️ Mapa de Red — Tiempo Real</span>
+        <span style="font-size:.72rem;color:#64748b">Haz clic en un nodo para ver sus métricas · Rojo = ataque activo</span>
+      </div>
+      <div class="card-body" style="padding:.5rem 1rem 1rem">
+        <svg id="networkMapSVG" style="width:100%;height:auto;display:block" viewBox="0 0 1100 430" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
     </div>
 
     <!-- CHART: CPU/RAM Historical -->
@@ -281,6 +441,45 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
         </table>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- GUIDED DIAGNOSIS PANEL -->
+<div class="guided-panel" id="guidedPanel">
+  <!-- Header siempre visible -->
+  <div class="guided-header" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .9rem;border-bottom:1px solid #1e2d45;background:#0f1117;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:.6rem;min-width:0">
+      <span style="font-size:.88rem;font-weight:700;color:#a78bfa;white-space:nowrap">🔍 Diagnóstico Guiado</span>
+      <span class="guided-subtitle" id="guidedSubtitle" style="font-size:.68rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Iniciando...</span>
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;margin-left:.5rem">
+      <!-- Botón recoger / expandir -->
+      <button id="guidedCollapseBtn" onclick="toggleGuidedCollapse()" title="Recoger / Expandir"
+        style="background:none;border:1px solid #4c1d95;border-radius:4px;color:#a78bfa;cursor:pointer;padding:2px 7px;font-size:.78rem;transition:background .15s"
+        onmouseover="this.style.background='#1e1035'" onmouseout="this.style.background='none'">▲ Recoger</button>
+      <button class="guided-close-btn" onclick="closeGuided()" title="Cerrar"
+        style="background:none;border:1px solid #334155;border-radius:4px;color:#64748b;cursor:pointer;padding:2px 7px;font-size:.78rem"
+        onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">✕</button>
+    </div>
+  </div>
+  <!-- Tabs de etapas siempre visibles -->
+  <div class="guided-stages" style="display:flex;border-bottom:1px solid #1e2d45;flex-shrink:0">
+    <div class="guided-stage-tab active" id="gtab-0" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#a78bfa;border-bottom:2px solid #7c3aed;cursor:default">1.DETECTAR</div>
+    <div class="guided-stage-tab" id="gtab-1" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#64748b;cursor:default">2.ANALIZAR</div>
+    <div class="guided-stage-tab" id="gtab-2" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#64748b;cursor:default">3.CLASIFICAR</div>
+    <div class="guided-stage-tab" id="gtab-3" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#64748b;cursor:default">4.MITIGAR</div>
+  </div>
+  <!-- Minimize tab lateral (legacy) -->
+  <div class="guided-minimize-tab" onclick="expandGuided()" style="flex-direction:column;align-items:center;justify-content:center;height:100%;cursor:pointer;gap:6px">
+    <span style="writing-mode:vertical-lr;transform:rotate(180deg);font-size:.7rem;color:#a78bfa;font-weight:700;letter-spacing:.05em">DIAGNÓSTICO</span>
+    <span id="guidedMiniPhase" style="font-size:.65rem;color:#64748b">F1/4</span>
+  </div>
+  <!-- Cuerpo (se oculta al recoger) -->
+  <div class="guided-body" id="guidedBody" style="overflow-y:auto;padding:.75rem;max-height:calc(100vh - 230px)"></div>
+  <!-- Pie (se oculta al recoger) -->
+  <div class="guided-footer" style="padding:.5rem .9rem;border-top:1px solid #1e2d45;display:flex;gap:.5rem;justify-content:flex-end;align-items:center;background:#0f1117;flex-shrink:0">
+    <button id="guidedHintBtn" onclick="showGuidedHint()" style="background:#1e2d45;border:1px solid #334155;border-radius:6px;color:#fbbf24;padding:.35rem .75rem;font-size:.76rem;cursor:pointer">💡 Pista (−10 pts)</button>
+    <button id="guidedNextBtn" onclick="guidedNext()" style="display:none;background:#7c3aed;border:none;border-radius:6px;color:white;padding:.35rem .75rem;font-size:.76rem;cursor:pointer;font-weight:700">Siguiente →</button>
   </div>
 </div>
 
@@ -397,17 +596,80 @@ function handleWSMessage(msg) {
     case 'metrics':              handleMetrics(msg.data); break;
     case 'new_incident':         handleNewIncident(msg.data); break;
     case 'incident_detected':    notify('🔍 Incidente detectado', msg.data.detected_by + ' detectó evento', 'warn'); break;
+    case 'attack_resolved':      handleAttackResolved(msg.data); break;
     case 'incident_resolved':    notify('✅ Resuelto', 'Incidente cerrado', 'ok'); loadIncidents(); break;
     case 'sst_alerts':           handleSSTAlert(msg.data); break;
-    case 'incident_escalated':   handleEscalation(msg.data); break;
+    case 'incident_escalated':   handleEscalation(msg.data); if(STUDENT&&STUDENT.role!=='instructor'&&!guidedState.active) startGuidedMode(msg.data); break;
     case 'incident_auto_detected': handleAutoDetect(msg.data); break;
     case 'apt_phase':            handleAPTPhase(msg.data); break;
+    case 'practice_mode':        handlePracticeMode(msg.data); break;
+    case 'eval_session':         handleEvalSession(msg.data); break;
+  }
+}
+
+function handleEvalSession(data) {
+  // Eliminar banner antiguo si existiera de sesiones anteriores
+  const oldBar = document.getElementById('evalSessionBar');
+  if (oldBar) oldBar.remove();
+
+  const badge    = document.getElementById('evalNavBadge');
+  const badgeText = document.getElementById('evalNavText');
+
+  if (data.active) {
+    const isGroup   = data.mode === 'group';
+    const groupName = data.group_name || '';
+    // Mostrar badge en el navbar
+    if (badge) {
+      badge.style.display = 'flex';
+      badge.style.borderColor = isGroup ? '#3b82f6' : '#16a34a';
+      badge.style.background  = isGroup ? 'rgba(59,130,246,.15)' : 'rgba(34,197,94,.15)';
+      badge.querySelector('span').style.background = isGroup ? '#60a5fa' : '#4ade80';
+      if (badgeText) badgeText.textContent = isGroup
+        ? `GRUPAL${groupName ? ': '+groupName : ''}`
+        : 'EN EVALUACIÓN';
+    }
+    notify(isGroup ? '👥 Sesión grupal iniciada' : '🎓 Sesión evaluativa iniciada',
+      data.message || (isGroup
+        ? `Trabajas en equipo${groupName ? ' — '+groupName : ''}. El puntaje será el promedio del grupo.`
+        : 'El instructor está registrando tu desempeño.'), 'ok');
+  } else {
+    // Ocultar badge
+    if (badge) badge.style.display = 'none';
+    const isGroup = data.mode === 'group';
+    if (isGroup) {
+      const indSc = data.individual_score || 0;
+      const grpSc = data.group_score || 0;
+      notify('✅ Sesión grupal finalizada',
+        `Tu puntaje individual: ${indSc.toFixed(1)}/100 · Puntaje grupal: ${grpSc.toFixed(1)}/100`,
+        grpSc >= 75 ? 'ok' : 'warn');
+    } else {
+      const sc = data.score || 0;
+      notify('✅ Evaluación finalizada', `Tu puntaje de sesión: ${sc.toFixed(1)}/100`, sc >= 75 ? 'ok' : 'warn');
+    }
+    // Cerrar el panel guiado automáticamente al finalizar la sesión
+    // Espera 4 s para que el estudiante lea la notificación de puntaje
+    if (guidedState.active) {
+      setTimeout(() => {
+        const panel = document.getElementById('guidedPanel');
+        if (panel && panel.classList.contains('open')) {
+          notify('📋 Diagnóstico cerrado', 'La sesión evaluativa ha terminado. El panel guiado se ha cerrado.', 'info');
+          closeGuided(true); // cierre por sistema, sin penalidad
+        }
+      }, 4000);
+    }
   }
 }
 
 // ── METRICS HANDLER ─────────────────────────────────────────
 function handleMetrics(data) {
   allNodes = data.nodes || {};
+
+  // Construir mapa de ataques activos desde los nodos (el backend lo pone en has_attack/attack_type)
+  const activeAttacksMap = {};
+  Object.entries(allNodes).forEach(([nodeId, node]) => {
+    if (node.has_attack) activeAttacksMap[nodeId] = { node_id: nodeId, type: node.attack_type };
+  });
+  const attackCount = Object.keys(activeAttacksMap).length;
 
   // Summary cards
   const nodes = Object.values(allNodes);
@@ -424,7 +686,7 @@ function handleMetrics(data) {
   document.getElementById('sc-cpu').textContent = cpuAvg.toFixed(1) + '%';
   document.getElementById('sc-ram').textContent = ramAvg.toFixed(1) + '%';
   document.getElementById('sc-netin').textContent = netIn.toFixed(0);
-  document.getElementById('sc-attacks').textContent = Object.keys(data.active_attacks||{}).length;
+  document.getElementById('sc-attacks').textContent = attackCount;
   document.getElementById('badge-online').textContent = `${online} online`;
   document.getElementById('badge-offline').textContent = `${offline} offline`;
   document.getElementById('badge-warn').textContent = `${warns} warning`;
@@ -447,6 +709,7 @@ function handleMetrics(data) {
   }
 
   renderNodeGrid();
+  updateNetworkMapAttacks(activeAttacksMap); // siempre actualizar con el mapa real
   updateMainChart();
   updateNetChart();
   updateSST(data.sst || []);
@@ -666,26 +929,42 @@ async function loadIncidents() {
         </div>
         <div class="inc-actions">
           <span class="badge ${sevClass}">${i.severity||'—'}</span>
-          <button class="btn btn-sm btn-outline" onclick="detectIncident(${i.id})">Detectar</button>
+          <button class="btn btn-sm btn-outline" onclick="detectIncident(${i.id},'${i.incident_type||''}','${i.node_affected||''}')">Detectar</button>
         </div>
       </div>`;
     }).join('');
   } catch(e) {}
 }
 
-async function detectIncident(id) {
-  const sessId = 1; // usar sesión activa
+async function detectIncident(id, attackType, nodeId) {
+  const sessId = 1;
   try {
     const r = await apiFetch(`/api/attacks/incidents/detect?incident_id=${id}&session_id=${sessId}`, {method:'POST'});
-    notify('🔍 Detectado', `MTTD: ${r.mttd_seconds?.toFixed(1)}s`, 'warn');
+    const mttd = r.mttd_seconds ? r.mttd_seconds.toFixed(1) + 's' : '—';
+    notify('🔍 Incidente detectado', `MTTD: ${mttd} — Iniciando diagnóstico...`, 'warn');
     loadIncidents();
-  } catch(e) { notify('Error', 'No se pudo detectar', 'crit'); }
+    // Acción explícita → marcar nodo rojo + abrir panel guiado directamente
+    if (STUDENT?.role !== 'instructor' && attackType && nodeId) {
+      if (nodeId) { nmAttacked.add(nodeId); renderNetworkMap(); }
+      setTimeout(() => _openGuidedPanel(id, attackType, nodeId), 500);
+    }
+  } catch(e) { notify('Error', 'No se pudo detectar el incidente', 'crit'); }
 }
 
 function handleNewIncident(data) {
   notify('🚨 Nuevo Ataque', data.message || 'Incidente inyectado', 'crit');
+  // Marcar nodo en rojo inmediatamente en el mapa (sin esperar el siguiente tick de métricas)
+  const attackedNode = data.attack?.node_id || data.node_id || data.node;
+  if (attackedNode) { nmAttacked.add(attackedNode); renderNetworkMap(); }
   loadIncidents();
   loadAlerts();
+}
+
+function handleAttackResolved(data) {
+  const nodeId = data.node_id || data.node;
+  if (nodeId) { nmAttacked.delete(nodeId); renderNetworkMap(); }
+  notify('✅ Ataque resuelto', `Nodo ${nodeId || ''} normalizado`, 'ok');
+  loadIncidents();
 }
 
 // ── ALERTS ───────────────────────────────────────────────────
@@ -695,22 +974,66 @@ async function loadAlerts() {
     const list = document.getElementById('alertList');
     document.getElementById('alertCount').textContent = `${r.length} activas`;
     if (!r.length) { list.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin alertas</div>'; return; }
+
+    const typeLabels = {
+      ddos:'DDoS', ransomware:'Ransomware', brute_force:'Fuerza Bruta',
+      port_scan:'Escaneo de Puertos', mitm:'Man-in-the-Middle', sql_injection:'SQL Injection',
+      crypto_mining:'Cryptomining', lateral_movement:'Movimiento Lateral',
+      high_cpu:'CPU Alta', high_ram:'RAM Alta', high_latency:'Latencia Alta',
+      packet_loss:'Pérdida de Paquetes', disk_io:'Disco I/O Alto',
+    };
+    const severityIcon = { critical:'🔴', warning:'🟡', info:'🔵' };
+
     list.innerHTML = r.slice(0,20).map(a => {
-      const t = a.created_at ? new Date(a.created_at).toLocaleTimeString('es') : '';
+      const t = a.timestamp ? new Date(a.timestamp).toLocaleTimeString('es') : '';
       const cls = a.severity === 'critical' ? 'critical' : a.severity === 'warning' ? 'warning' : 'info';
-      return `<div class="alert-item ${cls}">
-        <div class="alert-msg">${a.message||a.alert_type||'Alerta'}</div>
-        <div style="display:flex;gap:.3rem;align-items:center;flex-shrink:0">
+      const icon = severityIcon[a.severity] || '🔵';
+      const typeLabel = typeLabels[a.alert_type] || (a.alert_type||'').replace(/_/g,' ');
+      const nodeLabel = a.node_id || '—';
+      // Escape for inline onclick attribute
+      const safeType = (a.alert_type||'').replace(/'/g,"\\'");
+      const safeNode = (a.node_id||'').replace(/'/g,"\\'");
+      const incId = a.incident_id || 0;
+      return `<div class="alert-item ${cls}" id="alert-row-${a.id}">
+        <div style="flex:1;min-width:0">
+          <div class="alert-msg">${icon} <strong>${typeLabel}</strong> &nbsp;·&nbsp; <span style="color:var(--accent);font-weight:600">${nodeLabel}</span></div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.message||''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.2rem;align-items:flex-end;flex-shrink:0">
           <span class="alert-time">${t}</span>
-          <button class="btn btn-sm btn-outline" onclick="ackAlert(${a.id})">ACK</button>
+          <button class="btn btn-sm" style="background:#1e3060;color:#93c5fd;border:1px solid #3b5bdb;white-space:nowrap"
+            onclick="ackAlert(${a.id},'${safeNode}','${safeType}',${incId})" id="ack-btn-${a.id}">
+            🔍 Investigar
+          </button>
         </div>
       </div>`;
     }).join('');
   } catch(e) {}
 }
 
-async function ackAlert(id) {
-  try { await apiFetch(`/api/metrics/alerts/${id}/ack`, {method:'POST'}); loadAlerts(); } catch(e) {}
+async function ackAlert(id, nodeId, alertType, incidentId) {
+  // Feedback visual inmediato
+  const btn = document.getElementById(`ack-btn-${id}`);
+  const row = document.getElementById(`alert-row-${id}`);
+  if (btn) {
+    btn.textContent = '⏳ Abriendo...';
+    btn.disabled = true;
+    btn.style.background = '#1e3a2e';
+    btn.style.color = '#22c55e';
+  }
+  if (row) row.style.opacity = '0.4';
+
+  try {
+    await apiFetch(`/api/metrics/alerts/${id}/ack`, {method:'POST'});
+    notify('🔍 Investigando alerta', `Abriendo diagnóstico guiado para ${nodeId || 'nodo afectado'}`, 'ok');
+
+    // Abrir panel de diagnóstico guiado para el nodo/ataque de esta alerta
+    setTimeout(() => {
+      _openGuidedPanel(incidentId || 0, alertType || '', nodeId || '');
+    }, 400);
+
+    setTimeout(loadAlerts, 1200);
+  } catch(e) { loadAlerts(); }
 }
 
 function handleSSTAlert(data) {
@@ -736,8 +1059,10 @@ function handleSSTAlert(data) {
   updateSST(mapped);
   const crit = mapped.filter(s => s.status === 'critical');
   const warn = mapped.filter(s => s.status === 'warning');
-  if (crit.length) notify(`🌡️ SST Crítico`, `${crit[0].name}: valor fuera de rango`, 'crit');
-  else if (warn.length) notify(`⚠️ SST Alerta`, `${warn.length} sensor(es) con advertencia`, 'warn');
+  if (crit.length) {
+    notify(`🌡️ SST Crítico`, `${crit[0].name}: valor fuera de rango`, 'crit');
+    if (STUDENT && STUDENT.role !== 'instructor') startSSTProtocol(crit);
+  } else if (warn.length) notify(`⚠️ SST Alerta`, `${warn.length} sensor(es) con advertencia`, 'warn');
 }
 
 // ── NODE MODAL ────────────────────────────────────────────────
@@ -950,6 +1275,7 @@ function closeMitPanel() {
 const _origHandleNewIncident = handleNewIncident;
 function handleNewIncident(data) {
   _origHandleNewIncident(data);
+  // Guided mode NOT triggered here — only via incident_escalated to avoid opening on every auto-detection
   if (data.attack?.attack_type || data.incident_id) {
     const atype = data.attack?.attack_type;
     const node  = data.attack?.node_id || 'WEB-01';
@@ -957,6 +1283,527 @@ function handleNewIncident(data) {
     if (atype && incId) {
       setTimeout(() => loadMitigationSuggestion(incId, atype, node), 500);
     }
+  }
+}
+
+// ── NETWORK MAP ──────────────────────────────────────────────
+const NM_POS = {
+  'FW-01':      {x:550,y:42},
+  'RTR-EDGE':   {x:550,y:118},
+  'SW-CORE':    {x:550,y:205},
+  'LB-01':      {x:220,y:288},
+  'SW-ACC-01':  {x:830,y:288},
+  'WEB-01':     {x:100,y:378},
+  'WEB-02':     {x:280,y:378},
+  'APP-01':     {x:630,y:378},
+  'APP-02':     {x:750,y:378},
+  'DB-01':      {x:855,y:378},
+  'DB-02':      {x:965,y:378},
+  'STORAGE-01': {x:1020,y:288},
+};
+const NM_LINKS = [
+  ['FW-01','RTR-EDGE'],['RTR-EDGE','SW-CORE'],
+  ['SW-CORE','LB-01'],['SW-CORE','SW-ACC-01'],
+  ['LB-01','WEB-01'],['LB-01','WEB-02'],
+  ['SW-ACC-01','APP-01'],['SW-ACC-01','APP-02'],
+  ['SW-ACC-01','DB-01'],['SW-ACC-01','DB-02'],
+  ['SW-ACC-01','STORAGE-01'],
+];
+const NM_ICONS = {web:'💻',database:'🗄',application:'⚙',loadbalancer:'⚖',firewall:'🛡',router:'📡',switch:'🔀',storage:'💾'};
+let nmAttacked = new Set();
+let nmMitigated = new Set(); // nodos que completaron mitigación (verde brillante)
+
+function renderNetworkMap() {
+  const svg = document.getElementById('networkMapSVG');
+  if (!svg || !Object.keys(allNodes).length) return;
+  const fc = {ok:'#166534',warn:'#713f12',crit:'#7f1d1d',offline:'#1e293b'};
+  const sc = {ok:'#22c55e',warn:'#eab308',crit:'#ef4444',offline:'#475569'};
+  const links = NM_LINKS.map(([a,b]) => {
+    const pa=NM_POS[a], pb=NM_POS[b];
+    if (!pa||!pb) return '';
+    const atk = nmAttacked.has(a)||nmAttacked.has(b);
+    return `<line x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" class="nm-link${atk?' attack':''}"/>`;
+  }).join('');
+  // Durante diagnóstico guiado activo → mantener nodo bajo diagnóstico en rojo
+  const guidedNode = guidedState?.active ? guidedState?.incident?.attack?.node_id : null;
+  if (guidedNode) nmAttacked.add(guidedNode);
+
+  const nodes = Object.entries(NM_POS).map(([id,pos]) => {
+    const nd=allNodes[id]||{}, m=nd.metrics||{};
+    const online=m.is_online!==false, cpu=m.cpu_pct||0, ram=m.ram_pct||0;
+    const atk=nmAttacked.has(id);
+    const mitigated=nmMitigated.has(id);
+    let st='ok';
+    if (!online) st='offline';
+    else if (mitigated) st='mitigated';
+    else if (atk||cpu>90||ram>92) st='crit';
+    else if (cpu>75||ram>80) st='warn';
+    const icon=NM_ICONS[nd.type||'web']||'🖥';
+    const metric=online?`CPU ${cpu.toFixed(0)}% · RAM ${ram.toFixed(0)}%`:'OFFLINE';
+    const atkAnim=atk?` style="animation:nmPulse .8s infinite"`:'';
+    // Colores especiales para nodo mitigado (verde brillante)
+    const fillC = mitigated?'#14532d': fc[st]||fc.ok;
+    const strkC = mitigated?'#4ade80': sc[st]||sc.ok;
+    const strkW = (atk||mitigated)?3:1.5;
+    return `<g class="nm-node" onclick="openNodeModal('${id}')">
+      <circle cx="${pos.x}" cy="${pos.y}" r="24" fill="${fillC}" stroke="${strkC}" stroke-width="${strkW}"${atkAnim}/>
+      <text x="${pos.x}" y="${pos.y+5}" text-anchor="middle" dominant-baseline="middle" font-size="13">${icon}</text>
+      <text x="${pos.x}" y="${pos.y+38}" text-anchor="middle" font-size="9" fill="#e2e8f0" font-weight="700">${id}</text>
+      <text x="${pos.x}" y="${pos.y+49}" text-anchor="middle" font-size="8" fill="#64748b">${metric}</text>
+    </g>`;
+  }).join('');
+  svg.innerHTML=`
+    <rect width="1100" height="430" fill="#0a0e1a" rx="8"/>
+    <text x="22" y="50" fill="#1e3050" font-size="9" font-weight="700">PERIMETER</text>
+    <text x="22" y="126" fill="#1e3050" font-size="9" font-weight="700">ROUTING</text>
+    <text x="22" y="212" fill="#1e3050" font-size="9" font-weight="700">CORE</text>
+    <text x="22" y="296" fill="#1e3050" font-size="9" font-weight="700">DISTRIBUTION</text>
+    <text x="22" y="386" fill="#1e3050" font-size="9" font-weight="700">ACCESS</text>
+    <line x1="120" y1="76" x2="1080" y2="76" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
+    <line x1="120" y1="154" x2="1080" y2="154" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
+    <line x1="120" y1="248" x2="1080" y2="248" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
+    <line x1="120" y1="332" x2="1080" y2="332" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
+    ${links}${nodes}
+    <g transform="translate(22,416)">
+      <circle cx="8" cy="0" r="5" fill="#166534" stroke="#22c55e" stroke-width="1"/><text x="18" y="4" fill="#64748b" font-size="8">OK</text>
+      <circle cx="52" cy="0" r="5" fill="#713f12" stroke="#eab308" stroke-width="1"/><text x="62" y="4" fill="#64748b" font-size="8">Warning</text>
+      <circle cx="112" cy="0" r="5" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/><text x="122" y="4" fill="#64748b" font-size="8">Crítico/Ataque</text>
+      <circle cx="210" cy="0" r="5" fill="#1e293b" stroke="#475569" stroke-width="1"/><text x="220" y="4" fill="#64748b" font-size="8">Offline</text>
+    </g>`;
+}
+
+function updateNetworkMapAttacks(activeAttacks) {
+  nmAttacked.clear();
+  if (activeAttacks) Object.values(activeAttacks).forEach(a=>{ if(a.node_id) nmAttacked.add(a.node_id); });
+  renderNetworkMap();
+}
+
+// ── GUIDED DIAGNOSIS ─────────────────────────────────────────
+let guidedState = {active:false,incident:null,stage:0,hintsUsed:0,answers:[],startTime:null,score:100,lastIncidentId:null,lastClosedAt:0};
+
+const GUIDED_HINTS = [
+  ['Observa el mapa de red: los nodos en rojo están en estado crítico.','El nodo atacado es el que tiene las métricas más altas. Haz clic en el rojo del mapa.'],
+  ['Compara cada valor con el umbral: CPU>85% crítico, Net IN>800 Mbps puede ser DDoS, RAM>90% es grave.','La métrica que supera MÁS su límite es la clave del diagnóstico.'],
+  ['DDoS/SYN: CPU alto + red saturada. Brute Force: muchas conexiones al puerto 22. Memory Leak: RAM creciendo sin liberarse.','El tipo de ataque real lo puedes inferir del recurso más afectado.'],
+  ['Para ataques de red: rate limiting o firewall. Para brute force: fail2ban. Para memory leak: reiniciar el proceso afectado.','Abre el Lab de Mitigación para practicar el procedimiento completo paso a paso.'],
+];
+
+function _gAttType(inc){ return (inc?.attack?.attack_type||'').toLowerCase(); }
+function _gCorrectDetect(inc){ return inc?.attack?.node_id||'WEB-01'; }
+function _gCorrectAnalyze(inc){
+  const t=_gAttType(inc);
+  if(t.includes('ddos')||t.includes('syn')||t.includes('flood')) return 'net';
+  if(t.includes('memory')||t.includes('leak')) return 'ram';
+  if(t.includes('brute')||t.includes('ssh')||t.includes('force')) return 'conn';
+  if(t.includes('port')||t.includes('scan')) return 'conn';
+  if(t.includes('ssl')||t.includes('tls')||t.includes('cert')||t.includes('expir')) return 'conn';
+  if(t.includes('unauth')||t.includes('access')||t.includes('mitm')||t.includes('arp')) return 'conn';
+  if(t.includes('disk')||t.includes('storage')||t.includes('io')) return 'cpu';
+  if(t.includes('thermal')||t.includes('temp')||t.includes('power')||t.includes('ups')) return 'cpu';
+  // Fallback inteligente: devuelve la métrica que MÁS supera su umbral en tiempo real
+  const id=_gCorrectDetect(inc), m=(allNodes[id]||{}).metrics||{};
+  const overCpu=(m.cpu_pct||0)-70, overRam=(m.ram_pct||0)-80, overNet=(m.net_in_mbps||0)-200, overConn=(m.connections||0)-400;
+  const max=Math.max(overCpu,overRam,overNet,overConn);
+  if(max<=0) return 'net'; // ninguna supera umbral → asumir red
+  if(max===overNet) return 'net';
+  if(max===overRam) return 'ram';
+  if(max===overConn) return 'conn';
+  return 'cpu';
+}
+function _gCorrectDecide(inc){
+  const t=_gAttType(inc);
+  if(t.includes('ddos')||t.includes('syn')||t.includes('flood')) return 'ddos';
+  if(t.includes('brute')||t.includes('ssh')||t.includes('force')) return 'brute';
+  if(t.includes('memory')||t.includes('leak')) return 'mem_leak';
+  if(t.includes('port')||t.includes('scan')) return 'port_scan';
+  if(t.includes('ssl')||t.includes('tls')||t.includes('cert')||t.includes('expir')) return 'ssl';
+  if(t.includes('unauth')||t.includes('access')||t.includes('mitm')||t.includes('arp')) return 'brute';
+  return 'ddos';
+}
+function _gCorrectMitigate(inc){
+  return {ddos:'rate_limit',brute:'fail2ban',mem_leak:'restart_proc',port_scan:'stealth',ssl:'renew_cert'}[_gCorrectDecide(inc)]||'rate_limit';
+}
+function _gBuildMitigateOpts(inc){
+  const map={
+    ddos:[{label:'🚧 Activar rate limiting en el firewall',value:'rate_limit'},{label:'🔄 Reiniciar el servidor web',value:'restart'},{label:'📧 Solo notificar al equipo',value:'notify'},{label:'💾 Hacer backup inmediato',value:'backup'}],
+    brute:[{label:'🔒 Activar fail2ban y bloquear IPs',value:'fail2ban'},{label:'🌐 Cortar todo el tráfico externo',value:'block_all'},{label:'📧 Solo notificar al usuario',value:'notify'},{label:'🔄 Reiniciar el servicio SSH',value:'restart'}],
+    mem_leak:[{label:'🔄 Reiniciar el proceso con fuga de memoria',value:'restart_proc'},{label:'🚫 Apagar el servidor completamente',value:'shutdown'},{label:'📧 Solo notificar al desarrollador',value:'notify'},{label:'💾 Ampliar la RAM del servidor',value:'add_ram'}],
+    port_scan:[{label:'🛡️ Activar modo stealth y bloquear IP origen',value:'stealth'},{label:'📧 Ignorar, es tráfico normal',value:'ignore'},{label:'🔄 Reiniciar el firewall',value:'restart_fw'},{label:'💾 Hacer backup inmediato',value:'backup'}],
+    ssl:[{label:'🔐 Renovar el certificado SSL/TLS con certbot',value:'renew_cert'},{label:'🔄 Reiniciar el servidor web',value:'restart'},{label:'📧 Solo notificar a los usuarios',value:'notify'},{label:'🔒 Forzar TLS 1.3 y deshabilitar versiones antiguas',value:'force_tls'}],
+  };
+  return map[_gCorrectDecide(inc)]||map.ddos;
+}
+
+const GUIDED_STAGES = [
+  (inc) => ({
+    q:'🔴 ¡Alerta! Actividad anómala detectada. Observa el mapa de red arriba. ¿Qué nodo muestra el estado más crítico?',
+    ctx:'El mapa de red muestra en tiempo real el estado de cada nodo. Los nodos en <strong style="color:#ef4444">rojo</strong> están bajo ataque o en estado crítico. Identifica y selecciona el nodo afectado.',
+    opts:(()=>{const c=_gCorrectDetect(inc);const o=Object.keys(allNodes).filter(n=>n!==c).sort(()=>Math.random()-.5).slice(0,3);return [c,...o].sort(()=>Math.random()-.5).map(n=>({label:'🖥️ '+n,value:n}));})(),
+    correct:_gCorrectDetect(inc),
+    fb:['✅ ¡Correcto! Has localizado el nodo comprometido. Pasa a analizar sus métricas.','❌ No es ese nodo. Busca el nodo en rojo en el mapa de red y vuelve a intentarlo.'],
+  }),
+  (inc) => {
+    const id=_gCorrectDetect(inc), m=(allNodes[id]||{}).metrics||{};
+    const cpu=+(m.cpu_pct||0).toFixed(1), ram=+(m.ram_pct||0).toFixed(1), net=+(m.net_in_mbps||0).toFixed(0), conn=m.connections||0, lat=+(m.latency_ms||0).toFixed(0);
+    const col=(v,t)=>v>t?'color:#ef4444':'color:#22c55e';
+    return {
+      q:`📊 Nodo identificado: <strong style="color:#60a5fa">${id}</strong>. Analiza sus métricas actuales. ¿Cuál indicador confirma el problema?`,
+      ctx:`Métricas en tiempo real de ${id}:<br>
+        &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> &nbsp;(normal &lt; 70%)<br>
+        &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> &nbsp;(normal &lt; 80%)<br>
+        &bull; Net IN: <strong style="${col(net,200)}">${net} Mbps</strong> &nbsp;(normal &lt; 200)<br>
+        &bull; Conexiones: <strong style="${col(conn,400)}">${conn}</strong> &nbsp;(normal &lt; 400)<br>
+        &bull; Latencia: <strong style="${col(lat,200)}">${lat} ms</strong> &nbsp;(normal &lt; 200 ms)`,
+      opts:[
+        {label:'⚡ CPU elevada — sobrecarga de proceso',value:'cpu'},
+        {label:'🧠 RAM al máximo — posible fuga de memoria',value:'ram'},
+        {label:'🌊 Tráfico de red anormal — posible DDoS',value:'net'},
+        {label:'🔗 Conexiones masivas — acceso no autorizado',value:'conn'},
+      ],
+      correct:_gCorrectAnalyze(inc),
+      fb:['✅ ¡Exacto! Has identificado la métrica clave del ataque. Ahora clasifícalo.','❌ Revisa qué valor supera MÁS su umbral normal en las métricas mostradas arriba.'],
+    };
+  },
+  (inc) => ({
+    q:'🎯 Basado en el patrón de métricas, ¿cuál es el tipo de ataque más probable?',
+    ctx:`Tienes identificado el indicador principal del nodo <strong style="color:#60a5fa">${_gCorrectDetect(inc)}</strong>. Ahora clasifica el ataque basándote en ese patrón.`,
+    opts:[
+      {label:'💥 DDoS / SYN Flood — saturación de red',value:'ddos'},
+      {label:'🔑 Brute Force — intentos SSH repetidos',value:'brute'},
+      {label:'🧠 Memory Leak — fuga de memoria del proceso',value:'mem_leak'},
+      {label:'🔍 Port Scan — reconocimiento de puertos',value:'port_scan'},
+    ],
+    correct:_gCorrectDecide(inc),
+    fb:['✅ ¡Correcto! Has clasificado el ataque perfectamente. Último paso: mitigación.','❌ Revisa el patrón de métricas. ¿Qué recurso está más afectado? Eso revela el tipo de ataque.'],
+  }),
+  (inc) => ({
+    q:'🛡️ ¡Último paso! Has diagnosticado el ataque. ¿Cuál es tu primera acción de mitigación?',
+    ctx:`Ataque identificado: <strong style="color:#f97316">${{ddos:'DDoS/SYN Flood',brute:'Brute Force SSH',mem_leak:'Memory Leak',port_scan:'Port Scan'}[_gCorrectDecide(inc)]||'desconocido'}</strong> en <strong style="color:#60a5fa">${_gCorrectDetect(inc)}</strong>. ¿Cuál es la respuesta inmediata más efectiva?`,
+    opts:_gBuildMitigateOpts(inc),
+    correct:_gCorrectMitigate(inc),
+    fb:['✅ ¡Excelente! Esa es la acción correcta como primera respuesta inmediata.','❌ Esa acción no ataca la raíz del problema. Piensa en qué detiene el ataque directamente.'],
+  }),
+];
+
+function startGuidedMode(incident) {
+  if (!incident || guidedState.active) return;
+  if (!XSESSION.canOpen()) return; // bloqueo global de sesión
+  const attackType = incident?.attack?.attack_type || incident?.attack_type || '';
+  const nodeId     = incident?.attack?.node_id || incident?.node_id || incident?.node || 'WEB-01';
+  const incId      = incident?.incident_id || incident?.id || 0;
+  if (!attackType) return;
+  if (incId && incId === guidedState.lastIncidentId) return;
+  _openGuidedPanel(incId, attackType, nodeId);
+}
+
+// Versión directa usada por "Detectar" (sin guards de cooldown)
+function _openGuidedPanel(incId, attackType, nodeId) {
+  // Cerrar SST si estaba abierto
+  document.getElementById('sstPanel')?.classList.remove('open', 'minimized');
+  sstState.active = false;
+  // Resetear estado guiado completamente
+  XSESSION.lockUntil  = 0;
+  XSESSION.activeType = null;
+  guidedState = {
+    active: true,
+    incident: { incident_id: incId, attack: { attack_type: attackType, node_id: nodeId } },
+    stage: 0, hintsUsed: 0, answers: [],
+    startTime: Date.now(), score: 100,
+    lastIncidentId: incId, lastClosedAt: guidedState?.lastClosedAt || 0
+  };
+  XSESSION.activeType = 'guided';
+  const el = document.getElementById('guidedSubtitle');
+  if (el) el.textContent = (attackType || 'ATAQUE').toUpperCase() + ' · Nodo: ' + (nodeId || '—');
+  const panel = document.getElementById('guidedPanel');
+  panel.classList.remove('minimized');
+  panel.classList.add('open');
+  _syncNotifSide();
+  renderGuidedStage(0);
+}
+
+function toggleGuidedCollapse() {
+  minimizeGuided();
+}
+function minimizeGuided() {
+  const p = document.getElementById('guidedPanel');
+  p.classList.add('minimized');
+  const phaseEl = document.getElementById('guidedMiniPhase');
+  if (phaseEl) phaseEl.textContent = 'F' + (guidedState.stage + 1) + '/4';
+}
+function expandGuided() {
+  document.getElementById('guidedPanel').classList.remove('minimized');
+}
+function closeGuided(bySystem) {
+  _stopGuidedAutoClose(); // limpiar siempre cualquier timer activo
+  document.getElementById('guidedPanel').classList.remove('open', 'minimized');
+  guidedState.active=false;
+  guidedState.lastClosedAt=Date.now();
+  _syncNotifSide();
+  // Solo aplica penalidad si el estudiante cierra manualmente (no al fin de sesión/sistema)
+  if (!bySystem) XSESSION.lock(12); // 12 min cooldown al cerrar sin completar
+}
+
+/** Mueve las notificaciones al lado contrario del panel activo */
+function _syncNotifSide() {
+  const nc = document.getElementById('notifContainer');
+  if (!nc) return;
+  const guidedOpen = document.getElementById('guidedPanel')?.classList.contains('open');
+  const sstOpen    = document.getElementById('sstPanel')?.classList.contains('open');
+  if (guidedOpen || sstOpen) {
+    nc.classList.add('panel-open');    // va a la izquierda
+  } else {
+    nc.classList.remove('panel-open'); // vuelve a la derecha
+  }
+}
+
+function renderGuidedStage(stage) {
+  for(let i=0;i<4;i++){
+    const t=document.getElementById('gtab-'+i);
+    if(t) t.className='guided-stage-tab'+(i<stage?' done':i===stage?' active':'');
+  }
+  const stg=GUIDED_STAGES[stage](guidedState.incident);
+  const nb=document.getElementById('guidedNextBtn'), hb=document.getElementById('guidedHintBtn');
+  if(nb) nb.style.display='none';
+  if(hb) hb.style.display='';
+  const optH=stg.opts.map((o,i)=>
+    `<button class="guided-option" id="gopt-${i}" data-val="${o.value}" onclick="checkGuidedAnswer('${o.value}','${stg.correct}')">${o.label}</button>`
+  ).join('');
+  document.getElementById('guidedBody').innerHTML=`
+    <div class="guided-question">${stg.q}</div>
+    <div class="guided-context">${stg.ctx}</div>
+    <div class="guided-options">${optH}</div>
+    <div class="guided-feedback" id="guidedFeedback"></div>
+    <div class="guided-hint" id="guidedHint"></div>`;
+}
+
+function showGuidedHint() {
+  if(!guidedState.active) return;
+  const hints=GUIDED_HINTS[guidedState.stage]||[];
+  const idx=Math.min(guidedState.hintsUsed,hints.length-1);
+  guidedState.hintsUsed++;
+  guidedState.score=Math.max(30,guidedState.score-10);
+  const h=document.getElementById('guidedHint');
+  if(h){h.textContent='💡 '+hints[idx]; h.classList.add('show');}
+}
+
+function checkGuidedAnswer(val,correct) {
+  document.querySelectorAll('.guided-option').forEach(b=>{b.disabled=true;b.style.pointerEvents='none';});
+  const isOK=val===correct;
+  if(!isOK) guidedState.score=Math.max(30,guidedState.score-15);
+  guidedState.answers.push({stage:guidedState.stage,correct:isOK});
+  document.querySelectorAll('.guided-option').forEach(b=>{
+    const bv=b.dataset.val;
+    if(bv===correct) b.classList.add('correct');
+    else if(bv===val&&!isOK) b.classList.add('wrong');
+  });
+  const stg=GUIDED_STAGES[guidedState.stage](guidedState.incident);
+  const fb=document.getElementById('guidedFeedback');
+  fb.className='guided-feedback '+(isOK?'ok':'err');
+  fb.textContent=stg.fb[isOK?0:1];
+  const nb=document.getElementById('guidedNextBtn');
+  nb.style.display='block';
+  nb.textContent=guidedState.stage===3?'🏁 Ver resultado':'Siguiente →';
+}
+
+function guidedNext() {
+  if(guidedState.stage<3){guidedState.stage++;renderGuidedStage(guidedState.stage);}
+  else showGuidedResults();
+}
+
+function showGuidedResults() {
+  for(let i=0;i<4;i++){const t=document.getElementById('gtab-'+i);if(t)t.className='guided-stage-tab done';}
+  const dur=Math.round((Date.now()-guidedState.startTime)/1000);
+  const ok=guidedState.answers.filter(a=>a.correct).length;
+  const sc=Math.max(20,guidedState.score);
+  // ── BITÁCORA: interceptar antes de mostrar resultados ──────
+  guidedState._pendingResult = { sc, ok, dur };
+  _openBitacoraModal({
+    score:        sc,
+    correct:      ok,
+    duration:     dur,
+    hints:        guidedState.hintsUsed,
+    attack_type:  guidedState.incident?.attack?.attack_type || 'unknown',
+    node_id:      guidedState.incident?.attack?.node_id     || '—',
+    incident_id:  guidedState.incident?.incident_id         || null,
+    severity:     guidedState.incident?.severity            || null,
+    mttd_seconds: guidedState.incident?.mttd_seconds        || null,
+  });
+  return; // el modal llama a _showGuidedResultsPanel() al guardar
+}
+function _showGuidedResultsPanel() {
+  const { sc, ok, dur } = guidedState._pendingResult || { sc:0, ok:0, dur:0 };
+  // Nodo mitigado → quitar rojo y poner verde brillante en el mapa
+  const mitigatedNode = guidedState.incident?.attack?.node_id;
+  if (mitigatedNode) {
+    nmAttacked.delete(mitigatedNode);
+    nmMitigated.add(mitigatedNode);
+    renderNetworkMap();
+    // Volver a normal después de 30 seg
+    setTimeout(() => { nmMitigated.delete(mitigatedNode); renderNetworkMap(); }, 30000);
+  }
+  XSESSION.saveGuided({type:guidedState.incident?.attack?.attack_type||'desconocido',node:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur});
+  apiFetch('/api/analytics/guided/complete',{method:'POST',body:JSON.stringify({attack_type:guidedState.incident?.attack?.attack_type||'unknown',node_id:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur})}).catch(()=>{});
+  XSESSION.lock(15); // 15 min cooldown al completar
+  const col=sc>=90?'#22c55e':sc>=75?'#60a5fa':sc>=60?'#eab308':'#ef4444';
+  const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Regular':'⚠️ Practica más';
+  const msg=sc>=90?'Diagnóstico rápido y preciso. ¡Dominas el protocolo de respuesta!'
+    :sc>=75?'Buen diagnóstico. Practica más para mejorar la velocidad de respuesta.'
+    :'Has completado el ejercicio. Repasa los conceptos y vuelve a intentarlo.';
+  document.getElementById('guidedBody').innerHTML=`
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:3.5rem;font-weight:900;color:${col}">${sc}</div>
+      <div style="font-size:.8rem;color:#64748b">/100 puntos</div>
+      <div style="font-size:1rem;font-weight:700;color:${col};margin-top:8px">${grade}</div>
+      <div style="font-size:.78rem;color:#94a3b8;margin:8px 0 16px;line-height:1.5">${msg}</div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:left">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#64748b">Respuestas correctas</span><span style="color:#22c55e;font-weight:700">${ok}/4</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#64748b">Pistas usadas</span><span style="color:${guidedState.hintsUsed?'#eab308':'#22c55e'};font-weight:700">${guidedState.hintsUsed}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem"><span style="color:#64748b">Tiempo de diagnóstico</span><span style="color:#60a5fa;font-weight:700">${dur}s</span></div>
+      </div>
+      <button class="guided-btn guided-btn-primary" onclick="openLab()" style="margin-top:16px;width:100%">🧪 Practicar mitigación en el Lab</button>
+      <button onclick="generateBitacoraReport()" style="margin-top:8px;width:100%;background:#0f172a;border:1px solid #7c3aed;border-radius:8px;color:#a78bfa;padding:9px;font-size:.82rem;cursor:pointer;font-weight:600">📄 Generar reporte firmado para entregar</button>
+    </div>`;
+  const nb=document.getElementById('guidedNextBtn'), hb=document.getElementById('guidedHintBtn');
+  if(nb) nb.style.display='none';
+  if(hb) hb.style.display='none';
+}
+
+async function generateBitacoraReport() {
+  const token = localStorage.getItem('token') || '';
+  const student = JSON.parse(localStorage.getItem('student') || '{}');
+  try {
+    const r  = await fetch('/api/bitacoras', { headers:{ 'Authorization':'Bearer '+token } });
+    const bs = await r.json();
+    if (!Array.isArray(bs) || bs.length === 0) { alert('No tienes bitácoras guardadas aún.'); return; }
+    const now = new Date().toLocaleString('es-CO');
+    const ALBL = { ddos:'DDoS', dos:'DoS', ransomware:'Ransomware', brute_force:'Fuerza Bruta',
+      port_scan:'Escaneo de Puertos', sql_injection:'SQL Injection', mitm:'Man-in-the-Middle',
+      cryptomining:'Cryptomining', lateral_movement:'Movimiento Lateral', unknown:'Desconocido' };
+    const rows = bs.map((b,i) => {
+      const sc = parseFloat(b.score||0).toFixed(1);
+      const col = sc>=80?'#16a34a':sc>=50?'#2563eb':'#dc2626';
+      const date = new Date(b.created_at).toLocaleDateString('es-CO');
+      return `<div style="page-break-inside:avoid;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #e2e8f0;padding-bottom:8px">
+          <div><strong style="color:#1e3a8a">Bitácora #${b.id}</strong> &nbsp;·&nbsp; ${ALBL[b.attack_type]||b.attack_type} &nbsp;·&nbsp; Nodo: ${b.node_id}</div>
+          <div style="display:flex;gap:12px;font-size:.82rem;color:#64748b">
+            <span>Puntaje: <strong style="color:${col}">${sc}/100</strong></span>
+            <span>Resp: ${b.correct_answers}/${b.total_questions}</span>
+            <span>Pistas: ${b.hints_used}</span>
+            <span>${date}</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.83rem">
+          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🔍 Síntomas observados</div><div style="color:#334155;line-height:1.5">${b.sintomas_observados}</div></div>
+          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🧩 Causa raíz</div><div style="color:#334155;line-height:1.5">${b.causa_raiz}</div></div>
+          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🛡️ Acciones tomadas</div><div style="color:#334155;line-height:1.5">${b.acciones_tomadas}</div></div>
+          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">📚 Lecciones aprendidas</div><div style="color:#334155;line-height:1.5">${b.lecciones}</div></div>
+        </div>
+      </div>`;
+    }).join('');
+    const avg = (bs.reduce((s,b)=>s+parseFloat(b.score||0),0)/bs.length).toFixed(1);
+    const win = window.open('','_blank');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Bitácoras — ${student.name||student.email}</title>
+    <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0;font-size:14px}
+    .cover{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:white;padding:32px 48px}
+    .cover h1{margin:0 0 4px;font-size:1.6rem}.section{padding:16px 48px}
+    .firma-box{border:2px dashed #cbd5e1;border-radius:8px;padding:20px 24px;margin:24px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .firma-line{border-top:1px solid #64748b;margin-top:40px;padding-top:6px;font-size:.75rem;color:#64748b;text-align:center}
+    .footer{padding:12px 48px;background:#f1f5f9;font-size:.72rem;color:#64748b;display:flex;justify-content:space-between}
+    .no-print{background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem}
+    @media print{.no-print{display:none}}</style></head><body>
+    <div class="no-print"><strong>Reporte listo</strong> — Ctrl+P para imprimir o guardar como PDF
+      <button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir / PDF</button></div>
+    <div class="cover">
+      <div style="font-size:.75rem;opacity:.75;margin-bottom:6px">🖥️ DC Monitoring Simulator · SENA · Centro AgroEmpresarial Aguachica · Regional Cesar</div>
+      <h1>Bitácoras de Incidentes</h1>
+      <div style="opacity:.85">Tecnología en Gestión de Redes de Datos · ${student.name||student.email} · ${now}</div>
+    </div>
+    <div class="section">
+      <div style="display:flex;gap:24px;margin:14px 0 20px;font-size:.85rem">
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:10px 16px">
+          <div style="color:#0369a1;font-size:.72rem;font-weight:700">TOTAL BITÁCORAS</div>
+          <div style="font-size:1.4rem;font-weight:900;color:#0c4a6e">${bs.length}</div>
+        </div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 16px">
+          <div style="color:#15803d;font-size:.72rem;font-weight:700">PUNTAJE PROMEDIO</div>
+          <div style="font-size:1.4rem;font-weight:900;color:#14532d">${avg}/100</div>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;padding:10px 16px">
+          <div style="color:#7c3aed;font-size:.72rem;font-weight:700">PROGRAMA</div>
+          <div style="font-size:.9rem;font-weight:700;color:#4c1d95">Gestión de Redes de Datos</div>
+        </div>
+      </div>
+      ${rows}
+      <div class="firma-box">
+        <div>
+          <div style="font-size:.78rem;color:#64748b;margin-bottom:4px">Firma del aprendiz</div>
+          <div class="firma-line">${student.name||student.email}</div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;color:#64748b;margin-bottom:4px">Firma del instructor</div>
+          <div class="firma-line">Ing. Luis Alberto Vásquez Campos</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span>DC Monitoring Simulator © 2026 · SENA Regional Cesar</span>
+      <span>Diseñado por Ing. de Sistemas Luis Alberto Vasquez Campos</span>
+      <span>Generado: ${now}</span>
+    </div></body></html>`);
+    win.document.close();
+  } catch(e) { alert('Error generando reporte: ' + e.message); }
+}
+
+// ── GESTIÓN DE SESIÓN PEDAGÓGICA ──────────────────────────────
+const XSESSION = {
+  log: { guided: [], sst: [], lab: [] },
+  start: Date.now(),
+  practiceMode: false,
+  lockUntil: 0,
+  activeType: null,
+  canOpen() { return this.practiceMode && !this.activeType && Date.now() > this.lockUntil; },
+  setActive(type) { this.activeType = type; },
+  lock(mins) { this.lockUntil = Date.now() + mins * 60 * 1000; this.activeType = null; updatePracticeBadge(); },
+  saveGuided(d) { this.log.guided.push({...d, ts: new Date().toLocaleString('es-CO')}); updateSessionBadge(); },
+  saveSST(d) { this.log.sst.push({...d, ts: new Date().toLocaleString('es-CO')}); updateSessionBadge(); },
+  saveLab(d) { this.log.lab.push({...d, ts: new Date().toLocaleString('es-CO')}); updateSessionBadge(); },
+  total() { return this.log.guided.length + this.log.sst.length + this.log.lab.length; }
+};
+function updateSessionBadge() {
+  const btn = document.getElementById('sessionReportBtn');
+  if (btn) btn.textContent = XSESSION.total() > 0 ? `📄 Sesión (${XSESSION.total()})` : '📄 Sesión';
+}
+function updatePracticeBadge() {
+  // no-op: practice badge removed; bar is controlled by handlePracticeMode
+}
+function handlePracticeMode(data) {
+  if (data.active) {
+    XSESSION.practiceMode = true;
+    XSESSION.lockUntil = 0;
+    const durationMs = (data.duration_min || 20) * 60 * 1000;
+    XSESSION.practiceEndsAt = Date.now() + durationMs;
+    const bar = document.getElementById('practiceBar');
+    if (bar) bar.style.display = 'flex';
+    if (XSESSION._countdownInterval) clearInterval(XSESSION._countdownInterval);
+    XSESSION._countdownInterval = setInterval(() => {
+      const rem = Math.max(0, XSESSION.practiceEndsAt - Date.now());
+      const m = String(Math.floor(rem / 60000)).padStart(2, '0');
+      const s = String(Math.floor((rem % 60000) / 1000)).padStart(2, '0');
+      const el = document.getElementById('practiceCountdown');
+      if (el) el.textContent = `${m}:${s}`;
+      if (rem <= 0) {
+        clearInterval(XSESSION._countdownInterval);
+        handlePracticeMode({ active: false });
+      }
+    }, 1000);
+    notify('🎯 Modo Práctica', `Iniciado por el instructor — ${data.duration_min} min`, 'info');
+  } else {
+    XSESSION.practiceMode = false;
+    const bar = document.getElementById('practiceBar');
+    if (bar) bar.style.display = 'none';
+    if (XSESSION._countdownInterval) clearInterval(XSESSION._countdownInterval);
+    notify('⏹ Práctica finalizada', 'El instructor cerró la sesión de práctica', 'warn');
   }
 }
 
@@ -976,12 +1823,482 @@ let labState={phase:0,scenarios:{},current:null,steps:[],currentStep:0,startTime
 async function openLab(){document.getElementById('labOverlay').style.display='flex';labState.phase=1;showLabPhase(1);if(!Object.keys(labState.scenarios).length)await loadScenarios();}
 function closeLab(){document.getElementById('labOverlay').style.display='none';clearInterval(labState.timerInterval);}
 async function loadScenarios(){try{const data=await apiFetch('/api/analytics/mitigation/rules');labState.scenarios=data;const grid=document.getElementById('scenarioGrid');const sc={high:'sc-sev-high',critical:'sc-sev-critical',medium:'sc-sev-medium',low:'sc-sev-low'};grid.innerHTML=Object.entries(data).map(([t,i])=>`<div class="scenario-card" onclick="startScenario('${t}')"><div class="sc-name">${i.name}</div><div class="sc-meta"><span class="${sc[i.severity_impact]||'sc-sev-medium'}">&#x25CF; ${i.severity_impact||'medium'}</span> &nbsp;&middot;&nbsp; ${i.steps_count} pasos &nbsp;&middot;&nbsp; ~${i.expected_recovery_sec}s</div></div>`).join('');}catch(e){document.getElementById('scenarioGrid').innerHTML='<p style="color:#ef4444">Error cargando escenarios</p>';}}
-async function startScenario(type){try{const plan=await apiFetch(`/api/analytics/mitigation/plan/${type}`);labState.current={type,plan};labState.steps=plan.steps||[];labState.currentStep=0;labState.startTime=Date.now();labState.executingStep=false;document.getElementById('labScenName').textContent=plan.mitigation_name||type;document.getElementById('labMeta').textContent=`Escenario: ${plan.mitigation_name}`;document.getElementById('labStepProg').textContent=`0 / ${labState.steps.length}`;const area=document.getElementById('labStepsArea');area.innerHTML=labState.steps.map((s,i)=>`<div class="lab-step ${i===0?'active':'pending'}" id="lstep-${i}"><div class="step-num">${i+1}</div><div class="step-info"><div class="step-desc">${s.desc||s.action}</div><div class="step-cmd">$ ${s.command||s.action}</div></div><span class="step-check">&#x2705;</span><button class="step-exec-btn" id="sbtn-${i}" onclick="execStep(${i})" ${i>0?'disabled':''}>&#x25B6; Ejecutar</button></div>`).join('');document.getElementById('labTermBody').innerHTML='<div class="term-line" style="color:#64748b"># Lab iniciado &mdash; presiona Ejecutar en el primer paso</div><span class="term-cursor"></span>';clearInterval(labState.timerInterval);labState.timerInterval=setInterval(()=>{const e=Math.floor((Date.now()-labState.startTime)/1000);document.getElementById('labTimer').textContent=`${String(Math.floor(e/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;},1000);showLabPhase(2);}catch(e){alert('Error: '+e.message);}}
-async function execStep(idx){if(labState.executingStep||idx!==labState.currentStep)return;labState.executingStep=true;const step=labState.steps[idx];const btn=document.getElementById(`sbtn-${idx}`);btn.disabled=true;btn.textContent='⏳';const outputs=LAB_TERM[step.action]||[`$ ${step.command||step.action}`,`Executing ${step.action}...`,`[OK] ${step.desc||step.action} completed`];const tb=document.getElementById('labTermBody');tb.innerHTML=tb.innerHTML.replace('<span class="term-cursor"></span>','');for(let i=0;i<outputs.length;i++){await new Promise(r=>setTimeout(r,280+Math.random()*220));const l=outputs[i];const cls=l.startsWith('$')?'cmd':l.startsWith('[OK]')?'ok':l.startsWith('[ERR]')?'err':'';tb.innerHTML+=`<div class="term-line ${cls}">${l}</div>`;tb.parentElement.scrollTop=tb.parentElement.scrollHeight;}tb.innerHTML+='<span class="term-cursor"></span>';document.getElementById(`lstep-${idx}`).classList.remove('active');document.getElementById(`lstep-${idx}`).classList.add('done');labState.currentStep++;labState.executingStep=false;const total=labState.steps.length;document.getElementById('labStepProg').textContent=`${labState.currentStep} / ${total}`;if(labState.currentStep<total){document.getElementById(`lstep-${labState.currentStep}`).classList.remove('pending');document.getElementById(`lstep-${labState.currentStep}`).classList.add('active');document.getElementById(`sbtn-${labState.currentStep}`).disabled=false;}else{clearInterval(labState.timerInterval);showLabResults((Date.now()-labState.startTime)/1000,total);}}
-async function showLabResults(duration,stepsCompleted){const plan=labState.current.plan;const expected=plan.expected_recovery_sec||120;let score=100;if(duration>expected)score-=Math.min(30,((duration-expected)/expected)*30);if(duration<expected*0.6)score=Math.min(100,score+10);score=Math.max(30,Math.round(score));const grade=score>=90?'🏆 Excelente':score>=75?'✅ Bueno':score>=60?'📈 Aceptable':'⚠️ Necesita práctica';const msg=score>=90?'Dominas este protocolo.':score>=75?'Buen manejo. Puedes mejorar velocidad.':score>=60?'Completaste el procedimiento.':'Repasa el catálogo y vuelve a intentar.';document.getElementById('labScoreNum').textContent=score;document.getElementById('labScoreNum').style.color=score>=90?'#22c55e':score>=75?'#60a5fa':score>=60?'#fbbf24':'#ef4444';document.getElementById('labScoreGrade').textContent=grade;document.getElementById('labScoreMsg').textContent=msg;const m=String(Math.floor(duration/60)).padStart(2,'0'),s=String(Math.floor(duration%60)).padStart(2,'0');document.getElementById('labStatTime').textContent=`${m}:${s}`;document.getElementById('labStatSteps').textContent=`${stepsCompleted}/${labState.steps.length}`;document.getElementById('labStatScen').textContent=labState.current.type.replace(/_/g,' ').toUpperCase();try{await apiFetch('/api/analytics/practice/complete',{method:'POST',body:JSON.stringify({scenario_type:labState.current.type,scenario_name:plan.mitigation_name||labState.current.type,score,duration_sec:duration,steps_completed:stepsCompleted,total_steps:labState.steps.length})});}catch(e){}showLabPhase(3);}
+async function startScenario(type){try{const plan=await apiFetch(`/api/analytics/mitigation/plan/${type}`);labState.current={type,plan};labState.steps=plan.steps||[];labState.currentStep=0;labState.startTime=Date.now();labState.executingStep=false;document.getElementById('labScenName').textContent=plan.mitigation_name||type;document.getElementById('labMeta').textContent=`Escenario: ${plan.mitigation_name}`;document.getElementById('labStepProg').textContent=`0 / ${labState.steps.length}`;const area=document.getElementById('labStepsArea');area.innerHTML=labState.steps.map((s,i)=>`<div class="lab-step ${i===0?'active':'pending'}" id="lstep-${i}"><div class="step-num">${i+1}</div><div class="step-info"><div class="step-desc">${s.desc||s.action}</div><div class="step-cmd">$ ${s.command||s.action}</div></div><span class="step-check">&#x2705;</span></div>`).join('');document.getElementById('labTermBody').innerHTML='<div class="term-line" style="color:#64748b"># Lab iniciado &mdash; escribe el primer comando en el panel de abajo</div><span class="term-cursor"></span>';document.getElementById('labTypingArea').style.display='';document.getElementById('labCmdSummary').innerHTML='';updateTypingPrompt(0);clearInterval(labState.timerInterval);labState.timerInterval=setInterval(()=>{const e=Math.floor((Date.now()-labState.startTime)/1000);document.getElementById('labTimer').textContent=`${String(Math.floor(e/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;},1000);showLabPhase(2);}catch(e){alert('Error: '+e.message);}}
+async function execStep(idx){if(labState.executingStep||idx!==labState.currentStep)return;labState.executingStep=true;const step=labState.steps[idx];const outputs=LAB_TERM[step.action]||[`$ ${step.command||step.action}`,`Executing ${step.action}...`,`[OK] ${step.desc||step.action} completed`];const tb=document.getElementById('labTermBody');tb.innerHTML=tb.innerHTML.replace('<span class="term-cursor"></span>','');for(let i=0;i<outputs.length;i++){await new Promise(r=>setTimeout(r,280+Math.random()*220));const l=outputs[i];const cls=l.startsWith('$')?'cmd':l.startsWith('[OK]')?'ok':l.startsWith('[ERR]')?'err':'';tb.innerHTML+=`<div class="term-line ${cls}">${l}</div>`;tb.parentElement.scrollTop=tb.parentElement.scrollHeight;}tb.innerHTML+='<span class="term-cursor"></span>';document.getElementById(`lstep-${idx}`).classList.remove('active');document.getElementById(`lstep-${idx}`).classList.add('done');labState.currentStep++;labState.executingStep=false;const total=labState.steps.length;document.getElementById('labStepProg').textContent=`${labState.currentStep} / ${total}`;if(labState.currentStep<total){document.getElementById(`lstep-${labState.currentStep}`).classList.remove('pending');document.getElementById(`lstep-${labState.currentStep}`).classList.add('active');updateTypingPrompt(labState.currentStep);}else{document.getElementById('labTypingArea').style.display='none';clearInterval(labState.timerInterval);showLabResults((Date.now()-labState.startTime)/1000,total);}}
+async function showLabResults(duration,stepsCompleted){const plan=labState.current.plan;const expected=plan.expected_recovery_sec||120;let score=100;if(duration>expected)score-=Math.min(30,((duration-expected)/expected)*30);if(duration<expected*0.6)score=Math.min(100,score+10);score=Math.max(30,Math.round(score));const grade=score>=90?'🏆 Excelente':score>=75?'✅ Bueno':score>=60?'📈 Aceptable':'⚠️ Necesita práctica';const msg=score>=90?'Dominas este protocolo.':score>=75?'Buen manejo. Puedes mejorar velocidad.':score>=60?'Completaste el procedimiento.':'Repasa el catálogo y vuelve a intentar.';document.getElementById('labScoreNum').textContent=score;document.getElementById('labScoreNum').style.color=score>=90?'#22c55e':score>=75?'#60a5fa':score>=60?'#fbbf24':'#ef4444';document.getElementById('labScoreGrade').textContent=grade;document.getElementById('labScoreMsg').textContent=msg;const m=String(Math.floor(duration/60)).padStart(2,'0'),s=String(Math.floor(duration%60)).padStart(2,'0');document.getElementById('labStatTime').textContent=`${m}:${s}`;document.getElementById('labStatSteps').textContent=`${stepsCompleted}/${labState.steps.length}`;document.getElementById('labStatScen').textContent=labState.current.type.replace(/_/g,' ').toUpperCase();try{await apiFetch('/api/analytics/practice/complete',{method:'POST',body:JSON.stringify({scenario_type:labState.current.type,scenario_name:plan.mitigation_name||labState.current.type,score,duration_sec:duration,steps_completed:stepsCompleted,total_steps:labState.steps.length})});}catch(e){}
+  XSESSION.saveLab({scenario:labState.current.type,scenarioName:plan.mitigation_name||labState.current.type,score,duration,steps:labState.steps.map(s=>({cmd:s.command||s.action,desc:s.desc||s.action,action:s.action}))});const sumEl=document.getElementById('labCmdSummary');if(sumEl){const sumHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div class="cmd-sum-item"><div class="cmd-sum-title">Paso ${i+1}: ${s.desc||s.action}</div><div class="cmd-sum-code">$ ${s.command||s.action}</div><div class="cmd-sum-exp">${expl}</div></div>`;}).join('');sumEl.innerHTML=`<div style="color:#a78bfa;font-size:.88rem;font-weight:700;margin:16px 0 8px;letter-spacing:.04em">📖 ¿Qué hizo cada comando?</div>${sumHtml}`;}showLabPhase(3);}
 function showLabPhase(n){[1,2,3].forEach(i=>{const el=document.getElementById(`labPhase${i}`);if(el)el.style.display=i===n?'':'none';});labState.phase=n;}
 function resetLab(){clearInterval(labState.timerInterval);document.getElementById('labMeta').textContent='Selecciona un escenario para practicar';showLabPhase(1);}
-function generateLabReport(){const plan=labState.current.plan,type=labState.current.type,score=document.getElementById('labScoreNum').textContent,grade=document.getElementById('labScoreGrade').textContent,ttime=document.getElementById('labStatTime').textContent,sname=STUDENT.name||STUDENT.email||'Estudiante',now=new Date().toLocaleString('es-CO');const sc=parseInt(score)>=90?'#16a34a':parseInt(score)>=75?'#2563eb':parseInt(score)>=60?'#d97706':'#dc2626';const stepsHtml=labState.steps.map((s,i)=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${i+1}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${s.desc||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-family:monospace;font-size:.85em">${s.command||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:green;text-align:center">✅ Completado</td></tr>`).join('');const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Lab</title><style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0}.cover{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:white;padding:40px 48px}.cover h1{margin:0 0 4px;font-size:1.8rem}.section{padding:0 48px 24px}h2{color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.meta-item{background:#f8fafc;border-radius:6px;padding:10px 14px}.meta-item .label{font-size:.72rem;color:#64748b;text-transform:uppercase}.meta-item .value{font-size:1rem;font-weight:700;margin-top:2px}.score-box{text-align:center;padding:20px;background:#f0fdf4;border:2px solid #86efac;border-radius:12px;margin-bottom:20px}.score-big{font-size:4rem;font-weight:900;color:${sc};line-height:1}table{width:100%;border-collapse:collapse;font-size:.88rem}thead th{background:#1e3a8a;color:white;padding:10px 12px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.footer{margin-top:32px;padding:16px 48px;background:#f1f5f9;font-size:.75rem;color:#64748b;display:flex;justify-content:space-between}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem"><strong>Reporte listo</strong> — Ctrl+P → Guardar como PDF<button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir</button></div><div class="cover"><div style="font-size:.8rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div><h1>Reporte de Práctica</h1><div style="opacity:.8">${plan.mitigation_name||type} · ${now}</div></div><div class="section"><h2>Información</h2><div class="meta-grid"><div class="meta-item"><div class="label">Estudiante</div><div class="value">${sname}</div></div><div class="meta-item"><div class="label">Escenario</div><div class="value">${plan.mitigation_name||type}</div></div><div class="meta-item"><div class="label">Tiempo empleado</div><div class="value">${ttime} min:seg</div></div><div class="meta-item"><div class="label">Fecha</div><div class="value">${now}</div></div></div><h2>Calificación</h2><div class="score-box"><div class="score-big">${score}<span style="font-size:2rem">/100</span></div><div style="font-size:1.2rem;font-weight:700;margin-top:4px">${grade}</div></div><h2>Pasos Ejecutados</h2><table><thead><tr><th>#</th><th>Descripción</th><th>Comando</th><th>Estado</th></tr></thead><tbody>${stepsHtml}</tbody></table></div><div class="footer"><span>DC Monitoring Simulator · Diseñado por Ing. Luis Alberto Vasquez Campos</span><span>${now}</span></div></body></html>`);win.document.close();}
+// ── REPORTE DE SESIÓN PDF ──────────────────────────────────────
+function generateSessionReport() {
+  const sname = STUDENT?.name || STUDENT?.email || 'Estudiante';
+  const now = new Date().toLocaleString('es-CO');
+  const dur = Math.round((Date.now() - XSESSION.start) / 60000);
+  const avgScore = (() => {
+    const all = [...XSESSION.log.guided.map(x=>x.score), ...XSESSION.log.sst.map(x=>x.score), ...XSESSION.log.lab.map(x=>x.score)];
+    return all.length ? Math.round(all.reduce((a,b)=>a+b,0)/all.length) : 0;
+  })();
+  const scCol = s => s>=90?'#16a34a':s>=75?'#2563eb':s>=60?'#d97706':'#dc2626';
+
+  // Sección Diagnóstico Guiado
+  const guidedHtml = XSESSION.log.guided.length ? XSESSION.log.guided.map((g,i) => `
+    <div class="incident-card">
+      <div class="ic-header"><span class="ic-num">#${i+1}</span><span class="ic-type">${(g.type||'').replace(/_/g,' ').toUpperCase()}</span><span class="ic-node">Nodo: ${g.node}</span><span class="ic-score" style="color:${scCol(g.score)}">${g.score}/100</span></div>
+      <div class="ic-meta">Respuestas correctas: <strong>${g.correct}/4</strong> &nbsp;·&nbsp; Pistas usadas: <strong>${g.hints}</strong> &nbsp;·&nbsp; Tiempo: <strong>${g.duration}s</strong> &nbsp;·&nbsp; ${g.ts}</div>
+    </div>`).join('') : '<p style="color:#94a3b8;font-style:italic">Sin diagnósticos completados en esta sesión.</p>';
+
+  // Sección Protocolos SST
+  const sstHtml = XSESSION.log.sst.length ? XSESSION.log.sst.map((s,i) => `
+    <div class="incident-card" style="border-left-color:#f97316">
+      <div class="ic-header"><span class="ic-num">#${i+1}</span><span class="ic-type" style="color:#f97316">${s.name}</span><span class="ic-node">Sensor: ${s.sensor} · ${s.value}</span><span class="ic-score" style="color:${scCol(s.score)}">${s.score}/100</span></div>
+      <div class="ic-meta">Etapas correctas: <strong>${s.correct}/${s.total}</strong> &nbsp;·&nbsp; Tiempo: <strong>${s.duration}s</strong> &nbsp;·&nbsp; ${s.ts}</div>
+      <div class="ic-bitacora"><strong>📋 Registro en bitácora:</strong><br>${s.bitacora||'(no registrada)'}</div>
+    </div>`).join('') : '<p style="color:#94a3b8;font-style:italic">Sin protocolos SST completados en esta sesión.</p>';
+
+  // Sección Lab de Mitigación
+  const labHtml = XSESSION.log.lab.length ? XSESSION.log.lab.map((l,i) => `
+    <div class="incident-card" style="border-left-color:#7c3aed">
+      <div class="ic-header"><span class="ic-num">#${i+1}</span><span class="ic-type" style="color:#a78bfa">${(l.scenarioName||l.scenario||'').toUpperCase()}</span><span class="ic-score" style="color:${scCol(l.score)}">${l.score}/100</span></div>
+      <div class="ic-meta">Duración: <strong>${String(Math.floor(l.duration/60)).padStart(2,'0')}:${String(Math.floor(l.duration%60)).padStart(2,'0')}</strong> &nbsp;·&nbsp; ${l.ts}</div>
+      <table class="cmd-table"><thead><tr><th>#</th><th>Descripción</th><th>Comando ejecutado</th><th>Estado</th></tr></thead><tbody>${(l.steps||[]).map((s,j)=>`<tr><td>${j+1}</td><td>${s.desc}</td><td style="font-family:monospace;font-size:.8em">$ ${s.cmd}</td><td style="color:green">✅</td></tr>`).join('')}</tbody></table>
+      ${(l.steps||[]).length ? `<div class="cmd-explainer"><strong>¿Qué hizo cada comando?</strong><br>${(l.steps||[]).map((s,j)=>`<div class="exp-item"><span class="exp-num">${j+1}</span><span class="exp-code">$ ${s.cmd}</span><span class="exp-txt">${LAB_EXPLAIN[s.action]||'Comando de mitigación del escenario.'}</span></div>`).join('')}</div>` : ''}
+    </div>`).join('') : '<p style="color:#94a3b8;font-style:italic">Sin labs completados en esta sesión.</p>';
+
+  const css = `
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0;background:#fff}
+    .cover{background:linear-gradient(135deg,#0f172a,#1e3a8a,#4c1d95);color:white;padding:40px 48px}
+    .cover h1{margin:0 0 4px;font-size:2rem;font-weight:900}
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
+    .sum-card{background:#f8fafc;border-radius:10px;padding:14px;text-align:center;border:1px solid #e2e8f0}
+    .sum-val{font-size:2.2rem;font-weight:900;line-height:1}
+    .sum-lbl{font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+    .section{padding:0 48px 28px}
+    h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-top:28px;font-size:1.1rem}
+    .incident-card{background:#f8fafc;border-left:4px solid #3b82f6;border-radius:8px;padding:14px 18px;margin-bottom:14px}
+    .ic-header{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+    .ic-num{background:#1e3a8a;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
+    .ic-type{font-weight:800;font-size:.9rem}
+    .ic-node{font-size:.8rem;color:#64748b}
+    .ic-score{font-size:1.2rem;font-weight:900;margin-left:auto}
+    .ic-meta{font-size:.78rem;color:#64748b;margin-bottom:8px}
+    .ic-bitacora{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;font-size:.8rem;color:#374151;line-height:1.6;margin-top:8px}
+    .cmd-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:10px}
+    .cmd-table th{background:#1e3a8a;color:white;padding:6px 10px;text-align:left}
+    .cmd-table td{padding:6px 10px;border-bottom:1px solid #e2e8f0}
+    .cmd-table tr:nth-child(even) td{background:#f1f5f9}
+    .cmd-explainer{margin-top:12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:12px}
+    .cmd-explainer strong{font-size:.8rem;color:#4c1d95;display:block;margin-bottom:8px}
+    .exp-item{display:grid;grid-template-columns:28px 1fr;gap:6px;margin-bottom:8px;align-items:start}
+    .exp-num{background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700}
+    .exp-code{font-family:monospace;font-size:.75rem;color:#1e40af;background:#eff6ff;border-radius:3px;padding:1px 5px;display:block;margin-bottom:2px}
+    .exp-txt{font-size:.75rem;color:#475569;line-height:1.5;grid-column:2}
+    .footer{margin-top:32px;padding:14px 48px;background:#f1f5f9;font-size:.72rem;color:#64748b;display:flex;justify-content:space-between}
+    @media print{.no-print{display:none}}`;
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte de Sesión</title><style>${css}</style></head><body>
+    <div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem;display:flex;justify-content:space-between;align-items:center">
+      <strong>📄 Reporte listo</strong> — Ctrl+P → Guardar como PDF
+      <button onclick="window.print()" style="background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 16px;cursor:pointer;font-weight:700">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+    <div class="cover">
+      <div style="font-size:.75rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div>
+      <h1>Reporte de Sesión Completo</h1>
+      <div style="opacity:.8">${sname} &nbsp;·&nbsp; ${now}</div>
+    </div>
+    <div class="section">
+      <h2>Resumen de la sesión</h2>
+      <div class="summary">
+        <div class="sum-card"><div class="sum-val">${XSESSION.total()}</div><div class="sum-lbl">Ejercicios completados</div></div>
+        <div class="sum-card"><div class="sum-val" style="color:${scCol(avgScore)}">${avgScore}</div><div class="sum-lbl">Puntuación promedio</div></div>
+        <div class="sum-card"><div class="sum-val">${dur}</div><div class="sum-lbl">Minutos de sesión</div></div>
+        <div class="sum-card"><div class="sum-val">${XSESSION.log.guided.length+XSESSION.log.sst.length+XSESSION.log.lab.length}</div><div class="sum-lbl">Incidentes atendidos</div></div>
+      </div>
+      <h2>🧠 Diagnósticos Guiados (Ciberseguridad)</h2>${guidedHtml}
+      <h2>🏭 Protocolos SST (Seguridad Física)</h2>${sstHtml}
+      <h2>🧪 Laboratorio de Mitigación</h2>${labHtml}
+    </div>
+    <div class="footer"><span>DC Monitoring Simulator · Ing. Luis Alberto Vasquez Campos · SENA</span><span>${now}</span></div>
+  </body></html>`);
+  win.document.close();
+}
+// ── LAB TYPING MODE ────────────────────────────────────────────
+const LAB_EXPLAIN={rate_limit:'iptables controla el tráfico a nivel kernel. La regla SYN LIMIT descarta paquetes que superen el umbral definido, protegiendo contra inundaciones TCP/SYN. El límite de 100 SYN/s permite tráfico legítimo mientras bloquea ráfagas de ataque.',anycast_routing:'Una ruta blackhole descarta tráfico sin responder al origen, evitando amplificación. Combinada con BGP anycast, distribuye el tráfico DDoS entre múltiples puntos de presencia globales para absorberlo.',scrubbing:'El traffic shaping (tbf) limita la tasa de paquetes entrantes. El scrubbing activo analiza y filtra paquetes maliciosos antes de que lleguen al servidor, eliminando hasta el 99% del tráfico de ataque.',syn_cookies:'SYN cookies permiten verificar conexiones TCP sin mantener estado half-open en el servidor. Esto hace que el servidor sea inmune al SYN flood ya que no agota su backlog con conexiones falsas.',syn_backlog:'La cola de backlog SYN almacena conexiones pendientes. Ampliar tcp_max_syn_backlog y somaxconn aumenta la capacidad de absorber ráfagas de conexiones antes de comenzar a rechazarlas.',fail2ban:'fail2ban monitorea logs en tiempo real y bloquea automáticamente IPs con demasiados intentos fallidos. Un bantime de 3600 segundos (1h) disuade ataques de fuerza bruta sostenidos sin bloquear usuarios legítimos.',psad_enable:'PSAD analiza logs de iptables buscando patrones de escaneo de puertos. Con firmas actualizadas detecta nmap, masscan y otras herramientas de reconocimiento, alertando antes de que un ataque se concrete.',stealth_mode:'Descartar tráfico al puerto 22 y suprimir ICMP hace al servidor invisible para scanners de red. Sin respuesta de ping ni puertos visibles, el atacante no puede confirmar que el host existe.',arp_static:'Las entradas ARP estáticas (flag PERM) no son sobreescritas por respuestas ARP falsas. Esto previene ARP spoofing/poisoning que redirige tráfico a través del equipo del atacante (Man-in-the-Middle).',arpwatch:'arpwatch registra todas las asociaciones MAC↔IP y alerta cuando cambian inesperadamente. Detecta en tiempo real intentos de ARP poisoning, dispositivos no autorizados o cambios de configuración de red.',oom_config:'vm.overcommit_memory=2 evita asignaciones de memoria que excedan la disponible. Terminar el proceso con pérdida de memoria libera RAM de inmediato, evitando el colapso total del sistema operativo.',snapshot_mount:'Los snapshots LVM capturan el estado del volumen sin interrumpir el servicio. Montarlos permite acceder a archivos del estado previo, recuperar datos cifrados por ransomware o restaurar configuraciones corruptas.',cpu_throttle:'Limitar la frecuencia máxima del CPU reduce el calor generado. thermald gestiona dinámicamente la temperatura usando P-states del procesador, evitando el apagado de emergencia por sobrecalentamiento (thermal shutdown).',ups_activate:'Al detectar pérdida de red eléctrica (OB = On Battery), las baterías UPS entran en servicio. killpower instruye al UPS a cortar alimentación de forma controlada cuando las baterías lleguen al umbral mínimo.',load_shed:'El load shedding apaga servicios no críticos para conservar energía o recursos en emergencia. El modo rescue.target mantiene solo procesos esenciales del sistema operativo hasta restablecer condiciones normales.',fire_suppression:'Los sistemas CO₂ suprimen incendios eliminando el oxígeno sin dañar equipos electrónicos (a diferencia del agua o foam). La activación debe coordinarse con la evacuación total del personal de la sala.',evacuate:'Los protocolos de evacuación priorizan la vida humana sobre la continuidad del servicio. El sistema de PA (Public Address) garantiza que todo el personal reciba la alerta independientemente de su ubicación.',isolate_segment:'Bloquear el FORWARD de un segmento detiene el movimiento lateral del atacante entre redes. El modo quarantine VLAN 999 aísla físicamente el segmento en la capa 2 sin necesidad de desconectar el cable.',lets_encrypt:'Certbot gestiona automáticamente certificados Let\'s Encrypt. Los certificados X.509 tienen validez de 90 días; renovar antes del vencimiento evita errores SSL que interrumpen el servicio para todos los usuarios.',reload_nginx:'nginx -t valida la sintaxis de la configuración antes de aplicarla (fail-safe). systemctl reload aplica el nuevo certificado con graceful restart, sin interrumpir conexiones HTTPS activas (a diferencia de restart).',schedule_renew:'El dry-run simula la renovación sin modificar certificados reales, verificando que el proceso automático funcione. El cron job (0 3 * * *) ejecuta la renovación diariamente a las 3 AM cuando hay menos tráfico.',force_tls12:'Deshabilitar TLS 1.0 y 1.1 elimina vulnerabilidades históricas (POODLE, BEAST, CRIME). La suite HIGH limita los cifrados a AES-256 con Forward Secrecy, protegiendo sesiones pasadas aunque la clave privada sea comprometida.',hsts_enable:'HSTS (HTTP Strict Transport Security) instruye al navegador a conectarse siempre vía HTTPS durante max-age segundos. Previene ataques de downgrade SSL-stripping y el secuestro de cookies en redes no confiables.'};
+function cmdMatch(typed,correct){const norm=s=>s.toLowerCase().replace(/^\$\s*/,'').replace(/\s+/g,' ').trim();const t=norm(typed),c=norm(correct);if(t===c)return true;const tW=t.split(' '),cW=c.split(' ');if(tW[0]!==cW[0])return false;const matches=tW.filter(w=>cW.includes(w)).length;return matches>=Math.ceil(cW.length*0.6);}
+function updateTypingPrompt(idx){const step=labState.steps[idx];const label=document.getElementById('typingStepLabel');if(label)label.textContent=`Paso ${idx+1} de ${labState.steps.length}: ${step.desc||step.action}`;const inp=document.getElementById('labTypingInput');if(inp){inp.value='';inp.disabled=false;inp.focus();}const fb=document.getElementById('labTypingFb');if(fb){fb.className='lab-typing-fb';fb.textContent='';}}
+// ── SST PROTOCOL GUIDED MODE ──────────────────────────────────
+const SST_PROTOCOLS={
+  temperature:{icon:'🌡️',name:'Temperatura Crítica',contact:'Ing. de Mantenimiento DC',stages:[
+    {q:'¿Qué riesgo físico inmediato representa una temperatura fuera del umbral (18–27°C) en sala de servidores?',opts:[{t:'Sobrecalentamiento de hardware → throttling de CPU → apagado de emergencia → daño permanente',ok:true},{t:'Pérdida de conectividad de red por expansión térmica de cables',ok:false},{t:'Corrupción de datos en RAM por interferencia calorífica',ok:false},{t:'Activación automática del sistema de extinción de incendios',ok:false}],hint:'Temperaturas >35°C reducen la vida útil del hardware en un 50% y activan la protección térmica del BIOS/IPMI, que puede provocar apagados de emergencia en cadena.'},
+    {q:'¿Cuál es el orden correcto de consecuencias si la temperatura sigue subiendo sin intervención?',opts:[{t:'Throttling de CPU → Apagado automático por BIOS → Daño permanente de componentes',ok:true},{t:'Alarma sonora → Activación de extintor → Evacuación del personal',ok:false},{t:'Pérdida de red → Failover automático → Recuperación desde DR site',ok:false},{t:'Activación de UPS → Apagado de generador → Load shedding',ok:false}],hint:'Los procesadores modernos reducen frecuencia primero (throttling), luego se apagan. Ciclos repetidos de esto deterioran componentes permanentemente.'},
+    {q:'Aplica el protocolo de temperatura — escribe cada acción para confirmarla:',actions:[{label:'Verificar unidad CRAC/CRAH del área afectada',cmd:'verificar crac',hint:'Escribe: verificar crac'},{label:'Aumentar velocidad de ventiladores al 100%',cmd:'aumentar ventiladores',hint:'Escribe: aumentar ventiladores'},{label:'Revisar obstrucciones en pasillos fríos/calientes',cmd:'revisar pasillos',hint:'Escribe: revisar pasillos'}]},
+    {q:'Redacta el registro en la bitácora del incidente de temperatura:',typing:true,placeholder:'Ej: 15/05/2026 14:32 — Sensor Temp Rack-A registró 42°C (umbral: 27°C). CRAC-01 verificado: filtros limpios. Ventiladores al 100%. Temperatura normalizada en 8 min. Notificado: Ing. Mantenimiento DC.',keywords:['sensor','temp','acción','rack','crac','ventil','notif']}
+  ]},
+  smoke:{icon:'🔥',name:'Detección de Humo/Fuego',contact:'Bomberos (123) + Seguridad + Gerencia DC',stages:[
+    {q:'¿Qué protocolo se activa INMEDIATAMENTE ante detección de humo en sala de servidores?',opts:[{t:'Protocolo de incendio: evacuar personal → activar supresión CO₂ → llamar bomberos',ok:true},{t:'Verificar si es falsa alarma antes de actuar para no interrumpir el servicio',ok:false},{t:'Aumentar ventilación para disipar el humo y continuar operaciones',ok:false},{t:'Apagar solo los servidores del rack afectado y monitorear la situación',ok:false}],hint:'Regla de oro: NUNCA ignorar una alarma de humo. La metodología RACE (Rescue, Alert, Confine, Evacuate) pone la vida humana como prioridad absoluta.'},
+    {q:'¿Cuál es el orden correcto de prioridades ante un incendio en el datacenter?',opts:[{t:'1° Evacuar personal → 2° Llamar bomberos → 3° Activar supresión CO₂ → 4° Documentar',ok:true},{t:'1° Hacer backup de datos → 2° Apagar sistemas → 3° Evacuar → 4° Llamar bomberos',ok:false},{t:'1° Identificar la fuente → 2° Extinguir manualmente → 3° Continuar operaciones',ok:false},{t:'1° Notificar gerencia → 2° Evacuar → 3° Esperar bomberos → 4° Activar supresión',ok:false}],hint:'Los datos son reemplazables, las vidas no. El protocolo RACE prioriza rescate de personas antes de cualquier acción técnica.'},
+    {q:'Protocolo de emergencia por fuego — confirma cada acción escribiéndola:',actions:[{label:'Activar alarma de evacuación del datacenter',cmd:'activar alarma',hint:'Escribe: activar alarma'},{label:'Llamar a bomberos (línea de emergencia)',cmd:'llamar bomberos',hint:'Escribe: llamar bomberos'},{label:'Activar supresión CO₂ zona afectada',cmd:'activar supresion',hint:'Escribe: activar supresion'}]},
+    {q:'Redacta el reporte de emergencia de incendio en la bitácora:',typing:true,placeholder:'Ej: 15/05/2026 15:10 — Detector Humo Rack-AB activó alarma (0.8 ppm). Evacuación completada en 3 min sin lesiones. Bomberos notificados. Supresión CO₂ activada zona DC-A1. Fuente: cable quemado UPS-02. Personal en contingencia.',keywords:['detector','humo','evacuac','bomberos','supresi','notif','co']}
+  ]},
+  access_control:{icon:'🔐',name:'Acceso Físico No Autorizado',contact:'Seguridad Física + Gerencia TI + Jurídico',stages:[
+    {q:'¿Qué tipo de amenaza representa un acceso físico no autorizado al datacenter?',opts:[{t:'Amenaza crítica: el acceso físico permite bypasear toda seguridad lógica (hardware implants, copia de discos)',ok:true},{t:'Amenaza baja: el cifrado de datos protege la información aunque haya acceso físico',ok:false},{t:'Amenaza moderada: solo afecta a equipos en la zona de entrada, no al core',ok:false},{t:'Sin amenaza real: los logs de auditoría detectan y revierten cualquier cambio',ok:false}],hint:'Un atacante con acceso físico puede instalar keyloggers de hardware, copiar discos completos y acceder a consolas fuera de banda (IPMI/iDRAC) que no pasan por el firewall.'},
+    {q:'¿Cuál de estas acciones es la MÁS urgente al detectar una intrusión física activa?',opts:[{t:'Bloquear el acceso a la sala e identificar al intruso por CCTV antes de que escape',ok:true},{t:'Iniciar auditoría de logs de sistema para determinar qué datos fueron accedidos',ok:false},{t:'Cambiar todas las contraseñas de administrador de los sistemas afectados',ok:false},{t:'Notificar al proveedor de internet para monitorear el tráfico saliente',ok:false}],hint:'La contención física es la prioridad: si el intruso aún está en las instalaciones, bloquearlo y documentar su identidad permite la respuesta legal posterior.'},
+    {q:'Protocolo de seguridad física — confirma cada acción escribiéndola:',actions:[{label:'Bloquear acceso a sala de servidores',cmd:'bloquear acceso',hint:'Escribe: bloquear acceso'},{label:'Revisar cámaras CCTV del área afectada',cmd:'revisar camaras',hint:'Escribe: revisar camaras'},{label:'Notificar a seguridad física y gerencia TI',cmd:'notificar seguridad',hint:'Escribe: notificar seguridad'}]},
+    {q:'Redacta el reporte de seguridad física en la bitácora:',typing:true,placeholder:'Ej: 15/05/2026 16:20 — Control Acceso Ppal. alertó intento no autorizado. Sala bloqueada. CCTV revisado: persona no identificada a las 16:18. Seguridad física y Gerencia TI notificadas. Acceso restaurado tras verificación de identidad.',keywords:['acceso','cctv','seguridad','notif','bloque','sala','identif']}
+  ]},
+  ups:{icon:'⚡',name:'Fallo de UPS / Energía',contact:'Ing. Eléctrico + Proveedor UPS',stages:[
+    {q:'¿Qué implica un UPS en estado OB DISCHRG (On Battery / Discharging) en el datacenter?',opts:[{t:'Hay un corte eléctrico: el DC opera con baterías con autonomía limitada (10–30 min)',ok:true},{t:'El UPS está en mantenimiento recargando baterías después de una prueba',ok:false},{t:'El generador de respaldo tomó la carga y el sistema está protegido indefinidamente',ok:false},{t:'Hay un pico de tensión que el UPS está absorbiendo para proteger los equipos',ok:false}],hint:'OB = On Battery. El DC consume energía de las baterías. La autonomía típica es 10–30 min con carga completa. ¡ACTUAR INMEDIATAMENTE!'},
+    {q:'¿Cuál es la secuencia correcta de acciones ante un corte de energía en el datacenter?',opts:[{t:'Verificar generador → Aplicar load shedding → Notificar proveedor eléctrico → Preparar apagado controlado',ok:true},{t:'Apagar todos los servidores inmediatamente para proteger los datos',ok:false},{t:'Esperar a que regrese la energía sin tomar acciones (el UPS aguantará)',ok:false},{t:'Reiniciar los sistemas críticos para que arranquen desde estado limpio',ok:false}],hint:'El generador necesita 30–60 s para arrancar. El load shedding reduce la carga para extender la autonomía del UPS mientras el generador se estabiliza.'},
+    {q:'Protocolo de continuidad energética — confirma cada acción:',actions:[{label:'Verificar estado del generador de respaldo',cmd:'verificar generador',hint:'Escribe: verificar generador'},{label:'Aplicar load shedding en servicios no críticos',cmd:'load shedding',hint:'Escribe: load shedding'},{label:'Notificar a proveedor eléctrico y gerencia',cmd:'notificar proveedor',hint:'Escribe: notificar proveedor'}]},
+    {q:'Redacta el registro del evento energético en la bitácora:',typing:true,placeholder:'Ej: 15/05/2026 17:05 — UPS Principal en modo OB DISCHRG. Corte en suministro externo. Generador activado en 45s. Load shedding aplicado (dev/QA). Proveedor eléctrico notificado. Energía restaurada 17:42. Sin pérdida de datos.',keywords:['ups','generador','energía','notif','carga','load','electri']}
+  ]},
+  humidity:{icon:'💧',name:'Humedad Fuera de Rango',contact:'Ing. de Mantenimiento DC',stages:[
+    {q:'¿Qué riesgo representa la humedad fuera del rango óptimo (40–60% HR) en el datacenter?',opts:[{t:'Alta HR: condensación en circuitos → cortocircuitos. Baja HR: electricidad estática → daño de componentes',ok:true},{t:'Solo la humedad alta es peligrosa; la baja mejora el rendimiento de los servidores',ok:false},{t:'La humedad no afecta significativamente al hardware electrónico moderno',ok:false},{t:'Solo afecta a discos mecánicos HDD; los SSD y memorias son inmunes',ok:false}],hint:'Estándar ASHRAE TC 9.9: por debajo del 40% HR, la electricidad estática puede dañar componentes al tocarlos. Por encima del 65% HR, la condensación puede causar cortocircuitos en PCBs.'},
+    {q:'¿Cuál es el rango de humedad relativa óptimo según ASHRAE para un datacenter clase A?',opts:[{t:'Entre 40% y 60% de humedad relativa (HR)',ok:true},{t:'Entre 20% y 35% de humedad relativa (HR)',ok:false},{t:'Entre 65% y 80% de humedad relativa (HR)',ok:false},{t:'No existe un estándar definido de humedad para datacenters',ok:false}],hint:'ASHRAE A1–A4 define el rango recomendado de 40–60% HR para evitar tanto la electricidad estática como la condensación en equipos electrónicos.'},
+    {q:'Protocolo de control de humedad — confirma cada acción:',actions:[{label:'Verificar y ajustar unidades CRAC/CRAH',cmd:'ajustar crac',hint:'Escribe: ajustar crac'},{label:'Revisar sensores de humedad in situ',cmd:'revisar sensores',hint:'Escribe: revisar sensores'},{label:'Activar deshumidificador/humidificador de respaldo',cmd:'activar deshumidificador',hint:'Escribe: activar deshumidificador'}]},
+    {q:'Redacta el registro del evento de humedad en la bitácora:',typing:true,placeholder:'Ej: 15/05/2026 13:15 — Sensor Humedad Sala Serv. registró 72% HR (máx: 60%). CRAC-02 verificado: filtros saturados. Deshumidificador de respaldo activado. Humedad normalizada a 54% HR en 25 min. Cambio de filtros CRAC programado.',keywords:['sensor','humedad','crac','filtro','hr','deshumid','notif']}
+  ]},
+  power:{icon:'🔋',name:'Consumo Energético Crítico',contact:'Ing. Eléctrico + Gerencia DC',stages:[
+    {q:'¿Qué implica un consumo energético que supera el 90% de la capacidad del PDU de rack?',opts:[{t:'Riesgo de sobrecarga eléctrica → disparo del disyuntor → corte total del rack afectado',ok:true},{t:'El sistema funcionará normalmente; los PDU tienen margen de seguridad ilimitado',ok:false},{t:'Solo afecta la velocidad de procesamiento de los servidores en ese rack',ok:false},{t:'El UPS absorbe automáticamente el exceso de consumo sin riesgo de fallo',ok:false}],hint:'Los PDU tienen un límite de amperios. Al alcanzar el 80% ya es zona de riesgo. Al 90–100%, el disyuntor puede saltar y cortar la energía a todo el rack sin previo aviso.'},
+    {q:'¿Cuál es la primera acción ante un consumo que supera el umbral del PDU?',opts:[{t:'Identificar equipos de mayor consumo y migrar o apagar los no críticos',ok:true},{t:'Reiniciar el PDU para restablecer las lecturas de consumo',ok:false},{t:'Agregar más servidores al rack para distribuir mejor la carga',ok:false},{t:'Esperar a que el consumo baje automáticamente al terminar los procesos',ok:false}],hint:'Principio de load balancing eléctrico: identificar los "energy hogs" y redistribuir o apagar los de menor criticidad ANTES de que dispare el disyuntor.'},
+    {q:'Protocolo de sobrecarga eléctrica — confirma cada acción:',actions:[{label:'Identificar equipos de mayor consumo en el PDU',cmd:'identificar consumo',hint:'Escribe: identificar consumo'},{label:'Migrar o apagar servidores no críticos',cmd:'apagar no criticos',hint:'Escribe: apagar no criticos'},{label:'Notificar a ingeniería eléctrica',cmd:'notificar ingenieria',hint:'Escribe: notificar ingenieria'}]},
+    {q:'Redacta el registro del incidente de consumo eléctrico:',typing:true,placeholder:'Ej: 15/05/2026 18:30 — PDU Rack-C registró 95% capacidad (148 kW de 150 kW). Causa: servidores de desarrollo en carga máxima. 4 VMs migradas a Rack-D. Consumo reducido a 72%. Ing. Eléctrico notificado. Revisión de cableado programada.',keywords:['pdu','consumo','kw','notif','servidor','rack','migr']}
+  ]}
+};
+let sstState={active:false,alert:null,protocol:null,ptype:null,stage:0,actionStep:0,answers:[],startTime:null,score:100,lastSensorKey:null,lastClosedAt:0};
+function getSSTType(stype,sname){const map={temperature:'temperature',smoke:'smoke',access_control:'access_control',ups:'ups',humidity:'humidity',power:'power'};if(map[stype])return map[stype];const n=(sname||'').toLowerCase();if(n.includes('temp'))return'temperature';if(n.includes('humo')||n.includes('smoke'))return'smoke';if(n.includes('acceso')||n.includes('access'))return'access_control';if(n.includes('ups'))return'ups';if(n.includes('humedad'))return'humidity';if(n.includes('consumo')||n.includes('power'))return'power';return null;}
+function startSSTProtocol(critAlerts){if(!critAlerts||!critAlerts.length||sstState.active)return;if(!XSESSION.canOpen())return;XSESSION.setActive('sst');const alert=critAlerts[0];const ptype=getSSTType(alert.type,alert.name);if(!ptype||!SST_PROTOCOLS[ptype])return;const key=alert.name+(alert.zone||'');if(key===sstState.lastSensorKey)return;const protocol=SST_PROTOCOLS[ptype];sstState={active:true,alert,protocol,ptype,stage:0,actionStep:0,answers:[],startTime:Date.now(),score:100,lastSensorKey:key,lastClosedAt:0};document.getElementById('sstBadge').textContent=protocol.icon+' PROTOCOLO SST';document.getElementById('sstTitle').textContent=protocol.name;document.getElementById('sstSubtitle').textContent=(alert.name||'Sensor')+' · '+(alert.zone||alert.location||'')+'  Valor: '+alert.value+(alert.unit||'');document.getElementById('sstEscalation').textContent='📞 '+protocol.contact;document.getElementById('sstPanel').classList.add('open');_syncNotifSide();renderSSTStage(0);}
+function minimizeSSTPanel(){const p=document.getElementById('sstPanel');p.classList.add('minimized');const ph=document.getElementById('sstMiniPhase');if(ph)ph.textContent='F'+(sstState.stage+1)+'/4';}
+function expandSSTPanel(){document.getElementById('sstPanel').classList.remove('minimized');}
+function closeSSTPanel(){document.getElementById('sstPanel').classList.remove('open','minimized');sstState.active=false;sstState.lastClosedAt=Date.now();_syncNotifSide();XSESSION.lock(12);}
+function renderSSTStage(stage){for(let i=0;i<4;i++){const t=document.getElementById('sstab-'+i);if(t)t.className='sst-stage-tab'+(i<stage?' done':i===stage?' active':'');}const s=sstState.protocol.stages[stage];document.getElementById('sstNextBtn').style.display='none';let html=`<div class="sst-q">${s.q}</div>`;if(s.actions){sstState.actionStep=0;html+=s.actions.map((a,i)=>`<div class="sst-action-item ${i===0?'active':'pending'}" id="sact-${i}"><span class="sst-action-check" id="acheck-${i}">⬜</span><span class="sst-action-label">${a.label}</span></div>`).join('');html+=`<div class="sst-action-typing" id="sstActionTyping"><span class="lab-typing-prompt">protocolo@dc-sst:~$</span><input class="lab-typing-input" id="sstActionInput" type="text" placeholder="${s.actions[0].hint}" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')submitSSTAction()"><button class="lab-typing-submit" onclick="submitSSTAction()">↵ Ok</button></div><div class="lab-typing-fb" id="sstActFb"></div>`;}else if(s.typing){html+=`<textarea class="sst-report-input" id="sstReportInput" placeholder="${s.placeholder}" rows="5"></textarea><button class="sst-report-btn" onclick="submitSSTReport()">📋 Registrar en bitácora</button><div class="lab-typing-fb" id="sstRepFb"></div>`;}else{html+=`<div class="sst-options">${s.opts.map((o,i)=>`<div class="sst-option" onclick="checkSSTAnswer(${i},${o.ok})">${o.t}</div>`).join('')}</div><div class="guided-feedback" id="sstFb"></div><div class="sst-hint" id="sstHintEl">${s.hint}</div>`;}document.getElementById('sstBody').innerHTML=html;if(s.actions)setTimeout(()=>{const el=document.getElementById('sstActionInput');if(el)el.focus();},80);}
+function checkSSTAnswer(idx,isOk){const opts=document.querySelectorAll('.sst-option');opts.forEach((o,i)=>{o.classList.remove('correct','wrong');if(i===idx)o.classList.add(isOk?'correct':'wrong');});if(!isOk){sstState.score=Math.max(30,sstState.score-15);sstState.protocol.stages[sstState.stage].opts.forEach((o,i)=>{if(o.ok)opts[i].classList.add('correct');});}sstState.answers.push({stage:sstState.stage,correct:isOk});const fb=document.getElementById('sstFb');if(fb){fb.textContent=isOk?'✅ Correcto':'❌ Incorrecto — se marcó la opción correcta';fb.className='guided-feedback '+(isOk?'ok':'err');}document.getElementById('sstNextBtn').style.display='';}
+function showSSTHint(){const h=document.getElementById('sstHintEl');if(h){h.classList.add('show');sstState.score=Math.max(30,sstState.score-5);}}
+function submitSSTAction(){const inp=document.getElementById('sstActionInput');const fb=document.getElementById('sstActFb');const typed=(inp.value||'').trim().toLowerCase();const s=sstState.protocol.stages[sstState.stage];const action=s.actions[sstState.actionStep];const words=action.cmd.toLowerCase().split(' ');const matches=words.filter(w=>typed.includes(w)).length;if(matches>=Math.ceil(words.length*0.7)){fb.className='lab-typing-fb ok';fb.textContent='✅ Acción confirmada';document.getElementById('acheck-'+sstState.actionStep).textContent='✅';document.getElementById('sact-'+sstState.actionStep).className='sst-action-item done';sstState.actionStep++;inp.value='';if(sstState.actionStep<s.actions.length){document.getElementById('sact-'+sstState.actionStep).className='sst-action-item active';inp.placeholder=s.actions[sstState.actionStep].hint;fb.textContent='';inp.focus();}else{fb.textContent='🏁 Todas las acciones del protocolo confirmadas';document.getElementById('sstActionTyping').style.display='none';sstState.answers.push({stage:sstState.stage,correct:true});document.getElementById('sstNextBtn').style.display='';}}else{fb.className='lab-typing-fb err';fb.textContent='❌ '+action.hint;inp.select();}}
+function submitSSTReport(){const rawTxt=document.getElementById('sstReportInput').value||'';sstState.bitacoraText=rawTxt;const txt=rawTxt.toLowerCase();const fb=document.getElementById('sstRepFb');const s=sstState.protocol.stages[sstState.stage];if(txt.length<30){fb.className='lab-typing-fb err';fb.textContent='❌ Registro muy corto. Detalla: sensor, valor medido, acción tomada y quién fue notificado.';return;}const matched=s.keywords.filter(k=>txt.includes(k)).length;const ok=matched>=2;fb.className='lab-typing-fb '+(ok?'ok':'err');fb.textContent=ok?`✅ Bitácora aceptada (${matched} términos clave incluidos)`:'⚠️ Agrega más detalles: valor del sensor, acción ejecutada y contacto notificado.';sstState.answers.push({stage:sstState.stage,correct:ok});document.getElementById('sstNextBtn').style.display='';}
+function sstNext(){if(sstState.stage<3){sstState.stage++;renderSSTStage(sstState.stage);}else{completeSSTProtocol();}}
+function completeSSTProtocol(){const ok=sstState.answers.filter(a=>a.correct).length;const sc=Math.max(20,sstState.score);
+  XSESSION.saveSST({protocol:sstState.ptype,name:sstState.protocol?.name||'—',sensor:sstState.alert?.name||'—',value:(sstState.alert?.value||'')+(sstState.alert?.unit||''),score:sc,correct:ok,total:sstState.answers.length,bitacora:sstState.bitacoraText||'(no registrada)',duration:Math.round((Date.now()-sstState.startTime)/1000)});
+  apiFetch('/api/analytics/sst/complete',{method:'POST',body:JSON.stringify({protocol:sstState.ptype,name:sstState.protocol?.name||'—',sensor:sstState.alert?.name||'—',value:(sstState.alert?.value||'')+(sstState.alert?.unit||''),score:sc,correct:ok,total:sstState.answers.length,bitacora:sstState.bitacoraText||'',duration:Math.round((Date.now()-sstState.startTime)/1000)})}).catch(()=>{});
+  XSESSION.lock(15);const dur=Math.round((Date.now()-sstState.startTime)/1000);const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Aceptable':'⚠️ Repasar protocolo';const col=sc>=90?'#22c55e':sc>=75?'#f97316':sc>=60?'#fbbf24':'#ef4444';for(let i=0;i<4;i++){const t=document.getElementById('sstab-'+i);if(t)t.className='sst-stage-tab done';}document.getElementById('sstNextBtn').style.display='none';document.getElementById('sstBody').innerHTML=`<div style="text-align:center;padding:12px 0 16px"><div style="font-size:3rem;font-weight:900;color:${col}">${sc}<span style="font-size:1.5rem">/100</span></div><div style="font-size:1.1rem;font-weight:700;margin:4px 0;color:#fed7aa">${grade}</div><div style="font-size:.76rem;color:#92400e;margin-bottom:14px">${ok}/${sstState.answers.length} etapas correctas · ${dur}s</div></div><div style="background:#1a0e00;border:1px solid #f97316;border-radius:8px;padding:12px 14px;font-size:.78rem;line-height:1.8"><div style="color:#fb923c;font-weight:700;margin-bottom:6px">📋 Protocolo: ${sstState.protocol.name}</div><div style="color:#94a3b8">Sensor: <strong style="color:#e2e8f0">${sstState.alert.name}${sstState.alert.zone?' · '+sstState.alert.zone:''}</strong></div><div style="color:#94a3b8">Valor detectado: <strong style="color:#fbbf24">${sstState.alert.value}${sstState.alert.unit||''}</strong></div><div style="color:#94a3b8;margin-top:4px">📞 Notificar: ${sstState.protocol.contact}</div></div><div style="text-align:center;margin-top:14px"><button style="background:#ea580c;border:none;border-radius:8px;color:white;font-size:.85rem;font-weight:700;padding:10px 28px;cursor:pointer" onclick="closeSSTPanel()">✓ Cerrar protocolo</button></div>`;}
+function submitTypedCmd(){const inp=document.getElementById('labTypingInput');const fb=document.getElementById('labTypingFb');const typed=(inp.value||'').trim();if(!typed||labState.executingStep)return;const step=labState.steps[labState.currentStep];const correct=step.command||step.action||'';if(cmdMatch(typed,correct)){fb.className='lab-typing-fb ok';fb.textContent='✅ ¡Correcto! Ejecutando...';inp.disabled=true;setTimeout(()=>execStep(labState.currentStep),700);}else{fb.className='lab-typing-fb err';const norm=s=>s.toLowerCase().replace(/^\$\s*/,'').replace(/\s+/g,' ').trim();const hint=norm(correct).split(' ').slice(0,3).join(' ');fb.textContent=`❌ Incorrecto. Pista: el comando comienza con "${hint}"`;inp.select();}}
+function generateLabReport(){const plan=labState.current.plan,type=labState.current.type,score=document.getElementById('labScoreNum').textContent,grade=document.getElementById('labScoreGrade').textContent,ttime=document.getElementById('labStatTime').textContent,sname=STUDENT.name||STUDENT.email||'Estudiante',now=new Date().toLocaleString('es-CO');const sc=parseInt(score)>=90?'#16a34a':parseInt(score)>=75?'#2563eb':parseInt(score)>=60?'#d97706':'#dc2626';const stepsHtml=labState.steps.map((s,i)=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${i+1}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${s.desc||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-family:monospace;font-size:.85em">${s.command||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:green;text-align:center">✅ Completado</td></tr>`).join('');const explHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div style="background:#f8fafc;border-left:4px solid #7c3aed;border-radius:4px;padding:10px 14px;margin-bottom:8px"><div style="font-weight:700;font-size:.82rem;margin-bottom:2px">Paso ${i+1}: ${s.desc||s.action}</div><div style="font-family:monospace;font-size:.78rem;color:#1e40af;margin-bottom:4px">$ ${s.command||s.action}</div><div style="font-size:.8rem;color:#475569;line-height:1.5">${expl}</div></div>`;}).join('');const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Lab</title><style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0}.cover{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:white;padding:40px 48px}.cover h1{margin:0 0 4px;font-size:1.8rem}.section{padding:0 48px 24px}h2{color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.meta-item{background:#f8fafc;border-radius:6px;padding:10px 14px}.meta-item .label{font-size:.72rem;color:#64748b;text-transform:uppercase}.meta-item .value{font-size:1rem;font-weight:700;margin-top:2px}.score-box{text-align:center;padding:20px;background:#f0fdf4;border:2px solid #86efac;border-radius:12px;margin-bottom:20px}.score-big{font-size:4rem;font-weight:900;color:${sc};line-height:1}table{width:100%;border-collapse:collapse;font-size:.88rem}thead th{background:#1e3a8a;color:white;padding:10px 12px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.footer{margin-top:32px;padding:16px 48px;background:#f1f5f9;font-size:.75rem;color:#64748b;display:flex;justify-content:space-between}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem"><strong>Reporte listo</strong> — Ctrl+P → Guardar como PDF<button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir</button></div><div class="cover"><div style="font-size:.8rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div><h1>Reporte de Práctica</h1><div style="opacity:.8">${plan.mitigation_name||type} · ${now}</div></div><div class="section"><h2>Información</h2><div class="meta-grid"><div class="meta-item"><div class="label">Estudiante</div><div class="value">${sname}</div></div><div class="meta-item"><div class="label">Escenario</div><div class="value">${plan.mitigation_name||type}</div></div><div class="meta-item"><div class="label">Tiempo empleado</div><div class="value">${ttime} min:seg</div></div><div class="meta-item"><div class="label">Fecha</div><div class="value">${now}</div></div></div><h2>Calificación</h2><div class="score-box"><div class="score-big">${score}<span style="font-size:2rem">/100</span></div><div style="font-size:1.2rem;font-weight:700;margin-top:4px">${grade}</div></div><h2>Pasos Ejecutados</h2><table><thead><tr><th>#</th><th>Descripción</th><th>Comando</th><th>Estado</th></tr></thead><tbody>${stepsHtml}</tbody></table><h2 style="margin-top:24px">📖 ¿Qué hizo cada comando?</h2>${explHtml}</div><div class="footer"><span>DC Monitoring Simulator · Diseñado por Ing. Luis Alberto Vasquez Campos</span><span>${now}</span></div></body></html>`);win.document.close();}
+// ══════════════════════════════════════════════════════════════
+// BITÁCORA DE INCIDENTE
+// ══════════════════════════════════════════════════════════════
+let _bitacoraData = {};
+
+const ATTACK_LABELS = {
+  ddos:'DDoS', dos:'DoS', ransomware:'Ransomware', brute_force:'Fuerza Bruta',
+  port_scan:'Escaneo de Puertos', sql_injection:'SQL Injection',
+  mitm:'Man-in-the-Middle', cryptomining:'Cryptomining',
+  lateral_movement:'Movimiento Lateral', apt:'APT', unknown:'Desconocido'
+};
+
+function _openBitacoraModal(data) {
+  _bitacoraData = data;
+  // Auto-llenar datos técnicos
+  document.getElementById('bmNode').textContent    = data.node_id || '—';
+  document.getElementById('bmType').textContent    = ATTACK_LABELS[data.attack_type] || data.attack_type || '—';
+  document.getElementById('bmScore').textContent   = (data.score || 0) + ' pts';
+  document.getElementById('bmCorrect').textContent = (data.correct || 0) + ' / 4';
+  document.getElementById('bmHints').textContent   = data.hints || 0;
+  document.getElementById('bmDur').textContent     = (data.duration || 0) + 's';
+  // Limpiar campos anteriores
+  ['bmSintomas','bmCausa','bmAcciones','bmLecciones'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('error'); }
+  });
+  ['bmC1','bmC2','bmC3','bmC4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '0 / mín. 30 caracteres'; el.classList.remove('ok'); }
+  });
+  const errEl = document.getElementById('bmErr');
+  if (errEl) errEl.classList.remove('show');
+  const btn = document.getElementById('bmSubmitBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '✅ Guardar bitácora y ver resultado'; }
+  document.getElementById('bitacoraOverlay').classList.add('open');
+  // Iniciar temporizador de inactividad en el modal
+  _startBitacoraInactivityWatch();
+}
+
+function bmCount(textarea, counterId, minLen) {
+  const len = textarea.value.length;
+  const el  = document.getElementById(counterId);
+  if (!el) return;
+  el.textContent = `${len} / mín. ${minLen} caracteres`;
+  if (len >= minLen) { el.classList.add('ok'); textarea.classList.remove('error'); }
+  else               { el.classList.remove('ok'); }
+}
+
+async function submitBitacora() {
+  const fields = [
+    { id: 'bmSintomas',  cnt: 'bmC1' },
+    { id: 'bmCausa',     cnt: 'bmC2' },
+    { id: 'bmAcciones',  cnt: 'bmC3' },
+    { id: 'bmLecciones', cnt: 'bmC4' },
+  ];
+  const MIN = 30;
+  let valid = true;
+  fields.forEach(f => {
+    const el = document.getElementById(f.id);
+    if (!el || el.value.trim().length < MIN) {
+      valid = false;
+      if (el) el.classList.add('error');
+    } else {
+      if (el) el.classList.remove('error');
+    }
+  });
+  if (!valid) {
+    const errEl = document.getElementById('bmErr');
+    if (errEl) errEl.classList.add('show');
+    return;
+  }
+  const btn = document.getElementById('bmSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando...'; }
+
+  const payload = {
+    node_id:             _bitacoraData.node_id || '—',
+    attack_type:         _bitacoraData.attack_type || 'unknown',
+    severity:            _bitacoraData.severity || null,
+    score:               _bitacoraData.score || 0,
+    correct_answers:     _bitacoraData.correct || 0,
+    total_questions:     4,
+    hints_used:          _bitacoraData.hints || 0,
+    mttd_seconds:        _bitacoraData.mttd_seconds || null,
+    duration_sec:        _bitacoraData.duration || 0,
+    incident_id:         _bitacoraData.incident_id || null,
+    sintomas_observados: document.getElementById('bmSintomas').value.trim(),
+    causa_raiz:          document.getElementById('bmCausa').value.trim(),
+    acciones_tomadas:    document.getElementById('bmAcciones').value.trim(),
+    lecciones:           document.getElementById('bmLecciones').value.trim(),
+  };
+
+  try {
+    await apiFetch('/api/bitacoras', { method: 'POST', body: JSON.stringify(payload) });
+    notify('📋 Bitácora guardada', 'Tu análisis quedó registrado correctamente.', 'ok');
+  } catch(e) {
+    notify('⚠️ Sin conexión', 'Bitácora guardada localmente. Sincronizará al reconectar.', 'warn');
+  }
+
+  // Detener timer del modal y cerrar
+  _stopBitacoraInactivityWatch();
+  document.getElementById('bitacoraOverlay').classList.remove('open');
+  _showGuidedResultsPanel();
+  // Iniciar temporizador de inactividad en el panel de resultados
+  _startGuidedAutoClose();
+}
+
+// ══════════════════════════════════════════════════════════════
+// INACTIVIDAD EN EL MODAL DE BITÁCORA
+// Chequeo cada segundo basado en timestamp de último keystroke.
+// 60 s sin escribir → aviso con countdown de 30 s → cierre.
+// ══════════════════════════════════════════════════════════════
+let _bmLastKey       = 0;   // timestamp del último keystroke
+let _bmWatchInterval = null; // setInterval principal
+let _bmPhase         = 'idle'; // 'idle' | 'countdown'
+let _bmCountSecs     = 30;
+
+const _BM_IDLE_MS    = 60000; // 1 min sin escribir → inicia countdown
+const _BM_COUNT_SECS = 30;    // segundos del countdown
+
+function _startBitacoraInactivityWatch() {
+  _stopBitacoraInactivityWatch();
+  _bmLastKey = Date.now(); // abrir modal cuenta como actividad
+  _bmPhase   = 'idle';
+
+  // Listener en los textareas directamente
+  ['bmSintomas','bmCausa','bmAcciones','bmLecciones'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', _bmOnKey);
+  });
+
+  // Chequear cada segundo
+  _bmWatchInterval = setInterval(_bmTick, 1000);
+}
+
+function _bmOnKey() {
+  _bmLastKey = Date.now();
+  // Si ya estaba en countdown → cancelarlo y reiniciar
+  if (_bmPhase === 'countdown') {
+    _bmPhase = 'idle';
+    const cdEl = document.getElementById('bmCdMsg');
+    if (cdEl) cdEl.remove();
+  }
+}
+
+function _bmTick() {
+  const overlay = document.getElementById('bitacoraOverlay');
+  // Si el modal ya se cerró → limpiar
+  if (!overlay || !overlay.classList.contains('open')) {
+    _stopBitacoraInactivityWatch(); return;
+  }
+
+  const elapsed = Date.now() - _bmLastKey;
+
+  if (_bmPhase === 'idle') {
+    if (elapsed >= _BM_IDLE_MS) {
+      // Iniciar countdown
+      _bmPhase    = 'countdown';
+      _bmCountSecs = _BM_COUNT_SECS;
+      _bmShowCountdownBar();
+    }
+  } else if (_bmPhase === 'countdown') {
+    _bmCountSecs--;
+    const t = document.getElementById('bmCdTxt');
+    if (t) t.textContent = `⏱ Se cerrará en ${_bmCountSecs}s por inactividad…`;
+    if (_bmCountSecs <= 0) {
+      _stopBitacoraInactivityWatch();
+      document.getElementById('bitacoraOverlay').classList.remove('open');
+      closeGuided(true);
+      notify('📋 Sin actividad', 'Formulario cerrado por inactividad. Vuelve a iniciar el diagnóstico.', 'warn');
+    }
+  }
+}
+
+function _bmShowCountdownBar() {
+  const modal  = document.getElementById('bitacoraModal');
+  const footer = modal ? modal.querySelector('.bm-footer') : null;
+  if (!footer || document.getElementById('bmCdMsg')) return;
+  const cdEl = document.createElement('div');
+  cdEl.id = 'bmCdMsg';
+  cdEl.style.cssText = [
+    'display:flex;align-items:center;justify-content:space-between;gap:8px',
+    'padding:8px 16px;background:#1c1506;border-top:1px solid #92400e',
+    'font-size:.73rem;color:#f59e0b'
+  ].join(';');
+  cdEl.innerHTML = `
+    <span id="bmCdTxt">⏱ Se cerrará en ${_bmCountSecs}s por inactividad…</span>
+    <button onclick="_cancelBmAutoClose()"
+      style="background:#1e2d45;border:1px solid #475569;border-radius:6px;
+             color:#e2e8f0;cursor:pointer;font-size:.7rem;padding:4px 10px;white-space:nowrap">
+      Seguir escribiendo
+    </button>`;
+  footer.before(cdEl);
+}
+
+function _stopBitacoraInactivityWatch() {
+  clearInterval(_bmWatchInterval);
+  _bmWatchInterval = null;
+  _bmPhase = 'idle';
+  const cdEl = document.getElementById('bmCdMsg');
+  if (cdEl) cdEl.remove();
+  ['bmSintomas','bmCausa','bmAcciones','bmLecciones'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.removeEventListener('input', _bmOnKey);
+  });
+}
+
+function _cancelBmAutoClose() {
+  _bmLastKey = Date.now();
+  _bmPhase   = 'idle';
+  const cdEl = document.getElementById('bmCdMsg');
+  if (cdEl) cdEl.remove();
+  // Enfocar el primer campo incompleto
+  for (const id of ['bmSintomas','bmCausa','bmAcciones','bmLecciones']) {
+    const el = document.getElementById(id);
+    if (el && el.value.trim().length < 30) { el.focus(); break; }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTO-CIERRE DEL PANEL GUIADO POR INACTIVIDAD
+// Chequeo cada segundo. 1 min sin clic/teclado → countdown 15 s.
+// ══════════════════════════════════════════════════════════════
+let _gpLastActivity   = 0;
+let _gpWatchInterval  = null;
+let _gpPhase          = 'idle';  // 'idle' | 'countdown'
+let _gpCountSecs      = 15;
+
+const _GP_IDLE_MS    = 60000;  // 1 min de inactividad → inicia countdown
+const _GP_COUNT_SECS = 15;     // segundos del countdown
+
+function _gpOnActivity() {
+  _gpLastActivity = Date.now();
+  if (_gpPhase === 'countdown') {
+    _gpPhase = 'idle';
+    const cdEl = document.getElementById('guidedCdMsg');
+    if (cdEl) cdEl.remove();
+  }
+}
+
+function _gpTick() {
+  const panel = document.getElementById('guidedPanel');
+  if (!panel || !panel.classList.contains('open')) {
+    _stopGuidedAutoClose(); return;
+  }
+  const elapsed = Date.now() - _gpLastActivity;
+
+  if (_gpPhase === 'idle') {
+    if (elapsed >= _GP_IDLE_MS) {
+      _gpPhase    = 'countdown';
+      _gpCountSecs = _GP_COUNT_SECS;
+      _gpShowCountdownBar();
+    }
+  } else if (_gpPhase === 'countdown') {
+    _gpCountSecs--;
+    const t = document.getElementById('guidedCdTxt');
+    if (t) t.textContent = `⏱ Cerrando en ${_gpCountSecs}s por inactividad…`;
+    if (_gpCountSecs <= 0) {
+      _stopGuidedAutoClose();
+      notify('📋 Panel cerrado', 'Sin actividad. Tu bitácora quedó guardada.', 'info');
+      closeGuided(true);
+    }
+  }
+}
+
+function _gpShowCountdownBar() {
+  const panel  = document.getElementById('guidedPanel');
+  const footer = panel ? panel.querySelector('.guided-footer') : null;
+  if (!footer || document.getElementById('guidedCdMsg')) return;
+  const cdEl = document.createElement('div');
+  cdEl.id = 'guidedCdMsg';
+  cdEl.style.cssText = [
+    'display:flex;align-items:center;justify-content:space-between;gap:8px',
+    'padding:7px 12px;border-top:1px solid #2d1f5e',
+    'font-size:.73rem;color:#f59e0b'
+  ].join(';');
+  cdEl.innerHTML = `
+    <span id="guidedCdTxt">⏱ Cerrando en ${_gpCountSecs}s por inactividad…</span>
+    <button onclick="_cancelGuidedAutoClose()"
+      style="background:#1e2d45;border:1px solid #475569;border-radius:6px;
+             color:#e2e8f0;cursor:pointer;font-size:.7rem;padding:3px 9px;white-space:nowrap">
+      Seguir revisando
+    </button>`;
+  footer.prepend(cdEl);
+}
+
+function _startGuidedAutoClose() {
+  _stopGuidedAutoClose();
+  _gpLastActivity  = Date.now();
+  _gpPhase         = 'idle';
+  // Registrar clics y teclas en el panel como actividad
+  const panel = document.getElementById('guidedPanel');
+  if (panel) {
+    panel.addEventListener('click',   _gpOnActivity);
+    panel.addEventListener('keydown', _gpOnActivity);
+    panel._gpCleanup = () => {
+      panel.removeEventListener('click',   _gpOnActivity);
+      panel.removeEventListener('keydown', _gpOnActivity);
+    };
+  }
+  _gpWatchInterval = setInterval(_gpTick, 1000);
+}
+
+function _stopGuidedAutoClose() {
+  clearInterval(_gpWatchInterval);
+  _gpWatchInterval = null;
+  _gpPhase = 'idle';
+  const cdEl = document.getElementById('guidedCdMsg');
+  if (cdEl) cdEl.remove();
+  const panel = document.getElementById('guidedPanel');
+  if (panel && panel._gpCleanup) { panel._gpCleanup(); panel._gpCleanup = null; }
+}
+
+function _cancelGuidedAutoClose() {
+  _gpOnActivity(); // marcar actividad → cancela countdown
+}
+
 </script>
 
 <!-- LAB MODAL -->
@@ -1004,6 +2321,18 @@ function generateLabReport(){const plan=labState.current.plan,type=labState.curr
           <span>Pasos: <strong id="labStepProg">0 / 0</strong></span>
         </div>
         <div class="lab-steps-area" id="labStepsArea"></div>
+        <div class="lab-typing-area" id="labTypingArea" style="display:none">
+          <div class="lab-typing-hdr">
+            <span>💬 Tu turno — escribe el comando:</span>
+            <span id="typingStepLabel" style="color:#94a3b8;font-size:.78rem"></span>
+          </div>
+          <div class="lab-typing-row">
+            <span class="lab-typing-prompt">root@dc-lab:~$</span>
+            <input class="lab-typing-input" id="labTypingInput" type="text" autocomplete="off" spellcheck="false" placeholder="escribe el comando aquí..." onkeydown="if(event.key==='Enter')submitTypedCmd()">
+            <button class="lab-typing-submit" onclick="submitTypedCmd()">↵ Enter</button>
+          </div>
+          <div class="lab-typing-fb" id="labTypingFb"></div>
+        </div>
         <div class="lab-terminal">
           <div class="term-hdr">
             <span class="term-dot" style="background:#ef4444"></span>
@@ -1025,6 +2354,7 @@ function generateLabReport(){const plan=labState.current.plan,type=labState.curr
             <div class="score-stat"><div class="sv" id="labStatScen"></div><div class="sl">Escenario</div></div>
           </div>
         </div>
+        <div id="labCmdSummary" style="margin-top:4px"></div>
         <div style="text-align:center;margin-top:16px">
           <button class="lab-report-btn" onclick="generateLabReport()">&#x1F4C4; Generar Reporte PDF</button>
           <button class="lab-report-btn secondary" onclick="resetLab()">&#x1F504; Practicar Otro</button>
@@ -1034,11 +2364,79 @@ function generateLabReport(){const plan=labState.current.plan,type=labState.curr
   </div>
 </div>
 
-<!-- FIRMA -->
-<div id="firma-footer" style="position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,0.95);border-top:1px solid #7c3aed;padding:4px 20px;display:flex;justify-content:space-between;align-items:center;font-size:.65rem;color:#64748b;z-index:99999">
-  <span>&#x1F5A5;&#xFE0F; DC Monitoring Simulator &copy; 2026</span>
-  <span style="color:#a78bfa;font-weight:700">Diseñado por Ing. de Sistemas Luis Alberto Vasquez Campos</span>
-  <span>Práctica Estudiantil &middot; SENA</span>
+<!-- MODAL BITÁCORA DE INCIDENTE -->
+<div id="bitacoraOverlay">
+  <div id="bitacoraModal">
+    <div class="bm-header">
+      <div class="bm-title">📋 Bitácora del Incidente</div>
+      <div class="bm-subtitle">Registra tu análisis antes de cerrar el diagnóstico. Todos los campos son obligatorios.</div>
+    </div>
+    <div class="bm-body">
+      <!-- Datos técnicos auto-llenados -->
+      <div class="bm-info-row" id="bmInfoRow">
+        <div class="bm-info-item"><div class="bm-lbl">Nodo afectado</div><div class="bm-val" id="bmNode">—</div></div>
+        <div class="bm-info-item"><div class="bm-lbl">Tipo de ataque</div><div class="bm-val" id="bmType">—</div></div>
+        <div class="bm-info-item"><div class="bm-lbl">Puntaje obtenido</div><div class="bm-val" id="bmScore">—</div></div>
+        <div class="bm-info-item"><div class="bm-lbl">Respuestas correctas</div><div class="bm-val" id="bmCorrect">—</div></div>
+        <div class="bm-info-item"><div class="bm-lbl">Pistas usadas</div><div class="bm-val" id="bmHints">—</div></div>
+        <div class="bm-info-item"><div class="bm-lbl">Duración</div><div class="bm-val" id="bmDur">—</div></div>
+      </div>
+      <div class="bm-err" id="bmErr">⚠️ Completa todos los campos con al menos 30 caracteres.</div>
+      <!-- Campo 1 -->
+      <div class="bm-field">
+        <label>🔍 Síntomas observados <span>*</span></label>
+        <textarea id="bmSintomas" placeholder="¿Qué indicadores te alertaron? ¿Qué métricas estaban anómalas? ¿Cómo lo detectaste?" oninput="bmCount(this,'bmC1',30)"></textarea>
+        <div class="bm-char" id="bmC1">0 / mín. 30 caracteres</div>
+      </div>
+      <!-- Campo 2 -->
+      <div class="bm-field">
+        <label>🧩 Análisis de causa raíz <span>*</span></label>
+        <textarea id="bmCausa" placeholder="¿Por qué ocurrió el incidente? ¿Qué condición o vulnerabilidad lo permitió?" oninput="bmCount(this,'bmC2',30)"></textarea>
+        <div class="bm-char" id="bmC2">0 / mín. 30 caracteres</div>
+      </div>
+      <!-- Campo 3 -->
+      <div class="bm-field">
+        <label>🛠️ Acciones tomadas y resultado <span>*</span></label>
+        <textarea id="bmAcciones" placeholder="¿Qué hiciste para mitigar el ataque? ¿Qué comandos o pasos aplicaste? ¿Funcionó?" oninput="bmCount(this,'bmC3',30)"></textarea>
+        <div class="bm-char" id="bmC3">0 / mín. 30 caracteres</div>
+      </div>
+      <!-- Campo 4 -->
+      <div class="bm-field">
+        <label>💡 Lecciones aprendidas y recomendaciones <span>*</span></label>
+        <textarea id="bmLecciones" placeholder="¿Qué aprendiste de este incidente? ¿Qué recomendarías para evitarlo en el futuro?" oninput="bmCount(this,'bmC4',30)"></textarea>
+        <div class="bm-char" id="bmC4">0 / mín. 30 caracteres</div>
+      </div>
+    </div>
+    <div class="bm-footer">
+      <button class="bm-btn-submit" id="bmSubmitBtn" onclick="submitBitacora()">
+        ✅ Guardar bitácora y ver resultado
+      </button>
+    </div>
+  </div>
 </div>
-</body>
-</html>
+
+<!-- SST PROTOCOL PANEL -->
+<div class="sst-panel" id="sstPanel">
+  <!-- Tab visible cuando está minimizado (lado derecho del panel izquierdo) -->
+  <div class="sst-minimize-tab" onclick="expandSSTPanel()" title="Expandir protocolo SST">
+    <span style="font-size:1rem">▶</span>
+    <span class="sst-mini-label">PROTOCOLO SST</span>
+    <span class="sst-mini-phase" id="sstMiniPhase">F1/4</span>
+  </div>
+  <div class="sst-header">
+    <button class="sst-min-btn" onclick="minimizeSSTPanel()" title="Minimizar — conserva tu progreso">⟫</button>
+    <button class="sst-close-btn" onclick="closeSSTPanel()">✕</button>
+    <div class="sst-badge" id="sstBadge">🏭 PROTOCOLO SST</div>
+    <div class="sst-title" id="sstTitle">Incidente Físico</div>
+    <div class="sst-subtitle" id="sstSubtitle">Sensor detectado en estado crítico</div>
+  </div>
+  <div class="sst-stages">
+    <div class="sst-stage-tab" id="sstab-0">1. Identificar</div>
+    <div class="sst-stage-tab" id="sstab-1">2. Evaluar</div>
+    <div class="sst-stage-tab" id="sstab-2">3. Actuar</div>
+    <div class="sst-stage-tab" id="sstab-3">4. Registrar</div>
+  </div>
+  <div class="sst-body" id="sstBody"></div>
+  <div class="sst-footer">
+    <div class="sst-escalation" id="sstEscalation">📞 Notificar contacto de emergencia</div>
+    <button class="guided-btn guided-btn-hint" onclick="showSSTHint()">💡

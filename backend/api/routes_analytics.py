@@ -11,7 +11,8 @@ from sqlalchemy import select, func
 
 from ..database.db import get_db
 from ..database import crud
-from ..database.models import Student, Session, Incident, MitigationAction
+from ..database.models import (Student, Session, Incident, MitigationAction,
+                               GuidedSession, PracticeSession, SSTProtocolSession, Bitacora)
 from ..api.routes_students import get_current_student, require_instructor
 from ..simulation.mitigation import mitigation_engine, MITIGATION_RULES, ATTACK_CHAINS, ESCALATION_CONFIG
 
@@ -24,22 +25,73 @@ async def get_student_ranking(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_student)
 ):
-    """Ranking de estudiantes ordenado por score promedio."""
+    """Ranking de estudiantes con scores reales calculados desde actividades."""
     students = await crud.get_all_students(db)
     ranking = []
     for s in students:
         if s.role == "instructor":
             continue
+
+        # Score real: promedio ponderado de todas las actividades
+        g_q = await db.execute(
+            select(func.avg(GuidedSession.score), func.count(GuidedSession.id))
+            .where(GuidedSession.student_id == s.id)
+        )
+        g_row = g_q.first(); g_avg = g_row[0] or 0; g_cnt = g_row[1] or 0
+
+        b_q = await db.execute(
+            select(func.avg(Bitacora.score), func.count(Bitacora.id))
+            .where(Bitacora.student_id == s.id)
+        )
+        b_row = b_q.first(); b_avg = b_row[0] or 0; b_cnt = b_row[1] or 0
+
+        l_q = await db.execute(
+            select(func.avg(PracticeSession.score), func.count(PracticeSession.id))
+            .where(PracticeSession.student_id == s.id)
+        )
+        l_row = l_q.first(); l_avg = l_row[0] or 0; l_cnt = l_row[1] or 0
+
+        sst_q = await db.execute(
+            select(func.avg(SSTProtocolSession.score), func.count(SSTProtocolSession.id))
+            .where(SSTProtocolSession.student_id == s.id)
+        )
+        sst_row = sst_q.first(); sst_avg = sst_row[0] or 0; sst_cnt = sst_row[1] or 0
+
+        # Ponderación: diagnóstico 40%, bitácoras 30%, labs 20%, SST 10%
+        parts, weights = [], []
+        if g_cnt   > 0: parts.append(g_avg);   weights.append(0.40)
+        if b_cnt   > 0: parts.append(b_avg);   weights.append(0.30)
+        if l_cnt   > 0: parts.append(l_avg);   weights.append(0.20)
+        if sst_cnt > 0: parts.append(sst_avg); weights.append(0.10)
+        total_w  = sum(weights) or 1
+        avg_sc   = sum(p*w for p,w in zip(parts,weights)) / total_w if parts else 0
+
+        # MTTD real desde bitácoras
+        mttd_q = await db.execute(
+            select(func.avg(Bitacora.mttd_seconds))
+            .where(Bitacora.student_id == s.id, Bitacora.mttd_seconds.isnot(None))
+        )
+        mttd_val = mttd_q.scalar() or s.avg_mttd_seconds or 0
+
+        total_acts = g_cnt + b_cnt + l_cnt + sst_cnt
+
         ranking.append({
             "id":               s.id,
             "name":             s.name,
             "email":            s.email,
-            "total_sessions":   s.total_sessions,
-            "avg_mttd_seconds": round(s.avg_mttd_seconds, 1),
-            "avg_mttr_seconds": round(s.avg_mttr_seconds, 1),
-            "avg_score":        round(s.avg_score, 1),
-            "rank_label":       _rank_label(s.avg_score),
+            "total_sessions":   total_acts,
+            "avg_mttd_seconds": round(mttd_val, 1),
+            "avg_mttr_seconds": round(s.avg_mttr_seconds or 0, 1),
+            "avg_score":        round(avg_sc, 1),
+            "rank_label":       _rank_label(avg_sc),
+            "breakdown": {
+                "guided":   {"count": g_cnt,   "avg": round(g_avg, 1)},
+                "bitacoras":{"count": b_cnt,   "avg": round(b_avg, 1)},
+                "labs":     {"count": l_cnt,   "avg": round(l_avg, 1)},
+                "sst":      {"count": sst_cnt, "avg": round(sst_avg, 1)},
+            }
         })
+
     ranking.sort(key=lambda x: x["avg_score"], reverse=True)
     for i, r in enumerate(ranking):
         r["rank"] = i + 1
@@ -419,3 +471,198 @@ async def all_practice_sessions(
         }
         for s in sessions
     ]
+
+
+# ── GUIDED SESSION SAVE ───────────────────────────────────────────
+@router.post("/guided/complete")
+async def save_guided_session(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_student)
+):
+    """Guardar resultado de diagnóstico guiado del estudiante."""
+    from ..database.models import GuidedSession
+    gs = GuidedSession(
+        student_id      = current.id,
+        attack_type     = payload.get("attack_type", "unknown"),
+        node_id         = payload.get("node_id", "—"),
+        score           = payload.get("score", 0),
+        correct_answers = payload.get("correct", 0),
+        total_questions = payload.get("total", 4),
+        hints_used      = payload.get("hints", 0),
+        duration_sec    = payload.get("duration", 0),
+    )
+    db.add(gs)
+    await db.commit()
+    return {"ok": True}
+
+
+# ── SST PROTOCOL SESSION SAVE ─────────────────────────────────────
+@router.post("/sst/complete")
+async def save_sst_session(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_student)
+):
+    """Guardar resultado de protocolo SST del estudiante."""
+    from ..database.models import SSTProtocolSession
+    ss = SSTProtocolSession(
+        student_id      = current.id,
+        protocol_type   = payload.get("protocol", "unknown"),
+        protocol_name   = payload.get("name", "—"),
+        sensor_name     = payload.get("sensor", "—"),
+        sensor_value    = payload.get("value", ""),
+        score           = payload.get("score", 0),
+        correct_answers = payload.get("correct", 0),
+        total_questions = payload.get("total", 4),
+        bitacora        = payload.get("bitacora", ""),
+        duration_sec    = payload.get("duration", 0),
+    )
+    db.add(ss)
+    await db.commit()
+    return {"ok": True}
+
+
+# ── INSTRUCTOR CLASS REPORT ───────────────────────────────────────
+@router.get("/instructor/class-report")
+async def get_class_report(
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_student)
+):
+    """Reporte completo de la clase para el instructor."""
+    from fastapi import HTTPException
+    if current.role != "instructor":
+        raise HTTPException(status_code=403, detail="Solo instructores")
+
+    from ..database.models import GuidedSession, SSTProtocolSession, PracticeSession
+
+    # Todos los estudiantes activos
+    students_q = await db.execute(
+        select(Student).where(Student.role == "student", Student.is_active == True)
+    )
+    students = students_q.scalars().all()
+
+    result = []
+    for s in students:
+        # Labs
+        labs_q = await db.execute(
+            select(func.count(), func.avg(PracticeSession.score))
+            .where(PracticeSession.student_id == s.id)
+        )
+        lab_row = labs_q.first()
+        lab_count = lab_row[0] or 0
+        lab_avg   = lab_row[1]
+
+        # Guided
+        guided_q = await db.execute(
+            select(func.count(), func.avg(GuidedSession.score))
+            .where(GuidedSession.student_id == s.id)
+        )
+        guided_row = guided_q.first()
+        guided_count = guided_row[0] or 0
+        guided_avg   = guided_row[1]
+
+        # SST
+        sst_q = await db.execute(
+            select(func.count(), func.avg(SSTProtocolSession.score))
+            .where(SSTProtocolSession.student_id == s.id)
+        )
+        sst_row = sst_q.first()
+        sst_count = sst_row[0] or 0
+        sst_avg   = sst_row[1]
+
+        # Detalles recientes
+        guided_detail_q = await db.execute(
+            select(GuidedSession)
+            .where(GuidedSession.student_id == s.id)
+            .order_by(GuidedSession.completed_at.desc())
+            .limit(10)
+        )
+        sst_detail_q = await db.execute(
+            select(SSTProtocolSession)
+            .where(SSTProtocolSession.student_id == s.id)
+            .order_by(SSTProtocolSession.completed_at.desc())
+            .limit(10)
+        )
+        lab_detail_q = await db.execute(
+            select(PracticeSession)
+            .where(PracticeSession.student_id == s.id)
+            .order_by(PracticeSession.completed_at.desc())
+            .limit(10)
+        )
+
+        scores = [x for x in [lab_avg, guided_avg, sst_avg] if x is not None]
+        overall_avg = round(sum(scores) / len(scores), 1) if scores else 0
+
+        result.append({
+            "id":             s.id,
+            "name":           s.name,
+            "email":          s.email,
+            "total_exercises":(lab_count) + (guided_count) + (sst_count),
+            "labs":           {"count": lab_count,    "avg_score": round(lab_avg    or 0, 1)},
+            "guided":         {"count": guided_count, "avg_score": round(guided_avg or 0, 1)},
+            "sst":            {"count": sst_count,    "avg_score": round(sst_avg    or 0, 1)},
+            "overall_avg":    overall_avg,
+            "guided_sessions": [
+                {
+                    "type": g.attack_type, "node": g.node_id, "score": g.score,
+                    "correct": g.correct_answers, "hints": g.hints_used,
+                    "duration": g.duration_sec,
+                    "ts": g.completed_at.strftime("%d/%m %H:%M") if g.completed_at else "—"
+                }
+                for g in guided_detail_q.scalars().all()
+            ],
+            "sst_sessions": [
+                {
+                    "protocol": g.protocol_name, "sensor": g.sensor_name, "score": g.score,
+                    "bitacora": g.bitacora, "duration": g.duration_sec,
+                    "ts": g.completed_at.strftime("%d/%m %H:%M") if g.completed_at else "—"
+                }
+                for g in sst_detail_q.scalars().all()
+            ],
+            "lab_sessions": [
+                {
+                    "scenario": g.scenario_name, "score": g.score,
+                    "duration": g.duration_sec, "steps": g.steps_completed,
+                    "ts": g.completed_at.strftime("%d/%m %H:%M") if g.completed_at else "—"
+                }
+                for g in lab_detail_q.scalars().all()
+            ],
+        })
+
+    result.sort(key=lambda x: x["overall_avg"], reverse=True)
+    return {"students": result, "total": len(result)}
+
+
+# ── PRACTICE MODE CONTROL ─────────────────────────────────────────
+@router.post("/practice/start")
+async def start_practice_mode(
+    payload: dict,
+    current=Depends(get_current_student)
+):
+    """El instructor inicia el modo práctica para toda la clase."""
+    from fastapi import HTTPException
+    if current.role != "instructor":
+        raise HTTPException(status_code=403, detail="Solo instructores")
+    duration_min = int(payload.get("duration_min", 20))
+    from ..api.websocket import manager as ws_manager
+    await ws_manager.broadcast("practice_mode", {
+        "active": True,
+        "duration_min": duration_min,
+        "started_at": datetime.utcnow().isoformat()
+    })
+    return {"ok": True, "duration_min": duration_min}
+
+
+@router.post("/practice/stop")
+async def stop_practice_mode(current=Depends(get_current_student)):
+    """El instructor detiene el modo práctica."""
+    from fastapi import HTTPException
+    if current.role != "instructor":
+        raise HTTPException(status_code=403, detail="Solo instructores")
+    from ..api.websocket import manager as ws_manager
+    from ..simulation.scheduler import scheduler
+    # Reactivar ataques automáticos al terminar la práctica
+    scheduler.set_auto_attacks(True)
+    await ws_manager.broadcast("practice_mode", {"active": False})
+    return {"ok": True}

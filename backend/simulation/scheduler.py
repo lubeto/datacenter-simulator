@@ -74,13 +74,31 @@ class EventScheduler:
     async def _auto_attack_loop(self):
         import os
         auto_enabled = os.getenv("AUTO_ATTACK_ENABLED", "true").lower() == "true"
-        min_min = int(os.getenv("AUTO_ATTACK_MIN_INTERVAL_MIN", "5"))
-        max_min = int(os.getenv("AUTO_ATTACK_MAX_INTERVAL_MIN", "20"))
+        # Intervalo reducido: 2-7 min para mantener al aprendiz alerta en el NOC
+        min_min = int(os.getenv("AUTO_ATTACK_MIN_INTERVAL_MIN", "2"))
+        max_min = int(os.getenv("AUTO_ATTACK_MAX_INTERVAL_MIN", "7"))
+
+        def _has_manual_attack() -> bool:
+            """Devuelve True si hay algún ataque inyectado manualmente activo."""
+            return any(
+                not a.get("auto_injected", True)
+                for a in sim_state.active_attacks.values()
+            )
 
         while self._running:
-            # Esperar intervalo aleatorio
+            # Calcular nuevo intervalo de espera
             wait_sec = random.randint(min_min * 60, max_min * 60)
-            await asyncio.sleep(wait_sec)
+            elapsed = 0
+
+            # Esperar en trozos de 10 s para poder reaccionar a cambios
+            while elapsed < wait_sec and self._running:
+                await asyncio.sleep(10)
+                elapsed += 10
+
+                # Si el instructor inyectó un ataque manual, reiniciar el temporizador
+                # (los auto-ataques ceden el turno mientras el instructor controla)
+                if _has_manual_attack():
+                    elapsed = 0  # reset: esperar intervalo completo tras terminar el manual
 
             if not self._running:
                 break
@@ -88,8 +106,12 @@ class EventScheduler:
             if not auto_enabled or not self._auto_attacks:
                 continue
 
-            # Solo lanzar si hay pocos ataques activos
-            if len(sim_state.active_attacks) >= 2:
+            # No inyectar si el instructor está en control (ataque manual activo)
+            if _has_manual_attack():
+                continue
+
+            # No acumular más de 1 ataque automático simultáneo
+            if len(sim_state.active_attacks) >= 1:
                 continue
 
             scenario = attack_manager.get_random_attack_scenario()
@@ -272,6 +294,14 @@ class EventScheduler:
                         warning_t  = ESCALATION_CONFIG["warning_after_sec"]
                         critical_t = ESCALATION_CONFIG["critical_after_sec"]
                         auto_t     = ESCALATION_CONFIG["auto_detect_after_sec"]
+
+                        # Ignorar incidentes muy viejos (más de 15 min) — son históricos
+                        # El aprendiz no puede detectar algo que pasó hace horas
+                        if elapsed > 900:  # 15 minutos
+                            # Marcar como detectado automáticamente para limpiar la cola
+                            await crud.detect_incident(db, inc.id, 0)
+                            await db.commit()
+                            continue
 
                         if elapsed >= auto_t and self._broadcast_cb:
                             # Auto-detectar con penalizacion

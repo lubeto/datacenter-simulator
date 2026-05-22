@@ -37,22 +37,16 @@ ENV PYTHONUNBUFFERED=1 \
 # Copiar dependencias compiladas desde el builder
 COPY --from=builder /install /install
 
-# Crear usuario no-root para ejecutar la app
-RUN groupadd --gid 1001 appuser && \
-    useradd --uid 1001 --gid 1001 --no-create-home --shell /bin/false appuser
-
 WORKDIR /app
 
 # Copiar código fuente
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-# Crear directorios necesarios y asignar permisos
-RUN mkdir -p data/reports_output logs && \
-    chown -R appuser:appuser /app
-
-# Cambiar al usuario no-root
-USER appuser
+# Crear directorios necesarios
+# NOTA: En Render el disco persistente se monta en /app/data al arrancar,
+# por lo que este mkdir solo actúa como fallback para desarrollo local.
+RUN mkdir -p data/reports_output logs
 
 # Exponer puerto
 EXPOSE 8000

@@ -54,6 +54,16 @@ class ConnectionManager:
     def count(self) -> int:
         return len(self.active)
 
+    async def broadcast_to_student(self, student_id: int, event_type: str, data: Any):
+        """Envía un mensaje solo al WebSocket de un estudiante específico."""
+        message = json.dumps({"event": event_type, "data": data})
+        for ws, info in list(self.student_map.items()):
+            if info and info.get("id") == student_id:
+                try:
+                    await ws.send_text(message)
+                except Exception:
+                    self.disconnect(ws)
+
     def get_connected_students(self):
         return list(self.student_map.values())
 

@@ -220,11 +220,83 @@ async function loadMyReports() {
         <td><span class="badge ${fmtBadge}">${(rep.format||'txt').toUpperCase()}</span></td>
         <td style="color:var(--muted)">${t}</td>
         <td>
-          <a href="/api/reports/download/${rep.id}" class="btn btn-primary btn-sm" style="text-decoration:none" target="_blank">⬇ Descargar</a>
+          <button class="btn btn-primary btn-sm" onclick="downloadReport(${rep.id}, '${(rep.title||'reporte').replace(/'/g,'').replace(/\s+/g,'_')}')">⬇ Descargar</button>
+          <button class="btn btn-sm" onclick="printReport(${rep.id})" style="background:#7c3aed;border:none;color:white;margin-left:4px">🖨️ Imprimir</button>
         </td>
       </tr>`;
     }).join('');
   } catch(e) { console.warn(e); }
+}
+
+async function downloadReport(id, filename) {
+  const token = localStorage.getItem('token') || '';
+  try {
+    const res = await fetch(`/api/reports/download/${id}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) { alert('Error al descargar el reporte.'); return; }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function printReport(id) {
+  const token = localStorage.getItem('token') || '';
+  try {
+    const res  = await fetch(`/api/reports/download/${id}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) { alert('Error al cargar el reporte.'); return; }
+    const text = await res.text();
+    const now  = new Date().toLocaleString('es-CO');
+    const student = JSON.parse(localStorage.getItem('student') || '{}');
+    const win  = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte DC Simulator</title>
+    <style>
+      body{font-family:'Courier New',monospace;color:#1e293b;margin:0;font-size:13px;line-height:1.6}
+      .cover{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:white;padding:28px 40px}
+      .cover h1{margin:0 0 4px;font-size:1.4rem}
+      .content{padding:24px 40px;white-space:pre-wrap;word-break:break-word}
+      .footer{padding:12px 40px;background:#f1f5f9;font-size:.7rem;color:#64748b;display:flex;justify-content:space-between;border-top:1px solid #e2e8f0}
+      .firma{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:32px;padding-top:20px;border-top:1px dashed #cbd5e1}
+      .firma-line{border-top:1px solid #64748b;margin-top:40px;padding-top:4px;font-size:.72rem;color:#64748b;text-align:center}
+      .no-print{background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem}
+      @media print{.no-print{display:none}}
+    </style></head><body>
+    <div class="no-print"><strong>Reporte DC Simulator</strong> — Ctrl+P para imprimir o guardar como PDF
+      <button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir / PDF</button></div>
+    <div class="cover">
+      <div style="font-size:.72rem;opacity:.75;margin-bottom:6px">🖥️ DC Monitoring Simulator · SENA · Centro AgroEmpresarial Aguachica · Regional Cesar</div>
+      <h1>Reporte de Práctica</h1>
+      <div style="opacity:.85">Tecnología en Gestión de Redes de Datos · ${student.name||student.email||''} · ${now}</div>
+    </div>
+    <div class="content">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    <div style="padding:0 40px 24px">
+      <div class="firma">
+        <div>
+          <div style="font-size:.75rem;color:#64748b;margin-bottom:2px">Firma del aprendiz</div>
+          <div class="firma-line">${student.name||student.email||'Aprendiz'}</div>
+        </div>
+        <div>
+          <div style="font-size:.75rem;color:#64748b;margin-bottom:2px">V°B° Instructor</div>
+          <div class="firma-line">Ing. Luis Alberto Vásquez Campos</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span>DC Monitoring Simulator © 2026 · SENA Regional Cesar</span>
+      <span>Diseñado por Ing. de Sistemas Luis Alberto Vasquez Campos</span>
+      <span>Generado: ${now}</span>
+    </div></body></html>`);
+    win.document.close();
+  } catch(e) { alert('Error al imprimir: ' + e.message); }
 }
 
 async function apiFetch(url, opts={}) {

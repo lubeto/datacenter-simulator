@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Instructor Panel — DC Simulator</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='7' fill='%232563eb'/><rect x='4' y='6' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='14' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='22' width='24' height='6' rx='1.5' fill='white' opacity='0.6'/><circle cx='24.5' cy='9' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='17' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='25' r='1.8' fill='%23facc15'/><rect x='6' y='7.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='15.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='23.5' width='10' height='3' rx='1' fill='%23bfdbfe' opacity='0.6'/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d45;--accent:#3b82f6;--accent2:#06b6d4;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--text:#e2e8f0;--muted:#64748b;--font:'Segoe UI',sans-serif}
@@ -92,6 +93,36 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 .st-actions{display:flex;align-items:center;gap:.4rem}
 .btn-delete{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);padding:.2rem .5rem;border-radius:5px;cursor:pointer;font-size:.7rem;font-weight:600;transition:all .2s}
 .btn-delete:hover{background:rgba(239,68,68,.25)}
+/* PRACTICE MODE */
+.practice-control{background:linear-gradient(135deg,rgba(6,95,70,.25),rgba(4,120,87,.15));border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:.9rem 1rem;margin-bottom:.6rem}
+.practice-duration-row{display:flex;gap:.4rem;margin-bottom:.7rem;flex-wrap:wrap}
+.dur-btn{padding:.3rem .7rem;border-radius:6px;border:1px solid rgba(34,197,94,.3);background:transparent;color:#6ee7b7;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s}
+.dur-btn:hover,.dur-btn.active{background:#065f46;border-color:#22c55e;color:#fff}
+.practice-timer{font-size:1.8rem;font-weight:900;color:#22c55e;text-align:center;padding:.4rem 0;display:none}
+/* CLASS REPORT */
+.report-table{width:100%;border-collapse:collapse;font-size:.76rem}
+.report-table th{color:var(--muted);font-weight:600;text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--border);white-space:nowrap}
+.report-table td{padding:.45rem .6rem;border-bottom:1px solid rgba(30,45,69,.4);vertical-align:top}
+.report-table tr:hover td{background:rgba(59,130,246,.04);cursor:pointer}
+.report-table tr:last-child td{border-bottom:none}
+.bm-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.bm-table th{color:var(--muted);font-weight:600;text-align:left;padding:.45rem .8rem;border-bottom:1px solid var(--border);white-space:nowrap;background:#0a1220}
+.bm-table td{padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,69,.4);vertical-align:middle}
+.bm-table tr:last-child td{border-bottom:none}
+.bm-table tr:hover td{background:rgba(124,58,237,.05);cursor:pointer}
+.bm-score{display:inline-block;padding:.15rem .5rem;border-radius:6px;font-weight:700;font-size:.75rem}
+.bm-score.high{background:rgba(34,197,94,.15);color:#4ade80}
+.bm-score.mid{background:rgba(59,130,246,.15);color:#60a5fa}
+.bm-score.low{background:rgba(239,68,68,.15);color:#f87171}
+.bm-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.bm-detail-field{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem}
+.bm-detail-field h4{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent2);margin-bottom:.4rem;font-weight:700}
+.bm-detail-field p{font-size:.82rem;color:var(--text);line-height:1.6;margin:0}
+.student-detail{display:none;background:var(--card2);border-radius:8px;padding:.8rem;margin-top:.4rem;font-size:.75rem}
+.detail-section{margin-bottom:.6rem}
+.detail-section h4{font-size:.72rem;color:var(--accent2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;border-bottom:1px solid var(--border);padding-bottom:.2rem}
+.detail-row{display:flex;justify-content:space-between;padding:.2rem 0;border-bottom:1px solid rgba(30,45,69,.3);font-size:.72rem}
+.detail-row:last-child{border-bottom:none}
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--card)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 /* NOTIF */
@@ -294,6 +325,147 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 
   </div>
 
+  <!-- ROW 3.5: Practice Mode + Class Report -->
+  <div class="grid-2" style="margin-bottom:1rem">
+
+    <!-- PRACTICE MODE CONTROL -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🎯 Modo Práctica</span>
+        <span id="practiceStatusBadge" class="badge badge-blue">Inactivo</span>
+      </div>
+      <div class="card-body">
+        <div class="practice-control">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem;font-weight:600">DURACIÓN DE LA SESIÓN</div>
+          <div class="practice-duration-row">
+            <button class="dur-btn active" onclick="selectDuration(this,15)">15 min</button>
+            <button class="dur-btn" onclick="selectDuration(this,20)">20 min</button>
+            <button class="dur-btn" onclick="selectDuration(this,30)">30 min</button>
+            <button class="dur-btn" onclick="selectDuration(this,45)">45 min</button>
+          </div>
+          <div class="practice-timer" id="practiceTimer">--:--</div>
+          <div style="font-size:.72rem;color:#6ee7b7;margin-bottom:.7rem;line-height:1.5">
+            Todos los estudiantes conectados recibirán la señal de inicio. Los paneles de diagnóstico guiado y SST se activarán automáticamente con cada incidente.
+          </div>
+          <div style="display:flex;gap:.5rem">
+            <button id="startPracticeBtn" class="btn btn-success" style="flex:1" onclick="startPractice()">🎯 Iniciar Práctica</button>
+            <button id="stopPracticeBtn" class="btn btn-danger" style="flex:1;display:none" onclick="stopPractice()">⏹ Detener</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLASS REPORT SUMMARY -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 Reporte de Clase</span>
+        <div style="display:flex;gap:6px">
+          <button onclick="loadClassReport()" class="btn btn-outline btn-sm">🔄 Actualizar</button>
+          <button onclick="printClassReport()" class="btn btn-outline btn-sm">📄 PDF</button>
+        </div>
+      </div>
+      <div class="card-body" style="overflow-x:auto;max-height:280px;overflow-y:auto" id="classReportBody">
+        <div style="color:var(--muted);font-size:.82rem;text-align:center;padding:2rem">
+          Haz clic en "Actualizar" para cargar el reporte
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3.6: Student Detail Expanded -->
+  <div id="studentDetailPanel" style="display:none;margin-bottom:1rem">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title" id="detailStudentName">Detalle del Estudiante</span>
+        <button onclick="document.getElementById('studentDetailPanel').style.display='none'" class="btn btn-outline btn-sm">✕ Cerrar</button>
+      </div>
+      <div class="card-body" id="studentDetailBody">
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3.7: SESIONES EVALUATIVAS -->
+  <div class="card full" style="margin-top:.5rem;border-color:#22c55e">
+    <div class="card-header" style="border-bottom-color:#14532d">
+      <span class="card-title" style="color:#4ade80">🎓 Sesiones Evaluativas Formales</span>
+      <div style="display:flex;gap:.4rem">
+        <button onclick="loadActiveSessions();loadActiveGroups();" class="btn btn-outline btn-sm">↻ Actualizar</button>
+        <button onclick="cleanupSessions()" class="btn btn-sm" style="background:#374151;border:1px solid #6b7280;color:#e2e8f0;font-size:.75rem" title="Cierra sesiones con más de 30 minutos abiertas">🧹 Limpiar obsoletas</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:.75rem 1rem">
+
+      <!-- TABS -->
+      <div style="display:flex;gap:.25rem;margin-bottom:.75rem;border-bottom:1px solid #1e3a2e;padding-bottom:.5rem">
+        <button id="tabBtnInd" onclick="switchEvalTab('individual')"
+          style="background:#16a34a;border:none;border-radius:6px;color:white;padding:.3rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer">
+          👤 Individual
+        </button>
+        <button id="tabBtnGrp" onclick="switchEvalTab('group')"
+          style="background:#0f172a;border:1px solid #166534;border-radius:6px;color:#94a3b8;padding:.3rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer">
+          👥 Grupal
+        </button>
+      </div>
+
+      <!-- TAB: INDIVIDUAL -->
+      <div id="tabIndividual">
+        <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.6rem">
+          <select id="evalStudentSel" style="background:#0f172a;border:1px solid #166534;color:#e2e8f0;border-radius:6px;padding:.3rem .7rem;font-size:.8rem;min-width:220px">
+            <option value="">— Seleccionar aprendiz —</option>
+          </select>
+          <button onclick="startEvalSession()" class="btn btn-sm" style="background:#16a34a;border:none;color:white;font-weight:700">▶ Iniciar sesión individual</button>
+        </div>
+        <!-- Sesiones individuales activas -->
+        <div id="activeSessionsList" style="font-size:.8rem;color:#64748b">Sin sesiones individuales activas</div>
+      </div>
+
+      <!-- TAB: GRUPAL -->
+      <div id="tabGroup" style="display:none">
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-start">
+
+          <!-- Selector de aprendices (checkboxes) -->
+          <div style="flex:1;min-width:220px">
+            <div style="font-size:.75rem;color:#94a3b8;margin-bottom:.35rem;font-weight:700">Seleccionar aprendices del grupo:</div>
+            <div id="groupStudentChecks" style="background:#0f172a;border:1px solid #166534;border-radius:8px;padding:.5rem;max-height:180px;overflow-y:auto;font-size:.8rem">
+              <span style="color:#475569">Cargando aprendices...</span>
+            </div>
+            <div style="margin-top:.4rem;display:flex;gap:.4rem">
+              <button onclick="selectAllGroupStudents(true)" style="font-size:.7rem;background:none;border:1px solid #166534;color:#4ade80;border-radius:4px;padding:.15rem .5rem;cursor:pointer">✓ Todos</button>
+              <button onclick="selectAllGroupStudents(false)" style="font-size:.7rem;background:none;border:1px solid #334155;color:#64748b;border-radius:4px;padding:.15rem .5rem;cursor:pointer">✗ Ninguno</button>
+              <span id="groupCheckCount" style="font-size:.7rem;color:#64748b;align-self:center;margin-left:.3rem">0 seleccionados</span>
+            </div>
+          </div>
+
+          <!-- Nombre del grupo + botón iniciar -->
+          <div style="display:flex;flex-direction:column;gap:.5rem;min-width:200px">
+            <div>
+              <div style="font-size:.75rem;color:#94a3b8;margin-bottom:.25rem;font-weight:700">Nombre del grupo (opcional):</div>
+              <input id="groupNameInput" type="text" placeholder="Ej: Grupo A — Turno Mañana"
+                style="width:100%;background:#0f172a;border:1px solid #166534;color:#e2e8f0;border-radius:6px;padding:.3rem .6rem;font-size:.8rem;box-sizing:border-box">
+            </div>
+            <button onclick="startGroupSession()" style="background:#16a34a;border:none;border-radius:6px;color:white;padding:.4rem .8rem;font-size:.8rem;font-weight:700;cursor:pointer;margin-top:.25rem">
+              ▶ Iniciar sesión grupal
+            </button>
+          </div>
+        </div>
+
+        <!-- Grupos activos -->
+        <div style="margin-top:.75rem">
+          <div style="font-size:.75rem;color:#94a3b8;font-weight:700;margin-bottom:.35rem">Grupos activos:</div>
+          <div id="activeGroupsList" style="font-size:.8rem;color:#64748b">Sin grupos activos</div>
+        </div>
+      </div>
+
+      <!-- Info pedagógica (siempre visible) -->
+      <div style="font-size:.72rem;color:#475569;background:#0f172a;border-radius:6px;padding:.5rem .75rem;margin-top:.75rem;line-height:1.6">
+        💡 <strong style="color:#4ade80">Individual:</strong> el aprendiz ve 🟢 en su dashboard; al terminar se calcula su puntaje ponderado.
+        &nbsp;|&nbsp;
+        <strong style="color:#60a5fa">Grupal:</strong> cada aprendiz trabaja en su equipo; al cerrar el grupo, el puntaje final es el promedio del equipo.
+        Fórmula: Diagnóstico 40% · Bitácoras 30% · Lab 20% · SST 10%.
+      </div>
+    </div>
+  </div>
+
   <!-- ROW 4: Incidents + Auto-attack control -->
   <div class="grid-2">
     <!-- ALL INCIDENTS -->
@@ -330,6 +502,40 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     </div>
   </div>
 
+  <!-- ROW 5: BITÁCORAS DE INCIDENTES -->
+  <div class="card full" style="margin-top:.5rem">
+    <div class="card-header">
+      <span class="card-title">📋 Bitácoras de Incidentes</span>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <select id="bmFilterStudent" onchange="loadBitacoras()" style="background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.25rem .6rem;font-size:.78rem">
+          <option value="">— Todos los estudiantes —</option>
+        </select>
+        <button onclick="loadBitacoras()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+        <button onclick="generateConsolidatedReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">📄 Reporte consolidado</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="bm-table" style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr style="background:#0f172a;color:#7dd3fc">
+            <th style="padding:9px 12px;text-align:left;font-weight:600">Aprendiz</th>
+            <th style="padding:9px 12px;text-align:left;font-weight:600">Tipo de ataque</th>
+            <th style="padding:9px 12px;text-align:left;font-weight:600">Nodo</th>
+            <th style="padding:9px 12px;text-align:center;font-weight:600">Puntaje</th>
+            <th style="padding:9px 12px;text-align:center;font-weight:600">Respuestas</th>
+            <th style="padding:9px 12px;text-align:center;font-weight:600">Duración</th>
+            <th style="padding:9px 12px;text-align:center;font-weight:600">Fecha</th>
+          </tr>
+        </thead>
+        <tbody id="bmTbody">
+          <tr><td colspan="7" style="text-align:center;color:#64748b;padding:20px">Cargando bitácoras...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Detalle expandido de una bitácora -->
+    <div id="bmDetailPanel" style="display:none;padding:1rem 1.2rem;border-top:1px solid var(--border);background:#0a1220"></div>
+  </div>
+
 </div>
 
 <div class="notif" id="notifContainer"></div>
@@ -357,13 +563,16 @@ function connectWS() {
   ws.onmessage = (e) => { try { handleWS(JSON.parse(e.data)); } catch(_){} };
 }
 function handleWS(msg) {
-  switch(msg.type) {
+  // support both msg.type (legacy) and msg.event (ws manager format)
+  const evt = msg.type || msg.event;
+  switch(evt) {
     case 'metrics': handleMetrics(msg.data); break;
     case 'new_incident': addTimeline('🚨', `Ataque: ${msg.data.attack?.name||''}`, `${msg.data.message||''}`, 'crit'); loadAllIncidents(); break;
     case 'incident_detected': addTimeline('🔍', `Detectado por ${msg.data.detected_by||''}`, `MTTD: ${msg.data.mttd_seconds?.toFixed(1)||'?'}s`, 'warn'); break;
     case 'incident_resolved': addTimeline('✅', `Resuelto por ${msg.data.resolved_by||''}`, `MTTR: ${msg.data.mttr_seconds?.toFixed(1)||'?'}s`, 'ok'); loadAllIncidents(); break;
     case 'sst_alert': addTimeline('🌡️', `SST: ${msg.data.sensor_id||''}`, msg.data.message||'', 'warn'); break;
     case 'connected': document.getElementById('wsClientCount').textContent = `${msg.data.ws_clients||1} conectados`; break;
+    case 'practice_mode': handlePracticeModeEcho(msg.data); break;
   }
 }
 
@@ -714,74 +923,406 @@ function notify(title, msg, type='ok') {
   setTimeout(()=>d.remove&&d.remove(),5000);
 }
 
-// ── INIT ───────────────────────────────────────────────────
-connectWS();
-loadCatalog();
-loadNodes();
-loadStudents();
-loadStudentList();
-loadActiveAttacks();
-loadAllIncidents();
-setInterval(()=>{ loadStudents(); loadStudentList(); loadActiveAttacks(); loadAllIncidents(); }, 10000);
+// ── SESIONES EVALUATIVAS ───────────────────────────────────────
 
-// ── REGISTRO DE ESTUDIANTES ────────────────────────────────────
-function openRegModal() {
-  document.getElementById('regModal').style.display = 'flex';
-  document.getElementById('regMsg').textContent = '';
-  ['regName','regEmail','regPass'].forEach(id => document.getElementById(id).value = '');
-}
-async function doRegisterStudent() {
-  const name  = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass  = document.getElementById('regPass').value.trim();
-  const msg   = document.getElementById('regMsg');
-  if (!name || !email || !pass) { msg.style.color='#ef4444'; msg.textContent='Completa todos los campos.'; return; }
-  msg.style.color = '#94a3b8'; msg.textContent = 'Registrando...';
+async function cleanupSessions() {
+  if (!confirm('¿Cerrar todas las sesiones con más de 4 horas abiertas? Esto limpia sesiones de pruebas anteriores.')) return;
+  const token = localStorage.getItem('token') || '';
   try {
-    const token = localStorage.getItem('token') || '';
-    const r = await fetch('/api/auth/register', {
+    const r = await fetch('/api/sessions/cleanup', { method: 'POST', headers: { 'Authorization': 'Bearer '+token } });
+    const d = await r.json();
+    notify('🧹 Limpieza completada', d.message || `Se cerraron sesiones obsoletas`, 'ok');
+    loadActiveSessions();
+    loadActiveGroups();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// Tab switching
+function switchEvalTab(tab) {
+  const isInd = tab === 'individual';
+  document.getElementById('tabIndividual').style.display = isInd ? '' : 'none';
+  document.getElementById('tabGroup').style.display     = isInd ? 'none' : '';
+  document.getElementById('tabBtnInd').style.background = isInd ? '#16a34a' : '#0f172a';
+  document.getElementById('tabBtnInd').style.color      = isInd ? 'white'   : '#94a3b8';
+  document.getElementById('tabBtnInd').style.border     = isInd ? 'none'    : '1px solid #166534';
+  document.getElementById('tabBtnGrp').style.background = isInd ? '#0f172a' : '#1d4ed8';
+  document.getElementById('tabBtnGrp').style.color      = isInd ? '#94a3b8' : 'white';
+  document.getElementById('tabBtnGrp').style.border     = isInd ? '1px solid #166534' : 'none';
+}
+
+// ── INDIVIDUAL ─────────────────────────────────────────────────
+async function startEvalSession() {
+  const sel = document.getElementById('evalStudentSel');
+  const sid = parseInt(sel?.value);
+  if (!sid) { alert('Selecciona un aprendiz primero.'); return; }
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r = await fetch('/api/sessions/start', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ name, email, password: pass, role: 'student' })
+      headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: sid })
+    });
+    const text = await r.text();
+    if (!r.ok) {
+      let detail = text;
+      try { detail = JSON.parse(text).detail || text; } catch(_) {}
+      alert('Error del servidor: ' + detail);
+      return;
+    }
+    notify('🎓 Sesión individual iniciada', `Evaluación activa para ${sel.options[sel.selectedIndex].text}`, 'ok');
+    loadActiveSessions();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function endEvalSession(sessionId, studentName) {
+  if (!confirm(`¿Terminar sesión de ${studentName} y calcular puntaje?`)) return;
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r = await fetch(`/api/sessions/end/${sessionId}`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer '+token }
     });
     const d = await r.json();
-    if (r.ok) {
-      msg.style.color = '#22c55e';
-      msg.textContent = '✅ Estudiante registrado: ' + name;
-      setTimeout(() => {
-        document.getElementById('regModal').style.display = 'none';
-        loadStudents(); loadStudentList();
-      }, 1600);
-    } else {
-      msg.style.color = '#ef4444';
-      msg.textContent = d.detail || 'Error al registrar.';
-    }
-  } catch(e) { msg.style.color='#ef4444'; msg.textContent='Error de conexión: '+e.message; }
+    if (!r.ok) { alert('Error: ' + (d.detail||'No se pudo terminar')); return; }
+    notify('✅ Sesión finalizada',
+      `${studentName} · Puntaje: ${(d.score||0).toFixed(1)}/100 · Diagnósticos: ${d.guided_count||0} · Bitácoras: ${d.bitacora_count||0} · Labs: ${d.lab_count||0}`,
+      'ok');
+    loadActiveSessions();
+  } catch(e) { alert('Error: ' + e.message); }
 }
+
+async function loadActiveSessions() {
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r = await fetch('/api/sessions/active', { headers: { 'Authorization': 'Bearer '+token } });
+    const sessions = await r.json();
+    const el = document.getElementById('activeSessionsList');
+    if (!el) return;
+    if (!Array.isArray(sessions) || sessions.length === 0) {
+      el.innerHTML = '<span style="color:#64748b">Sin sesiones individuales activas.</span>';
+      return;
+    }
+    el.innerHTML = sessions.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#0f172a;border:1px solid #166534;border-radius:8px;padding:.5rem .75rem;margin-bottom:.4rem">
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite"></span>
+          <span style="font-weight:700;color:#e2e8f0">${s.student_name}</span>
+          <span style="color:#64748b;font-size:.72rem">En curso ${s.elapsed_min} min</span>
+        </div>
+        <button onclick="endEvalSession(${s.id},'${s.student_name}')"
+          style="background:#dc2626;border:none;border-radius:6px;color:white;padding:.25rem .7rem;font-size:.75rem;cursor:pointer;font-weight:700">
+          ⏹ Terminar y calificar
+        </button>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function _loadEvalStudentFilter() {
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r   = await fetch('/api/students/', { headers:{ 'Authorization':'Bearer '+token } });
+    const sts = await r.json();
+    // Selector individual
+    const sel = document.getElementById('evalStudentSel');
+    if (sel) {
+      sel.innerHTML = '<option value="">— Seleccionar aprendiz —</option>' +
+        (Array.isArray(sts)?sts:[]).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    }
+    // Checkboxes para modo grupal
+    const box = document.getElementById('groupStudentChecks');
+    if (box) {
+      if (!Array.isArray(sts) || sts.length === 0) {
+        box.innerHTML = '<span style="color:#475569">No hay aprendices registrados.</span>';
+        return;
+      }
+      box.innerHTML = sts.map(s => `
+        <label style="display:flex;align-items:center;gap:.5rem;padding:.25rem .3rem;cursor:pointer;border-radius:4px;transition:background .15s"
+          onmouseover="this.style.background='#1e3a2e'" onmouseout="this.style.background=''"
+          onclick="_updateGroupCount()">
+          <input type="checkbox" value="${s.id}" data-name="${s.name}"
+            style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer">
+          <span style="color:#e2e8f0">${s.name}</span>
+        </label>`).join('');
+      _updateGroupCount();
+    }
+  } catch(e) {}
+}
+
+function _updateGroupCount() {
+  const checks = document.querySelectorAll('#groupStudentChecks input[type=checkbox]');
+  const n = [...checks].filter(c=>c.checked).length;
+  const el = document.getElementById('groupCheckCount');
+  if (el) el.textContent = `${n} seleccionado${n===1?'':'s'}`;
+}
+
+function selectAllGroupStudents(sel) {
+  document.querySelectorAll('#groupStudentChecks input[type=checkbox]').forEach(c=>c.checked=sel);
+  _updateGroupCount();
+}
+
+// ── GRUPAL ─────────────────────────────────────────────────────
+async function startGroupSession() {
+  const checks = [...document.querySelectorAll('#groupStudentChecks input[type=checkbox]:checked')];
+  if (checks.length < 2) { alert('Selecciona al menos 2 aprendices para una sesión grupal.'); return; }
+  const studentIds = checks.map(c => parseInt(c.value));
+  const studentNames = checks.map(c => c.dataset.name).join(', ');
+  const groupName = document.getElementById('groupNameInput')?.value.trim() || '';
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r = await fetch('/api/sessions/group/start', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_ids: studentIds, name: groupName || null })
+    });
+    const d = await r.json();
+    if (!r.ok) { alert('Error: ' + (d.detail||'No se pudo iniciar el grupo')); return; }
+    notify('👥 Sesión grupal iniciada',
+      `${groupName||'Grupo'} · ${checks.length} aprendices: ${studentNames}`, 'ok');
+    document.getElementById('groupNameInput').value = '';
+    selectAllGroupStudents(false);
+    loadActiveGroups();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function endGroupSession(groupId, groupName) {
+  if (!confirm(`¿Terminar grupo "${groupName}" y calcular puntaje grupal?`)) return;
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r = await fetch(`/api/sessions/group/end/${groupId}`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer '+token }
+    });
+    const d = await r.json();
+    if (!r.ok) { alert('Error: ' + (d.detail||'No se pudo terminar el grupo')); return; }
+    const scores = (d.results||[]).map(x=>`${x.name}: ${(x.individual_score||0).toFixed(1)}`).join(' | ');
+    notify('✅ Grupo finalizado',
+      `Puntaje grupal: ${(d.group_score||0).toFixed(1)}/100 · ${scores}`, 'ok');
+    loadActiveGroups();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function loadActiveGroups() {
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r = await fetch('/api/sessions/group/active', { headers: { 'Authorization': 'Bearer '+token } });
+    const groups = await r.json();
+    const el = document.getElementById('activeGroupsList');
+    if (!el) return;
+    if (!Array.isArray(groups) || groups.length === 0) {
+      el.innerHTML = '<span style="color:#64748b">Sin grupos activos.</span>';
+      return;
+    }
+    el.innerHTML = groups.map(g => `
+      <div style="background:#0f172a;border:1px solid #1d4ed8;border-radius:8px;padding:.6rem .85rem;margin-bottom:.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
+          <div style="display:flex;align-items:center;gap:.6rem">
+            <span style="width:8px;height:8px;background:#60a5fa;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite"></span>
+            <span style="font-weight:700;color:#e2e8f0">${g.name||'Grupo sin nombre'}</span>
+            <span style="font-size:.7rem;color:#64748b">${g.elapsed_min} min · ${(g.student_ids||[]).length} aprendices</span>
+          </div>
+          <button onclick="endGroupSession(${g.id},'${(g.name||'Grupo').replace(/'/g,"\\'")}' )"
+            style="background:#1d4ed8;border:none;border-radius:6px;color:white;padding:.25rem .7rem;font-size:.75rem;cursor:pointer;font-weight:700">
+            ⏹ Cerrar grupo
+          </button>
+        </div>
+        <div style="font-size:.72rem;color:#64748b;margin-left:1.1rem">${Array.isArray(g.student_names) ? g.student_names.join(', ') : (g.student_names||'')}</div>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ── BITÁCORAS ──────────────────────────────────────────────────
+const BM_LABELS = {
+  dos:'Ataque DoS', ddos:'Ataque DDoS', brute_force:'Fuerza Bruta',
+  sql_injection:'Inyección SQL', port_scan:'Escaneo de Puertos',
+  mitm:'Ataque MITM', ransomware:'Ransomware', xss:'XSS',
+  crypto_mining:'Minería Ilícita', arp_spoofing:'ARP Spoofing',
+  thermal:'Temperatura Crítica', smoke_alert:'Alerta de Humo',
+  tls_downgrade:'Downgrade TLS', ssl_expired:'Certificado Expirado',
+  dos:'Denegación de Servicio', port_scan:'Escaneo de Puertos',
+  unauthorized_access:'Acceso No Autorizado', memory_leak:'Pérdida de Memoria',
+  disk_failure:'Fallo de Disco', power_failure:'Fallo Eléctrico',
+};
+
+async function loadBitacoras() {
+  const token = localStorage.getItem('token') || '';
+  const sel   = document.getElementById('bmFilterStudent');
+  const sid   = sel ? sel.value : '';
+  let url = '/api/bitacoras';
+  if (sid) url += '?student_id=' + sid;
+  try {
+    const r  = await fetch(url, { headers:{ 'Authorization':'Bearer '+token } });
+    const bs = await r.json();
+    const tbody = document.getElementById('bmTbody');
+    if (!tbody) return;
+    if (!Array.isArray(bs) || bs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:20px">Sin bitácoras registradas.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = bs.map(b => {
+      const scoreColor = b.score >= 80 ? '#4ade80' : b.score >= 60 ? '#facc15' : '#f87171';
+      const date = new Date(b.created_at).toLocaleDateString('es-CO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<tr onclick="showBitacoraDetail(${JSON.stringify(JSON.stringify(b)).slice(1,-1)})" style="cursor:pointer;border-bottom:1px solid #1e293b;transition:background .15s" onmouseover="this.style.background='#0f172a'" onmouseout="this.style.background=''">
+        <td style="padding:8px 12px;color:#e2e8f0;font-weight:600">${b.student_name||'—'}</td>
+        <td style="padding:8px 12px;color:#7dd3fc">${BM_LABELS[b.attack_type]||b.attack_type}</td>
+        <td style="padding:8px 12px;color:#94a3b8">${b.node_id}</td>
+        <td style="padding:8px 12px;text-align:center;font-weight:700;color:${scoreColor}">${(b.score||0).toFixed(1)}</td>
+        <td style="padding:8px 12px;text-align:center;color:#94a3b8">${b.correct_answers||0}/${b.total_questions||4}</td>
+        <td style="padding:8px 12px;text-align:center;color:#64748b">${Math.round((b.duration_sec||0)/60)}m ${Math.round((b.duration_sec||0)%60)}s</td>
+        <td style="padding:8px 12px;text-align:center;color:#475569;font-size:.75rem">${date}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error('loadBitacoras error:', e); }
+}
+
+function showBitacoraDetail(bJson) {
+  let b;
+  try { b = JSON.parse(bJson); } catch(e) { return; }
+  const panel = document.getElementById('bmDetailPanel');
+  if (!panel) return;
+  if (panel.dataset.openId === String(b.id)) {
+    panel.style.display = 'none';
+    panel.dataset.openId = '';
+    return;
+  }
+  panel.dataset.openId = String(b.id);
+  const scoreColor = b.score >= 80 ? '#4ade80' : b.score >= 60 ? '#facc15' : '#f87171';
+  panel.style.display = '';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div>
+        <span style="font-weight:700;color:#e2e8f0;font-size:.95rem">${b.student_name||'—'}</span>
+        <span style="color:#475569;margin:0 .5rem">·</span>
+        <span style="color:#7dd3fc">${BM_LABELS[b.attack_type]||b.attack_type}</span>
+        <span style="color:#475569;margin:0 .5rem">·</span>
+        <span style="color:#94a3b8">${b.node_id}</span>
+      </div>
+      <span style="font-size:1.3rem;font-weight:800;color:${scoreColor}">${(b.score||0).toFixed(1)}/100</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem">
+      <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
+        <div style="color:#f87171;font-weight:700;margin-bottom:.35rem">🔍 Síntomas Observados</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.sintomas_observados||'—'}</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
+        <div style="color:#facc15;font-weight:700;margin-bottom:.35rem">🧩 Causa Raíz</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.causa_raiz||'—'}</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
+        <div style="color:#4ade80;font-weight:700;margin-bottom:.35rem">🛠️ Acciones Tomadas</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.acciones_tomadas||'—'}</div>
+      </div>
+      <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
+        <div style="color:#60a5fa;font-weight:700;margin-bottom:.35rem">📚 Lecciones Aprendidas</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.lecciones||'—'}</div>
+      </div>
+    </div>
+    <div style="margin-top:.6rem;font-size:.75rem;color:#475569;display:flex;gap:1rem">
+      <span>Pistas usadas: <strong style="color:#e2e8f0">${b.hints_used||0}</strong></span>
+      <span>Respuestas correctas: <strong style="color:#e2e8f0">${b.correct_answers||0}/${b.total_questions||4}</strong></span>
+      <span>Duración: <strong style="color:#e2e8f0">${Math.round((b.duration_sec||0)/60)}m ${Math.round((b.duration_sec||0)%60)}s</strong></span>
+      ${b.mttd_seconds ? `<span>MTTD: <strong style="color:#e2e8f0">${b.mttd_seconds.toFixed(0)}s</strong></span>` : ''}
+    </div>`;
+}
+
+async function _loadBmStudentFilter() {
+  const token = localStorage.getItem('token') || '';
+  try {
+    const r   = await fetch('/api/students/', { headers:{ 'Authorization':'Bearer '+token } });
+    const sts = await r.json();
+    const sel = document.getElementById('bmFilterStudent');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Todos los estudiantes —</option>' +
+      (Array.isArray(sts)?sts:[]).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  } catch(e) {}
+}
+
+function generateConsolidatedReport() {
+  const token = localStorage.getItem('token') || '';
+  fetch('/api/bitacoras', { headers:{ 'Authorization':'Bearer '+token } })
+    .then(r=>r.json())
+    .then(bs => {
+      if (!Array.isArray(bs) || bs.length === 0) { alert('No hay bitácoras registradas todavía.'); return; }
+      // Agrupar por estudiante
+      const byStudent = {};
+      bs.forEach(b => {
+        const key = b.student_name || 'Sin nombre';
+        if (!byStudent[key]) byStudent[key] = [];
+        byStudent[key].push(b);
+      });
+      const now = new Date().toLocaleDateString('es-CO', {day:'2-digit', month:'long', year:'numeric'});
+      let body = '';
+      Object.entries(byStudent).forEach(([name, recs]) => {
+        const avg = recs.reduce((s,r)=>s+(r.score||0),0)/recs.length;
+        body += `
+          <div style="page-break-inside:avoid;margin-bottom:2rem;border:1px solid #ccc;border-radius:8px;padding:1rem">
+            <h2 style="color:#1e3a5f;font-size:1rem;margin-bottom:.5rem">👤 ${name}</h2>
+            <p style="font-size:.8rem;color:#555">Bitácoras: ${recs.length} &nbsp;|&nbsp; Puntaje promedio: <strong>${avg.toFixed(1)}/100</strong></p>
+            ${recs.map((b,i) => `
+              <div style="margin-top:.75rem;padding:.75rem;background:#f9fafb;border-radius:6px;font-size:.78rem">
+                <strong style="color:#1e3a5f">${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type}</strong> · Nodo: ${b.node_id} · Puntaje: <strong>${(b.score||0).toFixed(1)}</strong><br>
+                <span style="color:#555"><b>Síntomas:</b> ${b.sintomas_observados||'—'}</span><br>
+                <span style="color:#555"><b>Causa raíz:</b> ${b.causa_raiz||'—'}</span><br>
+                <span style="color:#555"><b>Acciones:</b> ${b.acciones_tomadas||'—'}</span><br>
+                <span style="color:#555"><b>Lecciones:</b> ${b.lecciones||'—'}</span>
+              </div>`).join('')}
+            <div style="margin-top:1.5rem;display:flex;gap:3rem">
+              <div style="text-align:center;flex:1">
+                <div style="border-top:1px solid #333;padding-top:.25rem;font-size:.75rem">Firma del Aprendiz</div>
+              </div>
+              <div style="text-align:center;flex:1">
+                <div style="border-top:1px solid #333;padding-top:.25rem;font-size:.75rem">Firma del Instructor</div>
+              </div>
+            </div>
+          </div>`;
+      });
+      const win = window.open('', '_blank');
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte Consolidado Bitácoras</title>
+        <style>body{font-family:Arial,sans-serif;margin:2rem;color:#222}h1{color:#1e3a5f}@media print{.no-print{display:none}}</style></head>
+        <body>
+          <div class="no-print" style="margin-bottom:1rem"><button onclick="window.print()" style="background:#1e3a5f;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-size:.9rem">🖨️ Imprimir / Guardar PDF</button></div>
+          <h1>Reporte Consolidado de Bitácoras</h1>
+          <p style="color:#555;font-size:.85rem">SENA · Centro de Servicios y Gestión Empresarial · Fecha: ${now}</p>
+          <hr style="margin:1rem 0">
+          ${body}
+          <div style="margin-top:3rem;display:flex;gap:4rem;justify-content:center">
+            <div style="text-align:center">
+              <div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem">Instructor responsable</div>
+            </div>
+            <div style="text-align:center">
+              <div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem">Coordinador académico</div>
+            </div>
+          </div>
+        </body></html>`);
+      win.document.close();
+    }).catch(e => alert('Error al generar reporte: ' + e.message));
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+// Load initial data after a short delay to ensure DOM and WS are ready
+setTimeout(() => {
+  // Connect WebSocket
+  connectWS();
+  // Load catalogs
+  loadCatalog();
+  loadNodes();
+  loadStudents();
+  loadStudentList();
+  loadAllIncidents();
+  // Eval session data
+  _loadEvalStudentFilter();
+  loadActiveSessions();
+  loadActiveGroups();
+  // Bitácoras
+  loadBitacoras();
+  _loadBmStudentFilter();
+}, 900);
+
+// Refresh active sessions and groups every 30 seconds
+setInterval(() => {
+  loadActiveSessions();
+  loadActiveGroups();
+}, 30000);
+
 </script>
-
-<!-- MODAL: Registrar nuevo estudiante -->
-<div id="regModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9998;align-items:center;justify-content:center">
-  <div style="background:#0f1117;border:1px solid #7c3aed;border-radius:14px;padding:32px;width:min(94vw,420px)">
-    <h3 style="margin:0 0 20px;color:#60a5fa;font-size:1rem">&#x1F393; Registrar Nuevo Estudiante</h3>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <input id="regName"  type="text"     placeholder="Nombre completo"   style="background:#1e2433;border:1px solid #334155;border-radius:8px;padding:9px 14px;color:#e2e8f0;font-size:.88rem;outline:none;width:100%;box-sizing:border-box">
-      <input id="regEmail" type="email"    placeholder="Correo electrónico" style="background:#1e2433;border:1px solid #334155;border-radius:8px;padding:9px 14px;color:#e2e8f0;font-size:.88rem;outline:none;width:100%;box-sizing:border-box">
-      <input id="regPass"  type="password" placeholder="Contraseña inicial" style="background:#1e2433;border:1px solid #334155;border-radius:8px;padding:9px 14px;color:#e2e8f0;font-size:.88rem;outline:none;width:100%;box-sizing:border-box">
-    </div>
-    <div id="regMsg" style="margin-top:8px;font-size:.78rem;min-height:18px;color:#94a3b8"></div>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="doRegisterStudent()" style="flex:1;background:#1d4ed8;border:none;border-radius:8px;padding:10px;color:white;font-weight:700;cursor:pointer;font-size:.88rem">&#x2705; Registrar</button>
-      <button onclick="document.getElementById('regModal').style.display='none'" style="flex:1;background:#1e2433;border:1px solid #334155;border-radius:8px;padding:10px;color:#94a3b8;cursor:pointer;font-size:.88rem">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- FIRMA -->
-<div id="firma-footer" style="position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,0.95);border-top:1px solid #7c3aed;padding:4px 20px;display:flex;justify-content:space-between;align-items:center;font-size:.65rem;color:#64748b;z-index:99999">
-  <span>&#x1F5A5;&#xFE0F; DC Monitoring Simulator &copy; 2026</span>
-  <span style="color:#a78bfa;font-weight:700">Diseñado por Ing. de Sistemas Luis Alberto Vasquez Campos</span>
-  <span>Práctica Estudiantil &middot; SENA</span>
-</div>
 </body>
 </html>

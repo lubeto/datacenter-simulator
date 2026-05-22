@@ -164,12 +164,32 @@ async def delete_student(
     db: AsyncSession = Depends(get_db),
     _=Depends(require_instructor)
 ):
-    """Eliminar cuenta de estudiante (solo instructor)."""
+    """Eliminar cuenta de estudiante (solo instructor). Limpia registros relacionados primero."""
+    from sqlalchemy import delete as sql_delete
+    from ..database.models import (
+        Session as SessionModel, Report, MitigationAction,
+        Alert, PracticeSession, GuidedSession, SSTProtocolSession
+    )
+
     student = await crud.get_student_by_id(db, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     if student.role == "instructor":
         raise HTTPException(status_code=403, detail="No se puede eliminar una cuenta de instructor")
+
+    # Eliminar registros dependientes en orden correcto
+    await db.execute(sql_delete(GuidedSession).where(GuidedSession.student_id == student_id))
+    await db.execute(sql_delete(SSTProtocolSession).where(SSTProtocolSession.student_id == student_id))
+    await db.execute(sql_delete(PracticeSession).where(PracticeSession.student_id == student_id))
+    await db.execute(sql_delete(MitigationAction).where(MitigationAction.student_id == student_id))
+    await db.execute(sql_delete(Report).where(Report.student_id == student_id))
+    # Alertas acknowledgeadas por este estudiante → desasociar
+    await db.execute(
+        sql_delete(Alert).where(Alert.acknowledged_by == student_id)
+    )
+    # Sesiones del estudiante (y sus incidentes asociados los dejamos huérfanos nullable)
+    await db.execute(sql_delete(SessionModel).where(SessionModel.student_id == student_id))
+
     await db.delete(student)
     await db.commit()
     return {"ok": True, "deleted_id": student_id}

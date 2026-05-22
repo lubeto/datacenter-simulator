@@ -287,3 +287,95 @@ class PracticeSession(Base):
     completed_at     = Column(DateTime, default=datetime.utcnow)
 
     student          = relationship("Student", backref="practice_sessions")
+
+
+class GuidedSession(Base):
+    """Registro de diagnóstico guiado completado por un estudiante."""
+    __tablename__ = "guided_sessions"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    student_id      = Column(Integer, ForeignKey("students.id"), nullable=False)
+    attack_type     = Column(String(60), nullable=False)
+    node_id         = Column(String(50), nullable=False)
+    score           = Column(Float, default=0.0)
+    correct_answers = Column(Integer, default=0)
+    total_questions = Column(Integer, default=4)
+    hints_used      = Column(Integer, default=0)
+    duration_sec    = Column(Float, default=0.0)
+    completed_at    = Column(DateTime, default=datetime.utcnow)
+
+    student         = relationship("Student", backref="guided_sessions")
+
+
+class SSTProtocolSession(Base):
+    """Registro de protocolo SST completado por un estudiante."""
+    __tablename__ = "sst_protocol_sessions"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    student_id      = Column(Integer, ForeignKey("students.id"), nullable=False)
+    protocol_type   = Column(String(60), nullable=False)
+    protocol_name   = Column(String(200), nullable=False)
+    sensor_name     = Column(String(200), nullable=False)
+    sensor_value    = Column(String(50), nullable=True)
+    score           = Column(Float, default=0.0)
+    correct_answers = Column(Integer, default=0)
+    total_questions = Column(Integer, default=4)
+    bitacora        = Column(Text, nullable=True)
+    duration_sec    = Column(Float, default=0.0)
+    completed_at    = Column(DateTime, default=datetime.utcnow)
+
+    student         = relationship("Student", backref="sst_sessions")
+
+
+# ============================================================
+# BITÁCORAS DE INCIDENTES
+# ============================================================
+class Bitacora(Base):
+    """Bitácora reflexiva que el aprendiz redacta al mitigar un incidente."""
+    __tablename__ = "bitacoras"
+
+    id                  = Column(Integer, primary_key=True, index=True)
+    student_id          = Column(Integer, ForeignKey("students.id"), nullable=False)
+
+    # Datos técnicos (llenados automáticamente por el sistema)
+    incident_id         = Column(Integer, ForeignKey("incidents.id"), nullable=True)
+    node_id             = Column(String(50), nullable=False)
+    attack_type         = Column(String(60), nullable=False)
+    severity            = Column(String(20), nullable=True)
+    score               = Column(Float, default=0.0)
+    correct_answers     = Column(Integer, default=0)
+    total_questions     = Column(Integer, default=4)
+    hints_used          = Column(Integer, default=0)
+    mttd_seconds        = Column(Float, nullable=True)   # capturado si existe en incidente
+    duration_sec        = Column(Float, default=0.0)     # duración del diagnóstico guiado
+
+    # Campos redactados por el aprendiz
+    sintomas_observados = Column(Text, nullable=False)   # ¿Qué detectó?
+    causa_raiz          = Column(Text, nullable=False)   # ¿Por qué ocurrió?
+    acciones_tomadas    = Column(Text, nullable=False)   # ¿Qué hizo?
+    lecciones           = Column(Text, nullable=False)   # ¿Qué aprendió?
+
+    # Metadata
+    created_at          = Column(DateTime, default=datetime.utcnow)
+
+    # Relaciones
+    student             = relationship("Student", backref="bitacoras")
+    incident            = relationship("Incident", backref="bitacoras", foreign_keys=[incident_id])
+
+
+# ============================================================
+# SESIONES EVALUATIVAS GRUPALES
+# ============================================================
+class EvalGroup(Base):
+    """Grupo de aprendices evaluados en una sesión grupal colaborativa."""
+    __tablename__ = "eval_groups"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    name             = Column(String(200), nullable=True)          # Nombre del grupo (opcional)
+    student_ids_json = Column(Text, nullable=False)                # JSON: [1, 2, 3]
+    session_ids_json = Column(Text, nullable=True)                 # JSON: [10, 11, 12]
+    started_at       = Column(DateTime, default=datetime.utcnow)
+    ended_at         = Column(DateTime, nullable=True)
+    is_active        = Column(Boolean, default=True)
+    group_score      = Column(Float, nullable=True)                # Promedio grupal final
+    notes            = Column(Text, nullable=True)
