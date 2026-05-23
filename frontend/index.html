@@ -1391,20 +1391,24 @@ const GUIDED_HINTS = [
 function _gAttType(inc){ return (inc?.attack?.attack_type||'').toLowerCase(); }
 function _gCorrectDetect(inc){ return inc?.attack?.node_id||'WEB-01'; }
 function _gCorrectAnalyze(inc){
-  const t=_gAttType(inc);
-  if(t.includes('ddos')||t.includes('syn')||t.includes('flood')) return 'net';
-  if(t.includes('memory')||t.includes('leak')) return 'ram';
-  if(t.includes('brute')||t.includes('ssh')||t.includes('force')) return 'conn';
-  if(t.includes('port')||t.includes('scan')) return 'conn';
-  if(t.includes('ssl')||t.includes('tls')||t.includes('cert')||t.includes('expir')) return 'conn';
-  if(t.includes('unauth')||t.includes('access')||t.includes('mitm')||t.includes('arp')) return 'conn';
-  if(t.includes('disk')||t.includes('storage')||t.includes('io')) return 'cpu';
-  if(t.includes('thermal')||t.includes('temp')||t.includes('power')||t.includes('ups')) return 'cpu';
-  // Fallback inteligente: devuelve la métrica que MÁS supera su umbral en tiempo real
+  // SIEMPRE usar la métrica que MÁS supera su umbral en tiempo real.
+  // Esto garantiza coherencia: la respuesta correcta es lo que el aprendiz
+  // puede observar visualmente en los valores mostrados.
   const id=_gCorrectDetect(inc), m=(allNodes[id]||{}).metrics||{};
-  const overCpu=(m.cpu_pct||0)-70, overRam=(m.ram_pct||0)-80, overNet=(m.net_in_mbps||0)-200, overConn=(m.connections||0)-400;
+  const overCpu=(m.cpu_pct||0)-70;
+  const overRam=(m.ram_pct||0)-80;
+  const overNet=(m.net_in_mbps||0)-200;
+  const overConn=(m.connections||0)-400;
   const max=Math.max(overCpu,overRam,overNet,overConn);
-  if(max<=0) return 'net'; // ninguna supera umbral → asumir red
+  // Si ninguna métrica supera su umbral, usar el tipo de ataque como desempate
+  if(max<=0){
+    const t=_gAttType(inc);
+    if(t.includes('ddos')||t.includes('syn')||t.includes('flood')) return 'net';
+    if(t.includes('memory')||t.includes('leak')) return 'ram';
+    if(t.includes('brute')||t.includes('force')||t.includes('port')||t.includes('scan')) return 'conn';
+    if(t.includes('disk')||t.includes('storage')||t.includes('thermal')||t.includes('power')) return 'cpu';
+    return 'net';
+  }
   if(max===overNet) return 'net';
   if(max===overRam) return 'ram';
   if(max===overConn) return 'conn';
@@ -2439,4 +2443,4 @@ function _cancelGuidedAutoClose() {
   <div class="sst-body" id="sstBody"></div>
   <div class="sst-footer">
     <div class="sst-escalation" id="sstEscalation">📞 Notificar contacto de emergencia</div>
-    <button class="guided-btn guided-btn-hint" onclick="showSSTHint()">💡
+    <button class="guided-btn guided-btn-hint" onclick="showSSTHint()">💡                                                                                                                    
