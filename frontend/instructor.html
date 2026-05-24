@@ -123,6 +123,31 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 .detail-section h4{font-size:.72rem;color:var(--accent2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;border-bottom:1px solid var(--border);padding-bottom:.2rem}
 .detail-row{display:flex;justify-content:space-between;padding:.2rem 0;border-bottom:1px solid rgba(30,45,69,.3);font-size:.72rem}
 .detail-row:last-child{border-bottom:none}
+/* APT CHAINS */
+.apt-chain-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.7rem}
+.apt-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.apt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.apt-card.apt-critical::before{background:linear-gradient(90deg,var(--red),var(--orange))}
+.apt-card.apt-high::before{background:linear-gradient(90deg,var(--orange),var(--yellow))}
+.apt-card.apt-medium::before{background:linear-gradient(90deg,var(--yellow),var(--green))}
+.apt-card:hover{border-color:var(--purple);transform:translateY(-2px);box-shadow:0 6px 24px rgba(168,85,247,.2)}
+.apt-card.running{border-color:var(--red);animation:apt-pulse 1.5s ease-in-out infinite}
+@keyframes apt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.3)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.apt-name{font-size:.87rem;font-weight:800;margin-bottom:.2rem}
+.apt-desc{font-size:.72rem;color:var(--muted);margin-bottom:.7rem}
+.apt-phases{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.7rem}
+.apt-phase{font-size:.7rem;display:flex;align-items:center;gap:.4rem;color:var(--text);opacity:.75}
+.apt-phase::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0}
+.apt-footer{display:flex;align-items:center;justify-content:space-between}
+.apt-cancel{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:5px;padding:.2rem .6rem;font-size:.7rem;font-weight:700;cursor:pointer;display:none}
+.apt-card.running .apt-cancel{display:inline-block}
+.apt-progress{font-size:.7rem;color:var(--muted);display:none}
+.apt-card.running .apt-progress{display:block}
+/* PROGRESSIVE MODE */
+.progressive-toggle{display:flex;align-items:center;gap:.5rem;margin-top:.6rem;padding:.5rem .6rem;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:7px;cursor:pointer}
+.progressive-toggle input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--purple)}
+.progressive-toggle span{font-size:.75rem;color:var(--purple);font-weight:600}
+.filter-hint{font-size:.68rem;color:var(--accent2);margin-top:.25rem;display:none}
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--card)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 /* NOTIF */
@@ -165,9 +190,10 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
           </div>
           <div class="form-group">
             <label>Nodo Objetivo</label>
-            <select id="attackNode">
+            <select id="attackNode" onchange="filterAttacksByNode(this.value)">
               <option value="">-- Seleccionar --</option>
             </select>
+            <span class="filter-hint" id="filterHint">🔍 Ataques filtrados por tipo de nodo</span>
           </div>
           <div class="form-group">
             <label>Duración (segundos)</label>
@@ -182,6 +208,12 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
               <input type="range" id="intensitySlider" min="0.1" max="1.0" step="0.05" value="0.7" oninput="document.getElementById('intVal').textContent=Math.round(this.value*100)+'%'">
               <span class="range-val" id="intVal">70%</span>
             </div>
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="progressive-toggle" title="Escala la intensidad automáticamente: 30% → 60% → máximo">
+              <input type="checkbox" id="progressiveMode">
+              <span>⚡ Modo Progresivo — escala intensidad automáticamente (30% → 60% → máx)</span>
+            </label>
           </div>
         </div>
         <div class="attack-preview" id="attackPreview" style="display:none">
@@ -211,6 +243,19 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
         <div style="font-size:.72rem;color:var(--muted);margin-bottom:.6rem">Haz clic para poner online/offline</div>
         <div class="node-toggle-grid" id="nodeToggleGrid"></div>
         <button class="btn btn-success btn-sm" style="margin-top:.8rem;width:100%" onclick="setAllOnline()">✅ Poner todos online</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APT CHAINS ROW -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header" style="justify-content:space-between">
+      <span class="card-title">🎯 APT — Cadenas de Ataque Coordinadas</span>
+      <span style="font-size:.7rem;color:var(--muted)">Secuencias multi-fase con escalación automática • Haz clic para ejecutar</span>
+    </div>
+    <div class="card-body">
+      <div class="apt-chain-grid" id="aptChainGrid">
+        <!-- populated by JS -->
       </div>
     </div>
   </div>
@@ -637,6 +682,230 @@ const ATTACK_NODE_MAP = {
   tls_downgrade:      'LB-01',
 };
 
+// ── NODE TYPE → VALID ATTACKS MAP ──────────────────────────
+const NODE_TYPE_ATTACKS = {
+  web:      ['dos','ddos','syn_flood','brute_force','memory_leak','unauthorized_access','thermal','smoke_alert','ssl_expired','tls_downgrade'],
+  app:      ['dos','memory_leak','unauthorized_access','brute_force','thermal','smoke_alert','cryptomining','sql_injection'],
+  database: ['brute_force','unauthorized_access','disk_failure','memory_leak','thermal','smoke_alert','sql_injection'],
+  lb:       ['ddos','syn_flood','ssl_expired','ssl_warning','tls_downgrade','dos'],
+  firewall: ['port_scan','arp_spoofing','unauthorized_access','dos'],
+  router:   ['ddos','syn_flood','arp_spoofing','dos','mitm'],
+  switch:   ['arp_spoofing','power_failure','thermal','smoke_alert','mitm'],
+  storage:  ['disk_failure','thermal','smoke_alert','unauthorized_access','ransomware'],
+};
+
+function getNodeType(nodeId) {
+  if (!nodeId) return null;
+  if (nodeId.startsWith('WEB'))    return 'web';
+  if (nodeId.startsWith('DB'))     return 'database';
+  if (nodeId.startsWith('APP'))    return 'app';
+  if (nodeId === 'LB-01')          return 'lb';
+  if (nodeId === 'FW-01')          return 'firewall';
+  if (nodeId === 'RTR-EDGE')       return 'router';
+  if (nodeId.startsWith('SW'))     return 'switch';
+  if (nodeId === 'STORAGE-01')     return 'storage';
+  return 'web';
+}
+
+// ── APT CHAIN DEFINITIONS ───────────────────────────────────
+const APT_CHAINS = {
+  cyber_killchain: {
+    name: '🕵️ Cyber Kill Chain',
+    description: 'Reconocimiento → Explotación → Compromiso total',
+    badge: 'ALTO', badgeClass: 'apt-high',
+    phases: [
+      {attack:'port_scan',     node:'FW-01',      duration:60,  intensity:0.4,  delay:0,     label:'Fase 1: Reconocimiento'},
+      {attack:'brute_force',   node:'DB-01',      duration:90,  intensity:0.7,  delay:35000, label:'Fase 2: Explotación'},
+      {attack:'unauthorized_access', node:'APP-01', duration:120, intensity:0.9, delay:75000, label:'Fase 3: Compromiso'},
+    ]
+  },
+  ransomware: {
+    name: '🦠 Ransomware en Cadena',
+    description: 'Infiltración → Propagación → Cifrado de datos',
+    badge: 'CRÍTICO', badgeClass: 'apt-critical',
+    phases: [
+      {attack:'brute_force',  node:'WEB-01',     duration:45,  intensity:0.6,  delay:0,     label:'Fase 1: Infiltración'},
+      {attack:'memory_leak',  node:'APP-01',     duration:60,  intensity:0.75, delay:30000, label:'Fase 2: Propagación'},
+      {attack:'disk_failure', node:'STORAGE-01', duration:120, intensity:0.95, delay:60000, label:'Fase 3: Cifrado RAID'},
+    ]
+  },
+  ddos_coordinated: {
+    name: '🌊 DDoS Coordinado',
+    description: 'Saturación progresiva de la infraestructura web',
+    badge: 'CRÍTICO', badgeClass: 'apt-critical',
+    phases: [
+      {attack:'syn_flood', node:'RTR-EDGE', duration:60, intensity:0.5, delay:0,     label:'Fase 1: SYN Flood perimetral'},
+      {attack:'ddos',      node:'LB-01',   duration:90, intensity:0.8, delay:25000, label:'Fase 2: Saturar balanceador'},
+      {attack:'dos',       node:'WEB-01',  duration:90, intensity:0.9, delay:50000, label:'Fase 3: Tumbar WEB-01'},
+      {attack:'dos',       node:'WEB-02',  duration:90, intensity:0.9, delay:55000, label:'Fase 3b: Tumbar WEB-02'},
+    ]
+  },
+  insider_threat: {
+    name: '🎭 Amenaza Interna',
+    description: 'Acceso legítimo → Escalación → Exfiltración de datos',
+    badge: 'MEDIO', badgeClass: 'apt-medium',
+    phases: [
+      {attack:'unauthorized_access', node:'FW-01', duration:45, intensity:0.5, delay:0,     label:'Fase 1: Acceso inicial'},
+      {attack:'brute_force',         node:'DB-01', duration:60, intensity:0.7, delay:25000, label:'Fase 2: Escalación de privilegios'},
+      {attack:'memory_leak',         node:'DB-02', duration:90, intensity:0.8, delay:55000, label:'Fase 3: Exfiltración'},
+    ]
+  },
+  infrastructure_collapse: {
+    name: '💀 Colapso de Infraestructura',
+    description: 'Fallas físicas + cibernéticas simultáneas',
+    badge: 'CRÍTICO', badgeClass: 'apt-critical',
+    phases: [
+      {attack:'power_failure', node:'SW-CORE',    duration:90,  intensity:0.9,  delay:0,     label:'Fase 1: Corte eléctrico'},
+      {attack:'thermal',       node:'DB-01',      duration:120, intensity:0.85, delay:15000, label:'Fase 2: Sobrecalentamiento'},
+      {attack:'disk_failure',  node:'STORAGE-01', duration:120, intensity:0.95, delay:30000, label:'Fase 3: Fallo RAID'},
+      {attack:'ddos',          node:'RTR-EDGE',   duration:90,  intensity:0.7,  delay:45000, label:'Fase 4: Ataque externo'},
+    ]
+  },
+};
+
+let aptTimers = [];
+let aptRunning = null;
+
+function renderAptChains() {
+  const grid = document.getElementById('aptChainGrid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(APT_CHAINS).map(([id, chain]) => `
+    <div class="apt-card ${chain.badgeClass}" id="apt-${id}" onclick="launchAptChain('${id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.3rem">
+        <div class="apt-name">${chain.name}</div>
+        <span class="badge ${chain.badge==='CRÍTICO'?'badge-crit':chain.badge==='ALTO'?'badge-warn':'badge-ok'}">${chain.badge}</span>
+      </div>
+      <div class="apt-desc">${chain.description}</div>
+      <div class="apt-phases">
+        ${chain.phases.map(p=>`<div class="apt-phase">${p.label} — <b>${p.node}</b></div>`).join('')}
+      </div>
+      <div class="apt-footer">
+        <span class="apt-progress" id="apt-prog-${id}">⏳ Ejecutando...</span>
+        <button class="apt-cancel" onclick="event.stopPropagation();cancelAptChain('${id}')">✕ Cancelar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function launchAptChain(chainId) {
+  if (aptRunning) {
+    notify('⚠️ Cadena en curso', `Cancela "${APT_CHAINS[aptRunning]?.name}" primero`, 'warn');
+    return;
+  }
+  const chain = APT_CHAINS[chainId];
+  if (!chain) return;
+  aptRunning = chainId;
+  const card = document.getElementById(`apt-${chainId}`);
+  if (card) { card.classList.add('running'); }
+  notify(`🚀 APT iniciada`, chain.name, 'crit');
+  addTimeline('🎯', `APT: ${chain.name}`, `${chain.phases.length} fases programadas`, 'crit');
+
+  chain.phases.forEach((phase, i) => {
+    const t = setTimeout(async () => {
+      const progEl = document.getElementById(`apt-prog-${chainId}`);
+      if (progEl) progEl.textContent = `⏳ ${phase.label}...`;
+      try {
+        await apiFetch('/api/attacks/inject', {
+          method: 'POST',
+          body: JSON.stringify({
+            attack_type: phase.attack,
+            node_id:     phase.node,
+            duration_sec: phase.duration,
+            intensity:   phase.intensity
+          })
+        });
+        const attackName = catalog[phase.attack]?.name || phase.attack;
+        notify(`⚡ ${phase.label}`, `${attackName} → ${phase.node}`, 'crit');
+        addTimeline('⚡', phase.label, `${attackName} | ${phase.node} | ${Math.round(phase.intensity*100)}%`, 'crit');
+        loadActiveAttacks();
+        loadAllIncidents();
+      } catch(e) {
+        notify(`❌ Fase fallida`, `${phase.label}: ${e.message}`, 'warn');
+      }
+      // Last phase: mark as done
+      if (i === chain.phases.length - 1) {
+        const lastDelay = setTimeout(() => {
+          if (aptRunning === chainId) {
+            aptRunning = null;
+            if (card) card.classList.remove('running');
+            if (progEl) progEl.textContent = '';
+            notify('✅ Cadena completada', chain.name, 'ok');
+            addTimeline('✅', `APT completada: ${chain.name}`, 'Todas las fases ejecutadas', 'ok');
+          }
+        }, phase.duration * 1000);
+        aptTimers.push(lastDelay);
+      }
+    }, phase.delay);
+    aptTimers.push(t);
+  });
+}
+
+function cancelAptChain(chainId) {
+  aptTimers.forEach(t => clearTimeout(t));
+  aptTimers = [];
+  if (aptRunning) {
+    const card = document.getElementById(`apt-${aptRunning}`);
+    if (card) card.classList.remove('running');
+    const prog = document.getElementById(`apt-prog-${aptRunning}`);
+    if (prog) prog.textContent = '';
+    notify('🛑 Cadena cancelada', APT_CHAINS[aptRunning]?.name || '', 'warn');
+    aptRunning = null;
+  }
+}
+
+// ── FILTER ATTACKS BY NODE TYPE ─────────────────────────────
+function filterAttacksByNode(nodeId) {
+  const attackSel = document.getElementById('attackType');
+  const hint = document.getElementById('filterHint');
+  if (!nodeId) {
+    // Restore full list
+    const opts = Object.entries(catalog).map(([k,v])=>`<option value="${k}">${v.name}</option>`).join('');
+    attackSel.innerHTML = '<option value="">-- Seleccionar --</option>' + opts;
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+  const ntype = getNodeType(nodeId);
+  const allowed = NODE_TYPE_ATTACKS[ntype] || [];
+  const opts = Object.entries(catalog)
+    .filter(([k]) => allowed.includes(k))
+    .map(([k,v]) => `<option value="${k}">${v.name}</option>`)
+    .join('');
+  attackSel.innerHTML = `<option value="">-- ${allowed.length} ataques para ${ntype.toUpperCase()} --</option>` + opts;
+  if (hint) hint.style.display = 'block';
+  // Clear preview
+  document.getElementById('attackPreview').style.display = 'none';
+}
+
+// ── PROGRESSIVE ATTACK ─────────────────────────────────────
+async function injectProgressiveAttack(type, node, totalDur, maxIntensity) {
+  const steps = [
+    {intensity: Math.max(0.1, maxIntensity * 0.3), label: '30%'},
+    {intensity: Math.max(0.2, maxIntensity * 0.6), label: '60%'},
+    {intensity: maxIntensity,                       label: `${Math.round(maxIntensity*100)}% (máx)`},
+  ];
+  const stepDur = Math.floor(totalDur / steps.length);
+  notify(`📈 Modo Progresivo`, `${catalog[type]?.name||type} escalando en ${node}`, 'warn');
+  addTimeline('📈', `Progresivo: ${catalog[type]?.name||type}`, `${node} | 30→60→${Math.round(maxIntensity*100)}% en ${totalDur}s`, 'warn');
+
+  for (let i = 0; i < steps.length; i++) {
+    const {intensity, label} = steps[i];
+    if (i > 0) await new Promise(r => setTimeout(r, stepDur * 1000));
+    try {
+      await apiFetch('/api/attacks/inject', {
+        method: 'POST',
+        body: JSON.stringify({attack_type: type, node_id: node, duration_sec: stepDur + 10, intensity})
+      });
+      notify(`📈 Escalando → ${label}`, `${catalog[type]?.name||type} en ${node}`, 'crit');
+      addTimeline('📈', `Escalada ${label}`, `${type} | ${node}`, 'crit');
+      loadActiveAttacks();
+    } catch(e) {
+      notify(`❌ Error en escalada`, e.message, 'crit');
+      break;
+    }
+  }
+  loadAllIncidents();
+}
+
 function updatePreview() {
   const key = document.getElementById('attackType').value;
   const preview = document.getElementById('attackPreview');
@@ -665,8 +934,15 @@ async function injectAttack() {
   const node = document.getElementById('attackNode').value;
   const dur  = parseInt(document.getElementById('durationSlider').value);
   const ints = parseFloat(document.getElementById('intensitySlider').value);
+  const progressive = document.getElementById('progressiveMode')?.checked;
   if (!type) { notify('⚠️ Falta tipo de ataque', 'Selecciona un tipo de ataque', 'warn'); return; }
   if (!node) { notify('⚠️ Falta nodo objetivo', 'Selecciona el nodo donde inyectar', 'warn'); return; }
+
+  if (progressive) {
+    await injectProgressiveAttack(type, node, dur, ints);
+    return;
+  }
+
   try {
     const r = await apiFetch('/api/attacks/inject', {method:'POST', body: JSON.stringify({attack_type:type, node_id:node, duration_sec:dur, intensity:ints})});
     notify('⚡ Ataque inyectado', `${catalog[type]?.name||type} en ${node}`, 'crit');
@@ -1406,6 +1682,8 @@ setTimeout(() => {
   // Bitácoras
   loadBitacoras();
   _loadBmStudentFilter();
+  // APT Chains grid
+  renderAptChains();
 }, 900);
 
 // Refresh active sessions and groups every 30 seconds
