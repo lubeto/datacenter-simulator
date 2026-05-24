@@ -994,6 +994,135 @@ async function runScenario(key) {
   loadActiveAttacks(); loadAllIncidents();
 }
 
+// ── PRACTICE MODE ──────────────────────────────────────────
+let practiceDurationMin = 15;
+let practiceIntervalId  = null;
+let practiceEndTime     = null;
+
+function selectDuration(btn, minutes) {
+  practiceDurationMin = minutes;
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function startPractice() {
+  // 1. Cargar todos los aprendices registrados
+  let students = [];
+  try {
+    const all = await apiFetch('/api/students/');
+    students = all.filter(s => s.role === 'student');
+  } catch(e) {
+    notify('❌ Error', 'No se pudo cargar la lista de aprendices', 'crit');
+    return;
+  }
+  if (!students.length) {
+    notify('⚠️ Sin aprendices', 'No hay aprendices registrados para iniciar práctica', 'warn');
+    return;
+  }
+
+  // 2. Iniciar sesión evaluativa para cada aprendiz
+  let started = 0;
+  for (const s of students) {
+    try {
+      await apiFetch('/api/sessions/start', {
+        method: 'POST',
+        body: JSON.stringify({ student_id: s.id, notes: `Práctica ${practiceDurationMin} min` })
+      });
+      started++;
+      await new Promise(r => setTimeout(r, 100)); // pequeño delay entre requests
+    } catch(e) {
+      console.warn(`[Practice] No se pudo iniciar sesión para ${s.name}:`, e.message);
+    }
+  }
+
+  if (!started) {
+    notify('❌ Error', 'No se pudo iniciar ninguna sesión', 'crit');
+    return;
+  }
+
+  // 3. Actualizar UI
+  practiceEndTime = Date.now() + practiceDurationMin * 60 * 1000;
+  document.getElementById('startPracticeBtn').style.display = 'none';
+  document.getElementById('stopPracticeBtn').style.display  = '';
+  document.getElementById('practiceTimer').style.display    = '';
+  const badge = document.getElementById('practiceStatusBadge');
+  badge.textContent = 'ACTIVO';
+  badge.className   = 'badge badge-ok';
+
+  notify('🎯 Práctica iniciada', `${started} aprendice(s) · ${practiceDurationMin} min`, 'ok');
+  addTimeline('🎯', 'Modo Práctica iniciado', `${started} aprendices · ${practiceDurationMin} min`, 'ok');
+
+  // 4. Iniciar countdown
+  function tick() {
+    const remaining = practiceEndTime - Date.now();
+    if (remaining <= 0) {
+      stopPractice();
+      return;
+    }
+    const m = Math.floor(remaining / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    const timerEl = document.getElementById('practiceTimer');
+    if (timerEl) timerEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick();
+  practiceIntervalId = setInterval(tick, 1000);
+
+  // 5. Auto-detener al vencerse el tiempo
+  setTimeout(() => {
+    if (practiceIntervalId) stopPractice();
+  }, practiceDurationMin * 60 * 1000 + 2000);
+
+  // 6. Refrescar sesiones activas
+  loadActiveSessions();
+}
+
+async function stopPractice() {
+  // Limpiar timer
+  if (practiceIntervalId) { clearInterval(practiceIntervalId); practiceIntervalId = null; }
+
+  // Cerrar todas las sesiones activas
+  let closed = 0;
+  try {
+    const active = await apiFetch('/api/sessions/active');
+    for (const s of active) {
+      try {
+        await apiFetch(`/api/sessions/end/${s.id}`, { method: 'POST' });
+        closed++;
+        await new Promise(r => setTimeout(r, 100));
+      } catch(e) {
+        console.warn(`[Practice] No se pudo cerrar sesión ${s.id}:`, e.message);
+      }
+    }
+  } catch(e) {
+    console.warn('[Practice] No se pudo obtener sesiones activas:', e.message);
+  }
+
+  // Restaurar UI
+  document.getElementById('startPracticeBtn').style.display = '';
+  document.getElementById('stopPracticeBtn').style.display  = 'none';
+  document.getElementById('practiceTimer').style.display    = 'none';
+  const badge = document.getElementById('practiceStatusBadge');
+  badge.textContent = 'Inactivo';
+  badge.className   = 'badge badge-blue';
+  practiceEndTime   = null;
+
+  notify('⏹ Práctica finalizada', `${closed} sesión(es) cerrada(s)`, 'warn');
+  addTimeline('⏹', 'Modo Práctica finalizado', `${closed} sesiones evaluadas`, 'warn');
+  loadActiveSessions();
+  loadStudents();
+}
+
+function handlePracticeModeEcho(data) {
+  // Confirmación por WebSocket cuando el servidor procesa la sesión
+  if (data && data.active !== undefined) {
+    const badge = document.getElementById('practiceStatusBadge');
+    if (badge) {
+      badge.textContent = data.active ? 'ACTIVO' : 'Inactivo';
+      badge.className   = data.active ? 'badge badge-ok' : 'badge badge-blue';
+    }
+  }
+}
+
 // ── ACTIVE ATTACKS ─────────────────────────────────────────
 async function loadActiveAttacks() {
   try {
