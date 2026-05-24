@@ -248,7 +248,28 @@ async def websocket_endpoint(websocket: WebSocket):
 # ============================================================
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    """Página principal del dashboard."""
+    """Landing inteligente: redirige a login si no hay sesión, o al panel según rol."""
+    return HTMLResponse("""<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>body{background:#0a0e1a;margin:0}</style>
+<script>
+  var token = localStorage.getItem('token');
+  var student = {};
+  try { student = JSON.parse(localStorage.getItem('student') || '{}'); } catch(e) {}
+  if (!token || !student.id) {
+    location.replace('/login');
+  } else if (student.role === 'instructor') {
+    location.replace('/instructor');
+  } else {
+    location.replace('/dashboard');
+  }
+</script>
+</head><body></body></html>""")
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    """Panel del estudiante."""
     html_path = os.path.join(FRONTEND_DIR, "index.html")
     if os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:

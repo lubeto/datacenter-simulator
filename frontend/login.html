@@ -155,7 +155,7 @@
         document.getElementById('login-success').style.display = 'block';
 
         setTimeout(() => {
-          window.location.href = data.student.role === 'instructor' ? '/instructor' : '/';
+          window.location.href = data.student.role === 'instructor' ? '/instructor' : '/dashboard';
         }, 800);
 
       } catch(e) {
