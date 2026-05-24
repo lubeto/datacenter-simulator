@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from pydantic import BaseModel
 
 from ..database.db import get_db
@@ -493,5 +493,213 @@ async def get_active_groups(
             "student_names": names,
             "elapsed_min": elapsed,
             "started_at":  g.started_at.isoformat(),
+        })
+    return out
+
+
+# ══════════════════════════════════════════════════════════════
+# REPORTES DIFERENCIADOS: PRÁCTICA vs EVALUACIÓN FORMAL
+# ══════════════════════════════════════════════════════════════
+
+def _safe_avg(rows):
+    scores = [r.score for r in rows if r.score is not None]
+    return round(sum(scores) / len(scores), 1) if scores else 0.0
+
+
+@router.get("/report/all")
+async def all_students_report(
+    db: AsyncSession = Depends(get_db),
+    _:  Student      = Depends(require_instructor),
+):
+    """Resumen de todos los aprendices con scores diferenciados: práctica vs formal."""
+    stu_q = await db.execute(select(Student).where(Student.role == "student").order_by(Student.name))
+    students = stu_q.scalars().all()
+    out = []
+    for stu in students:
+        row = await _build_student_report(db, stu)
+        out.append(row)
+    return out
+
+
+@router.get("/report/{student_id}")
+async def student_detailed_report(
+    student_id: int,
+    db: AsyncSession = Depends(get_db),
+    _:  Student      = Depends(require_instructor),
+):
+    """Reporte detallado de un aprendiz: práctica vs evaluación formal individual y grupal."""
+    stu_q = await db.execute(select(Student).where(Student.id == student_id))
+    stu   = stu_q.scalar_one_or_none()
+    if not stu:
+        raise HTTPException(status_code=404, detail="Aprendiz no encontrado")
+    return await _build_student_report(db, stu, detailed=True)
+
+
+async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool = False) -> dict:
+    """Construye el reporte diferenciado de un aprendiz."""
+
+    # ── Sesiones de práctica (notes contiene '[practice]') ──────────────────
+    prac_q = await db.execute(
+        select(EvalSession).where(
+            EvalSession.student_id == stu.id,
+            EvalSession.is_active  == False,
+            EvalSession.notes.like('%[practice]%'),
+        ).order_by(EvalSession.started_at.desc())
+    )
+    prac_sessions = prac_q.scalars().all()
+
+    # ── Sesiones formales individuales (notes contiene '[formal:individual]') ─
+    ind_q = await db.execute(
+        select(EvalSession).where(
+            EvalSession.student_id == stu.id,
+            EvalSession.is_active  == False,
+            EvalSession.notes.like('%[formal:individual]%'),
+        ).order_by(EvalSession.started_at.desc())
+    )
+    ind_sessions = ind_q.scalars().all()
+
+    # ── Sesiones formales grupales (notes contiene 'grupo:') ────────────────
+    grp_q = await db.execute(
+        select(EvalSession).where(
+            EvalSession.student_id == stu.id,
+            EvalSession.is_active  == False,
+            EvalSession.notes.like('grupo:%'),
+        ).order_by(EvalSession.started_at.desc())
+    )
+    grp_sessions = grp_q.scalars().all()
+
+    # ── Ejercicios guiados ──────────────────────────────────────────────────
+    g_q = await db.execute(
+        select(func.avg(GuidedSession.score), func.count(GuidedSession.id))
+        .where(GuidedSession.student_id == stu.id)
+    )
+    g_r = g_q.first(); g_avg = round(g_r[0] or 0, 1); g_cnt = g_r[1] or 0
+
+    # ── Labs de mitigación ─────────────────────────────────────────────────
+    l_q = await db.execute(
+        select(func.avg(PracticeSession.score), func.count(PracticeSession.id))
+        .where(PracticeSession.student_id == stu.id)
+    )
+    l_r = l_q.first(); l_avg = round(l_r[0] or 0, 1); l_cnt = l_r[1] or 0
+
+    # ── Bitácoras ──────────────────────────────────────────────────────────
+    b_q = await db.execute(
+        select(func.avg(Bitacora.score), func.count(Bitacora.id))
+        .where(Bitacora.student_id == stu.id)
+    )
+    b_r = b_q.first(); b_avg = round(b_r[0] or 0, 1); b_cnt = b_r[1] or 0
+
+    # ── Cálculo scores de práctica ─────────────────────────────────────────
+    # Ponderación práctica: Diagnóstico guiado 40% | Bitácoras 35% | Labs 25%
+    prac_parts, prac_w = [], []
+    if g_cnt > 0:     prac_parts.append(g_avg); prac_w.append(0.40)
+    if b_cnt > 0:     prac_parts.append(b_avg); prac_w.append(0.35)
+    if l_cnt > 0:     prac_parts.append(l_avg); prac_w.append(0.25)
+    if prac_sessions: prac_parts.append(_safe_avg(prac_sessions)); prac_w.append(0.20)
+    total_pw    = sum(prac_w) or 1
+    prac_score  = round(sum(p * w for p, w in zip(prac_parts, prac_w)) / total_pw, 1) if prac_parts else 0.0
+
+    # ── Cálculo scores formales ────────────────────────────────────────────
+    # Individual: sesiones formales individuales (score ya calculado en end_session)
+    ind_score = _safe_avg(ind_sessions)
+    # Grupal: sesiones formales grupales
+    grp_score = _safe_avg(grp_sessions)
+    # Formal ponderado: 60% individual + 40% grupal
+    formal_parts, formal_w = [], []
+    if ind_sessions: formal_parts.append(ind_score); formal_w.append(0.60)
+    if grp_sessions: formal_parts.append(grp_score); formal_w.append(0.40)
+    total_fw    = sum(formal_w) or 1
+    formal_score = round(sum(p * w for p, w in zip(formal_parts, formal_w)) / total_fw, 1) if formal_parts else 0.0
+
+    # ── Score global: 30% práctica + 70% evaluación formal ────────────────
+    global_parts, global_w = [], []
+    if prac_parts:   global_parts.append(prac_score);   global_w.append(0.30)
+    if formal_parts: global_parts.append(formal_score); global_w.append(0.70)
+    total_gw     = sum(global_w) or 1
+    global_score = round(sum(p * w for p, w in zip(global_parts, global_w)) / total_gw, 1) if global_parts else 0.0
+
+    result = {
+        "student": {
+            "id":    stu.id,
+            "name":  stu.name,
+            "email": stu.email,
+        },
+        "practice": {
+            "score":           prac_score,
+            "guided_count":    g_cnt,
+            "guided_avg":      g_avg,
+            "lab_count":       l_cnt,
+            "lab_avg":         l_avg,
+            "bitacora_count":  b_cnt,
+            "bitacora_avg":    b_avg,
+            "sessions":        len(prac_sessions),
+        },
+        "formal": {
+            "individual": {
+                "score":    ind_score,
+                "sessions": len(ind_sessions),
+            },
+            "group": {
+                "score":    grp_score,
+                "sessions": len(grp_sessions),
+            },
+            "combined": formal_score,
+        },
+        "global_score": global_score,
+    }
+
+    if detailed:
+        result["practice"]["history"] = [
+            {"score": s.score, "date": s.started_at.isoformat(),
+             "duration_min": round(s.duration_min or 0, 1)} for s in prac_sessions[:10]
+        ]
+        result["formal"]["individual"]["history"] = [
+            {"score": s.score, "date": s.started_at.isoformat(),
+             "duration_min": round(s.duration_min or 0, 1)} for s in ind_sessions[:10]
+        ]
+        result["formal"]["group"]["history"] = [
+            {"score": s.score, "date": s.started_at.isoformat(),
+             "notes": s.notes or ""} for s in grp_sessions[:10]
+        ]
+
+    return result
+
+
+@router.get("/report/groups/all")
+async def all_groups_report(
+    db: AsyncSession = Depends(get_db),
+    _:  Student      = Depends(require_instructor),
+):
+    """Lista todos los grupos evaluativos con sus puntajes y aprendices."""
+    g_q  = await db.execute(select(EvalGroup).order_by(EvalGroup.started_at.desc()))
+    groups = g_q.scalars().all()
+    out  = []
+    for g in groups:
+        sids  = json.loads(g.student_ids_json or "[]")
+        names = []
+        scores = []
+        for sid in sids:
+            sq = await db.execute(select(Student).where(Student.id == sid))
+            st = sq.scalar_one_or_none()
+            names.append(st.name if st else f"#{sid}")
+            # Score individual en este grupo
+            s_q = await db.execute(
+                select(EvalSession).where(
+                    EvalSession.student_id == sid,
+                    EvalSession.notes.like(f"grupo:{g.id}%"),
+                ).limit(1)
+            )
+            s = s_q.scalar_one_or_none()
+            scores.append({"name": st.name if st else f"#{sid}", "score": s.score if s else 0.0})
+        out.append({
+            "id":           g.id,
+            "name":         g.name,
+            "started_at":   g.started_at.isoformat() if g.started_at else None,
+            "ended_at":     g.ended_at.isoformat()   if g.ended_at   else None,
+            "is_active":    g.is_active,
+            "student_count": len(sids),
+            "student_names": names,
+            "group_score":   g.group_score or 0.0,
+            "individual_scores": scores,
         })
     return out

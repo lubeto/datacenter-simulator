@@ -581,6 +581,42 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     <div id="bmDetailPanel" style="display:none;padding:1rem 1.2rem;border-top:1px solid var(--border);background:#0a1220"></div>
   </div>
 
+  <!-- ══ REPORTES EVALUATIVOS DIFERENCIADOS ══════════════════════ -->
+  <div class="card full" style="margin-top:1rem;border-color:#7c3aed">
+    <div class="card-header" style="border-bottom-color:#4c1d95;justify-content:space-between">
+      <span class="card-title" style="color:#c4b5fd">📊 Reportes Evaluativos — Práctica vs. Evaluación Formal</span>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button onclick="loadEvalReports()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+        <button onclick="generateGroupsReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">👥 Reporte de Grupos</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:.8rem 1rem">
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.9rem;font-size:.72rem;color:var(--muted)">
+        <span style="color:#a78bfa;font-weight:700">🏃 Práctica = 30% del score global</span>
+        <span style="color:#a78bfa">→ Diagnóstico guiado 40% · Bitácoras 35% · Labs 25%</span>
+        <span style="color:#34d399;font-weight:700">🎓 Evaluación Formal = 70% del score global</span>
+        <span style="color:#34d399">→ Individual 60% · Grupal 40%</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead>
+            <tr style="background:#0f172a">
+              <th style="padding:9px 12px;text-align:left;color:#94a3b8;font-weight:600">Aprendiz</th>
+              <th style="padding:9px 12px;text-align:center;color:#a78bfa;font-weight:600">🏃 Score Práctica</th>
+              <th style="padding:9px 12px;text-align:center;color:#93c5fd;font-weight:600">🎓 Formal Ind.</th>
+              <th style="padding:9px 12px;text-align:center;color:#6ee7b7;font-weight:600">👥 Formal Grupal</th>
+              <th style="padding:9px 12px;text-align:center;color:#fbbf24;font-weight:600">⭐ Score Global</th>
+              <th style="padding:9px 12px;text-align:center;color:#94a3b8;font-weight:600">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="evalReportTbody">
+            <tr><td colspan="6" style="text-align:center;color:#64748b;padding:20px">Haz clic en ↻ Actualizar para cargar los reportes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="notif" id="notifContainer"></div>
@@ -1026,7 +1062,7 @@ async function startPractice() {
     try {
       await apiFetch('/api/sessions/start', {
         method: 'POST',
-        body: JSON.stringify({ student_id: s.id, notes: `Práctica ${practiceDurationMin} min` })
+        body: JSON.stringify({ student_id: s.id, notes: `[practice] Práctica ${practiceDurationMin} min` })
       });
       started++;
       await new Promise(r => setTimeout(r, 100)); // pequeño delay entre requests
@@ -1164,9 +1200,10 @@ async function resolveNodeAttack(nodeId) {
 // ── AUTO ATTACKS ───────────────────────────────────────────
 async function setAutoAttacks(enabled) {
   try {
-    await apiFetch('/api/attacks/auto-attacks', {method:'POST', body:JSON.stringify({enabled})});
+    await apiFetch(`/api/attacks/auto-attacks?enabled=${enabled}`, {method:'POST'});
     notify(enabled ? '▶ Auto-ataques activados' : '⏸ Auto-ataques pausados', '', enabled?'warn':'ok');
-  } catch(e) {}
+    addTimeline(enabled?'▶':'⏸', `Auto-ataques ${enabled?'activados':'pausados'}`, 'Configuración del simulador', enabled?'warn':'ok');
+  } catch(e) { notify('❌ Error al configurar', e.message, 'crit'); }
 }
 
 // ── NODE TOGGLES ───────────────────────────────────────────
@@ -1412,7 +1449,7 @@ async function startEvalSession() {
     const r = await fetch('/api/sessions/start', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: sid })
+      body: JSON.stringify({ student_id: sid, notes: '[formal:individual] Evaluación formal individual' })
     });
     const text = await r.text();
     if (!r.ok) {
@@ -1791,6 +1828,217 @@ function generateConsolidatedReport() {
         </body></html>`);
       win.document.close();
     }).catch(e => alert('Error al generar reporte: ' + e.message));
+}
+
+// ── EVAL REPORTS ───────────────────────────────────────────
+function _scoreColor(s) {
+  if (!s && s !== 0) return '#64748b';
+  if (s >= 80) return '#4ade80';
+  if (s >= 60) return '#facc15';
+  return '#f87171';
+}
+function _scoreCell(val, sessions) {
+  if (!sessions) return `<span style="color:#334155;font-size:.7rem">Sin datos</span>`;
+  return `<span style="color:${_scoreColor(val)};font-weight:700">${val.toFixed(1)}</span>
+          <span style="font-size:.65rem;color:#475569"> (${sessions} ses.)</span>`;
+}
+
+async function loadEvalReports() {
+  const tbody = document.getElementById('evalReportTbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">⏳ Cargando...</td></tr>';
+  try {
+    const rows = await apiFetch('/api/sessions/report/all');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">Sin aprendices registrados</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const global = r.global_score;
+      const globalColor = _scoreColor(global);
+      return `<tr style="border-bottom:1px solid rgba(30,45,69,.4)">
+        <td style="padding:9px 12px;font-weight:600">${r.student.name}
+          <div style="font-size:.68rem;color:#475569">${r.student.email}</div></td>
+        <td style="padding:9px 12px;text-align:center">
+          ${_scoreCell(r.practice.score, r.practice.sessions + r.practice.guided_count)}
+          <div style="font-size:.65rem;color:#6366f1;margin-top:2px">
+            Guiados: ${r.practice.guided_count} · Labs: ${r.practice.lab_count} · Bitácoras: ${r.practice.bitacora_count}
+          </div>
+        </td>
+        <td style="padding:9px 12px;text-align:center">${_scoreCell(r.formal.individual.score, r.formal.individual.sessions)}</td>
+        <td style="padding:9px 12px;text-align:center">${_scoreCell(r.formal.group.score, r.formal.group.sessions)}</td>
+        <td style="padding:9px 12px;text-align:center">
+          <span style="font-size:1rem;font-weight:900;color:${globalColor}">${global ? global.toFixed(1) : '—'}</span>
+          <span style="font-size:.65rem;color:#475569">/100</span>
+        </td>
+        <td style="padding:9px 12px;text-align:center;display:flex;gap:.4rem;justify-content:center">
+          <button onclick="generateStudentReport(${r.student.id},'${r.student.name.replace(/'/g,"\\'")}' )"
+            style="background:#7c3aed;border:none;border-radius:5px;color:white;font-size:.7rem;font-weight:700;padding:.25rem .6rem;cursor:pointer">
+            📄 Reporte
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f87171;padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function generateStudentReport(studentId, studentName) {
+  try {
+    const r = await apiFetch(`/api/sessions/report/${studentId}`);
+    const date = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+    const win = window.open('', '_blank', 'width=860,height:700');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"><title>Reporte — ${r.student.name}</title>
+<style>
+  body{font-family:'Segoe UI',sans-serif;background:#f8fafc;color:#1e293b;margin:0;padding:24px}
+  h1{font-size:1.4rem;margin:0 0 4px}
+  .subtitle{color:#64748b;font-size:.85rem;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+  .card{background:white;border-radius:10px;padding:16px 20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .card.practice{border-top:4px solid #7c3aed}
+  .card.formal-ind{border-top:4px solid #3b82f6}
+  .card.formal-grp{border-top:4px solid #22c55e}
+  .card.global{border-top:4px solid #f59e0b;grid-column:1/-1;text-align:center}
+  .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;font-weight:700;margin-bottom:6px}
+  .score{font-size:2rem;font-weight:900}
+  .score.ok{color:#16a34a}.score.warn{color:#ca8a04}.score.bad{color:#dc2626}.score.na{color:#94a3b8;font-size:1.2rem}
+  .detail{font-size:.78rem;color:#64748b;margin-top:8px;line-height:1.7}
+  .history{margin-top:10px}
+  .history table{width:100%;border-collapse:collapse;font-size:.75rem}
+  .history th{color:#94a3b8;font-weight:600;text-align:left;padding:4px 8px;border-bottom:1px solid #e2e8f0}
+  .history td{padding:5px 8px;border-bottom:1px solid #f1f5f9}
+  .formula{background:#f1f5f9;border-radius:8px;padding:10px 14px;font-size:.75rem;color:#475569;margin-bottom:20px}
+  .formula strong{color:#1e293b}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:.72rem;color:#94a3b8;text-align:center}
+  @media print{body{padding:12px}.card{box-shadow:none}}
+</style></head><body>
+<h1>📊 Reporte Evaluativo — ${r.student.name}</h1>
+<div class="subtitle">${r.student.email} &nbsp;·&nbsp; Generado: ${date}</div>
+
+<div class="formula">
+  <strong>Fórmula de ponderación:</strong>
+  &nbsp;Score Global = <strong>30%</strong> Práctica + <strong>70%</strong> Evaluación Formal
+  &nbsp;|&nbsp; Práctica = Diagnóstico Guiado 40% + Bitácoras 35% + Labs 25%
+  &nbsp;|&nbsp; Formal = Individual 60% + Grupal 40%
+</div>
+
+<div class="grid">
+  <div class="card practice">
+    <div class="label">🏃 Práctica</div>
+    <div class="score ${r.practice.score>=80?'ok':r.practice.score>=60?'warn':r.practice.score?'bad':'na'}">
+      ${r.practice.score ? r.practice.score.toFixed(1) : 'S/D'}
+    </div>
+    <div class="detail">
+      Ejercicios guiados: <b>${r.practice.guided_count}</b> (prom. ${r.practice.guided_avg}/100)<br>
+      Labs de mitigación: <b>${r.practice.lab_count}</b> (prom. ${r.practice.lab_avg}/100)<br>
+      Bitácoras: <b>${r.practice.bitacora_count}</b> (prom. ${r.practice.bitacora_avg}/100)<br>
+      Sesiones de práctica: <b>${r.practice.sessions}</b>
+    </div>
+  </div>
+
+  <div class="card formal-ind">
+    <div class="label">🎓 Evaluación Formal — Individual</div>
+    <div class="score ${r.formal.individual.score>=80?'ok':r.formal.individual.score>=60?'warn':r.formal.individual.score?'bad':'na'}">
+      ${r.formal.individual.sessions ? r.formal.individual.score.toFixed(1) : 'S/D'}
+    </div>
+    <div class="detail">Sesiones evaluadas: <b>${r.formal.individual.sessions}</b></div>
+    ${r.formal.individual.history?.length ? `
+    <div class="history"><table>
+      <tr><th>Fecha</th><th>Duración</th><th>Score</th></tr>
+      ${r.formal.individual.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO')}</td><td>${h.duration_min} min</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
+    </table></div>` : ''}
+  </div>
+
+  <div class="card formal-grp">
+    <div class="label">👥 Evaluación Formal — Grupal</div>
+    <div class="score ${r.formal.group.score>=80?'ok':r.formal.group.score>=60?'warn':r.formal.group.score?'bad':'na'}">
+      ${r.formal.group.sessions ? r.formal.group.score.toFixed(1) : 'S/D'}
+    </div>
+    <div class="detail">Sesiones grupales: <b>${r.formal.group.sessions}</b></div>
+    ${r.formal.group.history?.length ? `
+    <div class="history"><table>
+      <tr><th>Fecha</th><th>Grupo</th><th>Score</th></tr>
+      ${r.formal.group.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO')}</td><td>${h.notes||'—'}</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
+    </table></div>` : ''}
+  </div>
+
+  <div class="card global">
+    <div class="label">⭐ Score Global (Práctica 30% + Formal 70%)</div>
+    <div class="score ${r.global_score>=80?'ok':r.global_score>=60?'warn':r.global_score?'bad':'na'}" style="font-size:3rem">
+      ${r.global_score ? r.global_score.toFixed(1) : 'Sin datos suficientes'}
+    </div>
+    <div class="detail">Formal ponderado: ${r.formal.combined.toFixed(1)} / 100</div>
+  </div>
+</div>
+
+<div class="footer">DC Monitoring Simulator — SENA · Ing. Luis Alberto Vásquez Campos · ${date}</div>
+<script>window.print();<\/script>
+</body></html>`);
+    win.document.close();
+  } catch(e) {
+    notify('❌ Error al generar reporte', e.message, 'crit');
+  }
+}
+
+async function generateGroupsReport() {
+  try {
+    const groups = await apiFetch('/api/sessions/report/groups/all');
+    const date = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+    const win = window.open('', '_blank', 'width=860,height:700');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"><title>Reporte de Grupos</title>
+<style>
+  body{font-family:'Segoe UI',sans-serif;background:#f8fafc;color:#1e293b;margin:0;padding:24px}
+  h1{font-size:1.4rem;margin:0 0 4px}
+  .subtitle{color:#64748b;font-size:.85rem;margin-bottom:20px}
+  .group-card{background:white;border-radius:10px;padding:16px 20px;border:1px solid #e2e8f0;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .group-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .group-name{font-size:1rem;font-weight:700}
+  .group-score{font-size:1.5rem;font-weight:900;color:#7c3aed}
+  .group-meta{font-size:.75rem;color:#64748b;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:.78rem}
+  th{color:#94a3b8;font-weight:600;text-align:left;padding:6px 10px;border-bottom:1px solid #e2e8f0}
+  td{padding:6px 10px;border-bottom:1px solid #f1f5f9}
+  .badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:.68rem;font-weight:700}
+  .badge.active{background:#dcfce7;color:#16a34a}.badge.done{background:#f1f5f9;color:#64748b}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:.72rem;color:#94a3b8;text-align:center}
+  @media print{body{padding:12px}.group-card{box-shadow:none}}
+</style></head><body>
+<h1>👥 Reporte de Grupos Evaluativos</h1>
+<div class="subtitle">Generado: ${date} — Total: ${groups.length} grupo(s)</div>
+${groups.length === 0 ? '<p style="color:#64748b">No hay grupos evaluativos registrados.</p>' :
+  groups.map(g => `
+  <div class="group-card">
+    <div class="group-header">
+      <div>
+        <div class="group-name">${g.name}</div>
+        <div class="group-meta">
+          <span class="badge ${g.is_active?'active':'done'}">${g.is_active?'ACTIVO':'CERRADO'}</span>
+          &nbsp;${g.student_count} aprendices
+          &nbsp;·&nbsp; Inicio: ${g.started_at ? new Date(g.started_at).toLocaleDateString('es-CO') : '—'}
+          ${g.ended_at ? `· Fin: ${new Date(g.ended_at).toLocaleDateString('es-CO')}` : ''}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:.72rem;color:#94a3b8">Score Grupal</div>
+        <div class="group-score">${(g.group_score||0).toFixed(1)}<span style="font-size:.9rem;color:#94a3b8">/100</span></div>
+      </div>
+    </div>
+    <table>
+      <tr><th>Aprendiz</th><th>Score Individual</th></tr>
+      ${(g.individual_scores||[]).map(s=>`
+        <tr><td>${s.name}</td><td><b style="color:${(s.score||0)>=80?'#16a34a':(s.score||0)>=60?'#ca8a04':'#dc2626'}">${(s.score||0).toFixed(1)}</b>/100</td></tr>
+      `).join('')}
+    </table>
+  </div>`).join('')}
+<div class="footer">DC Monitoring Simulator — SENA · Ing. Luis Alberto Vásquez Campos · ${date}</div>
+<script>window.print();<\/script>
+</body></html>`);
+    win.document.close();
+  } catch(e) {
+    notify('❌ Error al generar reporte de grupos', e.message, 'crit');
+  }
 }
 
 // ── INIT ─────────────────────────────────────────────────────
