@@ -1146,7 +1146,11 @@ async function apiFetch(url, opts={}) {
     ...opts,
     headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(opts.headers||{}) }
   });
-  if (res.status === 401) { logout(); return; }
+  if (res.status === 401) {
+    notify('⚠️ Sesión expirada', 'El servidor fue actualizado. Vuelve a iniciar sesión.', 'warn');
+    setTimeout(() => { localStorage.removeItem('token'); localStorage.removeItem('student'); location.href='/login'; }, 2500);
+    throw new Error('Sesión expirada — redirigiendo al login');
+  }
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -2443,4 +2447,4 @@ function _cancelGuidedAutoClose() {
   <div class="sst-body" id="sstBody"></div>
   <div class="sst-footer">
     <div class="sst-escalation" id="sstEscalation">📞 Notificar contacto de emergencia</div>
-    <button class="guided-btn guided-btn-hint" onclick="showSSTHint()">💡                                                                                                                    
+    <button class="guided-btn guided-btn-hint" onclick="showSSTHint()">💡

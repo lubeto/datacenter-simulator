@@ -24,9 +24,12 @@ services:
 
     # ── Variables de entorno ────────────────────────────────────────────
     envVars:
-      # Seguridad — Render genera SECRET_KEY automáticamente
+      # Seguridad — DEBE ser un valor fijo y secreto.
+      # generateValue: true lo regenera en cada deploy e invalida TODOS los tokens JWT.
+      # Establece este valor UNA VEZ en el Dashboard de Render → Environment → SECRET_KEY
+      # (usa una cadena larga aleatoria, ej: openssl rand -hex 32)
       - key: SECRET_KEY
-        generateValue: true          # Render genera un valor aleatorio seguro
+        sync: false                  # Render te pedirá el valor; nunca cambia entre deploys
 
       - key: ALGORITHM
         value: HS256

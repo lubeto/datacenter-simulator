@@ -950,6 +950,11 @@ async function apiFetch(url, opts={}) {
     ...opts,
     headers: {'Authorization':`Bearer ${TOKEN}`,'Content-Type':'application/json',...(opts.headers||{})}
   });
+  if (res.status === 401) {
+    notify('⚠️ Sesión expirada', 'El servidor fue actualizado. Vuelve a iniciar sesión.', 'warn');
+    setTimeout(() => { localStorage.removeItem('token'); localStorage.removeItem('student'); location.href='/login'; }, 2500);
+    throw new Error('Sesión expirada — redirigiendo al login');
+  }
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -1328,4 +1333,87 @@ function generateConsolidatedReport() {
     .then(r=>r.json())
     .then(bs => {
       if (!Array.isArray(bs) || bs.length === 0) { alert('No hay bitácoras registradas todavía.'); return; }
-      // Agrupar po
+      // Agrupar por estudiante
+      const byStudent = {};
+      bs.forEach(b => {
+        const key = b.student_name || 'Sin nombre';
+        if (!byStudent[key]) byStudent[key] = [];
+        byStudent[key].push(b);
+      });
+      const now = new Date().toLocaleDateString('es-CO', {day:'2-digit', month:'long', year:'numeric'});
+      let body = '';
+      Object.entries(byStudent).forEach(([name, recs]) => {
+        const avg = recs.reduce((s,r)=>s+(r.score||0),0)/recs.length;
+        body += `
+          <div style="page-break-inside:avoid;margin-bottom:2rem;border:1px solid #ccc;border-radius:8px;padding:1rem">
+            <h2 style="color:#1e3a5f;font-size:1rem;margin-bottom:.5rem">👤 ${name}</h2>
+            <p style="font-size:.8rem;color:#555">Bitácoras: ${recs.length} &nbsp;|&nbsp; Puntaje promedio: <strong>${avg.toFixed(1)}/100</strong></p>
+            ${recs.map((b,i) => `
+              <div style="margin-top:.75rem;padding:.75rem;background:#f9fafb;border-radius:6px;font-size:.78rem">
+                <strong style="color:#1e3a5f">${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type}</strong> · Nodo: ${b.node_id} · Puntaje: <strong>${(b.score||0).toFixed(1)}</strong><br>
+                <span style="color:#555"><b>Síntomas:</b> ${b.sintomas_observados||'—'}</span><br>
+                <span style="color:#555"><b>Causa raíz:</b> ${b.causa_raiz||'—'}</span><br>
+                <span style="color:#555"><b>Acciones:</b> ${b.acciones_tomadas||'—'}</span><br>
+                <span style="color:#555"><b>Lecciones:</b> ${b.lecciones||'—'}</span>
+              </div>`).join('')}
+            <div style="margin-top:1.5rem;display:flex;gap:3rem">
+              <div style="text-align:center;flex:1">
+                <div style="border-top:1px solid #333;padding-top:.25rem;font-size:.75rem">Firma del Aprendiz</div>
+              </div>
+              <div style="text-align:center;flex:1">
+                <div style="border-top:1px solid #333;padding-top:.25rem;font-size:.75rem">Firma del Instructor</div>
+              </div>
+            </div>
+          </div>`;
+      });
+      const win = window.open('', '_blank');
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte Consolidado Bitácoras</title>
+        <style>body{font-family:Arial,sans-serif;margin:2rem;color:#222}h1{color:#1e3a5f}@media print{.no-print{display:none}}</style></head>
+        <body>
+          <div class="no-print" style="margin-bottom:1rem"><button onclick="window.print()" style="background:#1e3a5f;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-size:.9rem">🖨️ Imprimir / Guardar PDF</button></div>
+          <h1>Reporte Consolidado de Bitácoras</h1>
+          <p style="color:#555;font-size:.85rem">SENA · Centro de Servicios y Gestión Empresarial · Fecha: ${now}</p>
+          <hr style="margin:1rem 0">
+          ${body}
+          <div style="margin-top:3rem;display:flex;gap:4rem;justify-content:center">
+            <div style="text-align:center">
+              <div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem">Instructor responsable</div>
+            </div>
+            <div style="text-align:center">
+              <div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem">Coordinador académico</div>
+            </div>
+          </div>
+        </body></html>`);
+      win.document.close();
+    }).catch(e => alert('Error al generar reporte: ' + e.message));
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+// Load initial data after a short delay to ensure DOM and WS are ready
+setTimeout(() => {
+  // Connect WebSocket
+  connectWS();
+  // Load catalogs
+  loadCatalog();
+  loadNodes();
+  loadStudents();
+  loadStudentList();
+  loadAllIncidents();
+  // Eval session data
+  _loadEvalStudentFilter();
+  loadActiveSessions();
+  loadActiveGroups();
+  // Bitácoras
+  loadBitacoras();
+  _loadBmStudentFilter();
+}, 900);
+
+// Refresh active sessions and groups every 30 seconds
+setInterval(() => {
+  loadActiveSessions();
+  loadActiveGroups();
+}, 30000);
+
+</script>
+</body>
+</html>
