@@ -2293,6 +2293,42 @@ function bmCount(textarea, counterId, minLen) {
   else               { el.classList.remove('ok'); }
 }
 
+// ── Detección de calidad textual (cliente) ─────────────────────────────────
+function _detectTextQuality(text) {
+  if (!text || text.trim().length < 10) return { score: 0, label: 'muy baja', warn: true };
+  const t = text.toLowerCase().trim();
+  // Caracteres repetidos consecutivos
+  const repeats = (t.match(/(.)\1{2,}/g) || []);
+  const maxRepeat = repeats.reduce((m,r) => Math.max(m,r.length), 0);
+  // Palabras únicas (≥3 letras)
+  const words = t.match(/[a-záéíóúñ]{3,}/g) || [];
+  const uniqueWords = new Set(words).size;
+  // Diversidad de chars
+  const letters = t.replace(/[^a-záéíóúñ]/g,'');
+  const uniqueRatio = letters.length ? new Set(letters).size / letters.length : 0;
+  // Detectar patrones de teclado
+  const kbPatterns = ['qwer','asdf','zxcv','fghj','dfgh','rtyu','jkl;','poiu'];
+  const hasKbPattern = kbPatterns.some(p => t.includes(p));
+
+  let s = 1.0;
+  if (maxRepeat >= 4) s -= (maxRepeat - 3) * 0.15;
+  if (uniqueWords < 3) s -= 0.4;
+  if (uniqueRatio < 0.15) s -= 0.35;
+  if (hasKbPattern) s -= 0.25;
+  s = Math.max(0, Math.min(1, s));
+
+  const label = s >= 0.75 ? 'alta' : s >= 0.45 ? 'media' : s >= 0.20 ? 'baja' : 'muy baja';
+  return { score: s, label, warn: s < 0.45 };
+}
+
+function _checkBitacoraQuality() {
+  const fieldIds = ['bmSintomas','bmCausa','bmAcciones','bmLecciones'];
+  const results = fieldIds.map(id => _detectTextQuality(document.getElementById(id)?.value || ''));
+  const avg = results.reduce((s,r) => s + r.score, 0) / results.length;
+  const warnCount = results.filter(r => r.warn).length;
+  return { avg, warnCount, results };
+}
+
 async function submitBitacora() {
   const fields = [
     { id: 'bmSintomas',  cnt: 'bmC1' },
@@ -2316,6 +2352,30 @@ async function submitBitacora() {
     if (errEl) errEl.classList.add('show');
     return;
   }
+
+  // ── Validación de calidad textual ────────────────────────────────────────
+  const quality = _checkBitacoraQuality();
+  if (quality.avg < 0.20) {
+    // Texto basura claro: bloquear y avisar
+    const errEl = document.getElementById('bmErr');
+    if (errEl) {
+      errEl.textContent = '⚠️ El texto ingresado parece no tener contenido válido (caracteres repetidos o patrones de teclado). Tu puntaje se verá afectado. Por favor escribe un análisis real del incidente.';
+      errEl.classList.add('show');
+    }
+    // Aún permite enviar pero con penalización (el backend ajusta el score)
+  } else if (quality.warnCount >= 2) {
+    // Advertencia: texto de baja calidad
+    const errEl = document.getElementById('bmErr');
+    if (errEl) {
+      errEl.textContent = '⚠️ Algunos campos parecen tener texto de baja calidad. Tu nota puede reducirse. Asegúrate de escribir un análisis elaborado.';
+      errEl.style.background = 'rgba(234,179,8,.15)';
+      errEl.style.borderColor = '#eab308';
+      errEl.style.color = '#eab308';
+      errEl.classList.add('show');
+      // No bloquear, pero advertir
+    }
+  }
+
   const btn = document.getElementById('bmSubmitBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando...'; }
 
@@ -2337,8 +2397,12 @@ async function submitBitacora() {
   };
 
   try {
-    await apiFetch('/api/bitacoras', { method: 'POST', body: JSON.stringify(payload) });
-    notify('📋 Bitácora guardada', 'Tu análisis quedó registrado correctamente.', 'ok');
+    const resp = await apiFetch('/api/bitacoras', { method: 'POST', body: JSON.stringify(payload) });
+    if (resp.score_penalized) {
+      notify('📋 Bitácora guardada', `Nota ajustada por calidad de texto: ${resp.score_adjusted?.toFixed(0)}/100 (calidad ${resp.quality_label})`, 'warn');
+    } else {
+      notify('📋 Bitácora guardada', 'Tu análisis quedó registrado correctamente.', 'ok');
+    }
   } catch(e) {
     notify('⚠️ Sin conexión', 'Bitácora guardada localmente. Sincronizará al reconectar.', 'warn');
   }

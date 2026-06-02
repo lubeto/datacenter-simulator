@@ -136,11 +136,54 @@ async def get_active_attacks():
 
 @router.get("/incidents")
 async def get_incidents(
+    status:  Optional[str] = None,   # 'resolved', 'detected', 'active', None=todos
+    limit:   int           = 50,
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_student)
 ):
-    """Historial de incidentes."""
-    return await crud.get_incidents_history(db)
+    """Historial de incidentes con datos del aprendiz que los detectó/resolvió."""
+    from sqlalchemy import select as sa_select
+    from ..database.models import Session as EvalSession, Student
+
+    q = sa_select(Incident).order_by(Incident.started_at.desc()).limit(limit)
+    if status == "resolved":
+        q = sa_select(Incident).where(Incident.status == "resolved").order_by(Incident.started_at.desc()).limit(limit)
+    elif status == "detected":
+        q = sa_select(Incident).where(Incident.status == "detected").order_by(Incident.started_at.desc()).limit(limit)
+
+    result = await db.execute(q)
+    incidents = result.scalars().all()
+
+    out = []
+    for inc in incidents:
+        student_name = None
+        student_id   = None
+        if inc.session_id:
+            sess_q = await db.execute(sa_select(EvalSession).where(EvalSession.id == inc.session_id))
+            sess = sess_q.scalar_one_or_none()
+            if sess:
+                student_id = sess.student_id
+                stu_q = await db.execute(sa_select(Student).where(Student.id == sess.student_id))
+                stu = stu_q.scalar_one_or_none()
+                if stu:
+                    student_name = stu.name
+
+        out.append({
+            "id":           inc.id,
+            "attack_type":  inc.incident_type,
+            "node_id":      inc.node_affected,
+            "severity":     inc.severity,
+            "status":       inc.status,
+            "started_at":   inc.started_at.isoformat() if inc.started_at else None,
+            "detected_at":  inc.detected_at.isoformat() if inc.detected_at else None,
+            "resolved_at":  inc.resolved_at.isoformat() if inc.resolved_at else None,
+            "mttd_seconds": round(inc.mttd_seconds, 1) if inc.mttd_seconds else None,
+            "mttr_seconds": round(inc.mttr_seconds, 1) if inc.mttr_seconds else None,
+            "student_id":   student_id,
+            "student_name": student_name or "—",
+            "score":        round(inc.mitigation_score, 1) if inc.mitigation_score else None,
+        })
+    return out
 
 
 @router.get("/incidents/active")

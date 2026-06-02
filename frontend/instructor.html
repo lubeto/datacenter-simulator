@@ -636,8 +636,8 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
             <th style="padding:9px 12px;text-align:left;font-weight:600">Tipo de ataque</th>
             <th style="padding:9px 12px;text-align:left;font-weight:600">Nodo</th>
             <th style="padding:9px 12px;text-align:center;font-weight:600">Puntaje</th>
+            <th style="padding:9px 12px;text-align:center;font-weight:600">Calidad texto</th>
             <th style="padding:9px 12px;text-align:center;font-weight:600">Respuestas</th>
-            <th style="padding:9px 12px;text-align:center;font-weight:600">Duración</th>
             <th style="padding:9px 12px;text-align:center;font-weight:600">Fecha</th>
           </tr>
         </thead>
@@ -1951,13 +1951,29 @@ async function loadBitacoras() {
     tbody.innerHTML = bs.map(b => {
       const scoreColor = b.score >= 80 ? '#4ade80' : b.score >= 60 ? '#facc15' : '#f87171';
       const date = new Date(b.created_at).toLocaleDateString('es-CO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      // Evaluar calidad textual del lado del instructor
+      const texts = [b.sintomas_observados||'', b.causa_raiz||'', b.acciones_tomadas||'', b.lecciones||''];
+      const avgQual = texts.reduce((s,t) => {
+        const t2 = t.toLowerCase();
+        const maxRep = (t2.match(/(.)\1{2,}/g)||[]).reduce((m,r)=>Math.max(m,r.length),0);
+        const letters = t2.replace(/[^a-z]/g,'');
+        const uniqueR = letters.length ? new Set(letters).size/letters.length : 0;
+        const words = (t2.match(/[a-z]{3,}/g)||[]);
+        const uWords = new Set(words).size;
+        let q = 1 - Math.max(0,(maxRep-3)*0.15) - (uniqueR<0.15?0.35:0) - (uWords<3?0.4:0);
+        return s + Math.max(0,Math.min(1,q));
+      }, 0) / 4;
+      const qualLabel = avgQual>=0.75?'Alta':avgQual>=0.45?'Media':avgQual>=0.20?'Baja':'⚠️ Basura';
+      const qualColor = avgQual>=0.75?'#4ade80':avgQual>=0.45?'#facc15':avgQual>=0.20?'#f97316':'#ef4444';
       return `<tr onclick="showBitacoraDetail(${JSON.stringify(JSON.stringify(b)).slice(1,-1)})" style="cursor:pointer;border-bottom:1px solid #1e293b;transition:background .15s" onmouseover="this.style.background='#0f172a'" onmouseout="this.style.background=''">
         <td style="padding:8px 12px;color:#e2e8f0;font-weight:600">${b.student_name||'—'}</td>
         <td style="padding:8px 12px;color:#7dd3fc">${BM_LABELS[b.attack_type]||b.attack_type}</td>
         <td style="padding:8px 12px;color:#94a3b8">${b.node_id}</td>
         <td style="padding:8px 12px;text-align:center;font-weight:700;color:${scoreColor}">${(b.score||0).toFixed(1)}</td>
+        <td style="padding:8px 12px;text-align:center">
+          <span style="font-size:.72rem;font-weight:700;color:${qualColor}">${qualLabel}</span>
+        </td>
         <td style="padding:8px 12px;text-align:center;color:#94a3b8">${b.correct_answers||0}/${b.total_questions||4}</td>
-        <td style="padding:8px 12px;text-align:center;color:#64748b">${Math.round((b.duration_sec||0)/60)}m ${Math.round((b.duration_sec||0)%60)}s</td>
         <td style="padding:8px 12px;text-align:center;color:#475569;font-size:.75rem">${date}</td>
       </tr>`;
     }).join('');
@@ -2805,24 +2821,31 @@ async function loadIncidentHistory() {
   const tbody = document.getElementById('incidentHistoryTbody');
   if (!tbody) return;
   try {
-    const students = await apiFetch('/api/students/').catch(() => []);
-    const stuMap = {}; students.forEach(s => stuMap[s.id] = s.name);
-    const bits = await apiFetch('/api/bitacoras/?limit=30').catch(() => []);
-    if (!bits.length) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin registros</td></tr>'; return; }
-    tbody.innerHTML = bits.map(b => {
-      const sc = b.score||0;
-      const date = new Date(b.created_at||b.completed_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    // Usar endpoint real de incidentes (resueltos + detectados)
+    const incidents = await apiFetch('/api/attacks/incidents?limit=50').catch(() => []);
+    if (!incidents.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin incidentes registrados</td></tr>';
+      return;
+    }
+    const statusLabel = { resolved:'✅ Resuelto', detected:'🔍 Detectado', active:'🔥 Activo', missed:'❌ Perdido', mitigating:'🛡️ Mitigando' };
+    const statusColor = { resolved:'#4ade80', detected:'#facc15', active:'#f87171', missed:'#ef4444', mitigating:'#60a5fa' };
+    tbody.innerHTML = incidents.map(inc => {
+      const sc   = inc.score;
+      const date = new Date(inc.started_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const st   = inc.status || 'active';
       return `<tr>
-        <td>${stuMap[b.student_id]||'#'+b.student_id}</td>
-        <td>${b.attack_type||'?'}</td>
-        <td><code style="font-size:.7rem">${b.node_id||'?'}</code></td>
-        <td>${b.mttd_seconds?b.mttd_seconds.toFixed(0)+'s':'—'}</td>
-        <td>${b.mttr_seconds?b.mttr_seconds.toFixed(0)+'s':'—'}</td>
-        <td><strong style="color:${sc>=80?'#4ade80':sc>=60?'#facc15':'#f87171'}">${sc.toFixed(0)}</strong></td>
-        <td style="font-size:.7rem;color:var(--muted)">${date}</td>
+        <td style="padding:.5rem .7rem">${inc.student_name||'—'}</td>
+        <td style="padding:.5rem .7rem">${BM_LABELS[inc.attack_type]||inc.attack_type||'?'}</td>
+        <td style="padding:.5rem .7rem"><code style="font-size:.7rem">${inc.node_id||'?'}</code></td>
+        <td style="padding:.5rem .7rem;color:#60a5fa">${inc.mttd_seconds?inc.mttd_seconds.toFixed(0)+'s':'—'}</td>
+        <td style="padding:.5rem .7rem;color:#a78bfa">${inc.mttr_seconds?inc.mttr_seconds.toFixed(0)+'s':'—'}</td>
+        <td style="padding:.5rem .7rem;text-align:center">
+          ${sc!=null ? `<strong style="color:${sc>=80?'#4ade80':sc>=60?'#facc15':'#f87171'}">${sc.toFixed(0)}</strong>` : `<span style="color:var(--muted);font-size:.7rem">${statusLabel[st]||st}</span>`}
+        </td>
+        <td style="padding:.5rem .7rem;font-size:.7rem;color:var(--muted)">${date}</td>
       </tr>`;
     }).join('');
-  } catch(e) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin datos</td></tr>'; }
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Error: ${e.message}</td></tr>`; }
 }
 
 async function exportRankingCSV(e) {

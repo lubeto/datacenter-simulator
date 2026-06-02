@@ -4,6 +4,8 @@ POST /api/bitacoras          → guardar nueva bitácora
 GET  /api/bitacoras          → listar (instructor ve todas, estudiante ve las suyas)
 GET  /api/bitacoras/{id}     → detalle de una bitácora
 """
+import re
+import math
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_
@@ -61,22 +63,114 @@ class BitacoraOut(BaseModel):
         from_attributes = True
 
 
+# ── Análisis de calidad textual ───────────────────────────────
+KEYBOARD_ROWS = [
+    "qwertyuiop", "asdfghjkl", "zxcvbnm",
+    "poiuytrewq", "lkjhgfdsa", "mnbvcxz",
+]
+
+def _text_quality(text: str) -> float:
+    """
+    Devuelve un factor de calidad 0.0 – 1.0 para el texto de la bitácora.
+    Detecta: caracteres repetidos, baja diversidad léxica, patrones de teclado.
+    1.0 = texto de alta calidad. 0.0 = texto basura total.
+    """
+    if not text or len(text.strip()) < 10:
+        return 0.1
+
+    t = text.lower().strip()
+    total = len(t)
+
+    # 1. Penalizar caracteres repetidos consecutivos (ej: "fffffffff")
+    longest_run = max((len(m.group(0)) for m in re.finditer(r'(.)\1+', t)), default=1)
+    repeat_penalty = max(0.0, 1.0 - (longest_run - 2) * 0.15)  # 3 repeticiones = -0.15
+
+    # 2. Diversidad de caracteres (letras únicas / total letras)
+    letters = re.sub(r'[^a-záéíóúñ]', '', t)
+    if not letters:
+        return 0.05
+    unique_ratio = len(set(letters)) / len(letters)
+    diversity_score = min(unique_ratio * 5, 1.0)   # 0.2 ratio único = score 1.0
+
+    # 3. Palabras únicas (vocabulario)
+    words = re.findall(r'[a-záéíóúñ]{3,}', t)
+    unique_words = len(set(words))
+    vocab_score = min(unique_words / 4, 1.0)   # 4 palabras únicas = score 1.0
+
+    # 4. Penalizar patrones de teclado (ej: "asdfasdf", "qwerty")
+    keyboard_penalty = 1.0
+    for row in KEYBOARD_ROWS:
+        for length in range(4, 8):
+            for i in range(len(row) - length + 1):
+                pattern = row[i:i+length]
+                if pattern in t:
+                    keyboard_penalty = max(0.3, keyboard_penalty - 0.2)
+                    break
+
+    quality = (repeat_penalty * 0.30 + diversity_score * 0.35 + vocab_score * 0.25 + keyboard_penalty * 0.10)
+    return round(max(0.05, min(1.0, quality)), 3)
+
+
+def _bitacora_quality_score(data) -> tuple[float, str]:
+    """
+    Calcula el factor de calidad promedio de los 4 campos de la bitácora.
+    Devuelve (factor 0-1, descripción).
+    """
+    fields = [
+        data.sintomas_observados,
+        data.causa_raiz,
+        data.acciones_tomadas,
+        data.lecciones,
+    ]
+    scores = [_text_quality(f) for f in fields]
+    avg = sum(scores) / len(scores)
+
+    if avg >= 0.75:
+        label = "alta"
+    elif avg >= 0.45:
+        label = "media"
+    elif avg >= 0.20:
+        label = "baja"
+    else:
+        label = "muy baja (texto basura detectado)"
+
+    return round(avg, 3), label
+
+
 # ── Endpoints ─────────────────────────────────────────────────
 
-@router.post("", response_model=BitacoraOut, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)  # response_model omitido para incluir campos de calidad
 async def create_bitacora(
     data: BitacoraCreate,
     db:   AsyncSession = Depends(get_db),
     me:   Student      = Depends(get_current_student),
 ):
     """El aprendiz guarda su bitácora al completar el diagnóstico guiado."""
+    # ── Análisis de calidad del texto ──────────────────────────────────────
+    quality_factor, quality_label = _bitacora_quality_score(data)
+
+    # Penalizar score según calidad del texto:
+    #   Calidad alta (≥0.75) → sin penalización
+    #   Calidad media (0.45–0.75) → multiplicar por 0.80 (−20%)
+    #   Calidad baja (0.20–0.45) → multiplicar por 0.50 (−50%)
+    #   Calidad muy baja (<0.20) → score máximo 20, independiente de respuestas
+    base_score = data.score or 0
+    if quality_factor >= 0.75:
+        final_score = base_score
+    elif quality_factor >= 0.45:
+        final_score = round(base_score * 0.80, 1)
+    elif quality_factor >= 0.20:
+        final_score = round(base_score * 0.50, 1)
+    else:
+        final_score = min(base_score, 20.0)   # techo de 20 pts por texto basura
+
     b = Bitacora(
         student_id          = me.id,
         incident_id         = data.incident_id,
         node_id             = data.node_id,
         attack_type         = data.attack_type,
         severity            = data.severity,
-        score               = data.score,
+        score               = final_score,        # score ajustado por calidad
         correct_answers     = data.correct_answers,
         total_questions     = data.total_questions,
         hints_used          = data.hints_used,
@@ -87,6 +181,9 @@ async def create_bitacora(
         acciones_tomadas    = data.acciones_tomadas,
         lecciones           = data.lecciones,
     )
+    # Guardar calidad en las notas para que el instructor la vea
+    b._quality_factor = quality_factor    # temporal, no se persiste
+    b._quality_label  = quality_label
     db.add(b)
     await db.commit()
     await db.refresh(b)
@@ -96,7 +193,14 @@ async def create_bitacora(
     student = result.scalar_one_or_none()
     out = BitacoraOut.model_validate(b)
     out.student_name = student.name if student else None
-    return out
+    # Añadir metadatos de calidad como campo extra en la respuesta
+    out_dict = out.model_dump()
+    out_dict["quality_factor"] = quality_factor
+    out_dict["quality_label"]  = quality_label
+    out_dict["score_original"] = base_score
+    out_dict["score_adjusted"] = final_score
+    out_dict["score_penalized"] = final_score < base_score
+    return out_dict
 
 
 @router.get("", response_model=List[BitacoraOut])

@@ -11,6 +11,7 @@ from sqlalchemy import select, func
 
 from ..database.db import get_db
 from ..database import crud
+from sqlalchemy.orm import aliased
 from ..database.models import (Student, Session, Incident, MitigationAction,
                                GuidedSession, PracticeSession, SSTProtocolSession, Bitacora)
 from ..api.routes_students import get_current_student, require_instructor
@@ -66,12 +67,34 @@ async def get_student_ranking(
         total_w  = sum(weights) or 1
         avg_sc   = sum(p*w for p,w in zip(parts,weights)) / total_w if parts else 0
 
-        # MTTD real desde bitácoras
-        mttd_q = await db.execute(
-            select(func.avg(Bitacora.mttd_seconds))
-            .where(Bitacora.student_id == s.id, Bitacora.mttd_seconds.isnot(None))
+        # ── MTTD: promedio desde Incident.mttd_seconds (join Session→student) ──
+        # También fallback a Bitacora.mttd_seconds si no hay incidentes detectados
+        inc_mttd_q = await db.execute(
+            select(func.avg(Incident.mttd_seconds))
+            .join(Session, Incident.session_id == Session.id)
+            .where(Session.student_id == s.id, Incident.mttd_seconds.isnot(None))
         )
-        mttd_val = mttd_q.scalar() or s.avg_mttd_seconds or 0
+        mttd_val = inc_mttd_q.scalar()
+        if not mttd_val:
+            bit_mttd_q = await db.execute(
+                select(func.avg(Bitacora.mttd_seconds))
+                .where(Bitacora.student_id == s.id, Bitacora.mttd_seconds.isnot(None))
+            )
+            mttd_val = bit_mttd_q.scalar() or s.avg_mttd_seconds or 0
+
+        # ── MTTR: promedio desde Incident.mttr_seconds (join Session→student) ──
+        inc_mttr_q = await db.execute(
+            select(func.avg(Incident.mttr_seconds))
+            .join(Session, Incident.session_id == Session.id)
+            .where(Session.student_id == s.id, Incident.mttr_seconds.isnot(None))
+        )
+        mttr_val = inc_mttr_q.scalar() or s.avg_mttr_seconds or 0
+
+        # Actualizar Student con los valores calculados (para que otros endpoints los lean)
+        if mttd_val and mttd_val != s.avg_mttd_seconds:
+            s.avg_mttd_seconds = round(float(mttd_val), 1)
+        if mttr_val and mttr_val != s.avg_mttr_seconds:
+            s.avg_mttr_seconds = round(float(mttr_val), 1)
 
         total_acts = g_cnt + b_cnt + l_cnt + sst_cnt
 
@@ -80,8 +103,8 @@ async def get_student_ranking(
             "name":             s.name,
             "email":            s.email,
             "total_sessions":   total_acts,
-            "avg_mttd_seconds": round(mttd_val, 1),
-            "avg_mttr_seconds": round(s.avg_mttr_seconds or 0, 1),
+            "avg_mttd_seconds": round(float(mttd_val or 0), 1),
+            "avg_mttr_seconds": round(float(mttr_val or 0), 1),
             "avg_score":        round(avg_sc, 1),
             "rank_label":       _rank_label(avg_sc),
             "breakdown": {
@@ -91,6 +114,12 @@ async def get_student_ranking(
                 "sst":      {"count": sst_cnt, "avg": round(sst_avg, 1)},
             }
         })
+
+    # Persistir MTTD/MTTR actualizados en el Student model
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
     ranking.sort(key=lambda x: x["avg_score"], reverse=True)
     for i, r in enumerate(ranking):
