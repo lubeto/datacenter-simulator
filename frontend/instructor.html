@@ -616,12 +616,16 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
   <div class="card full" style="margin-top:.5rem">
     <div class="card-header">
       <span class="card-title">📋 Bitácoras de Incidentes</span>
-      <div style="display:flex;gap:.5rem;align-items:center">
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
         <select id="bmFilterStudent" onchange="loadBitacoras()" style="background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.25rem .6rem;font-size:.78rem">
-          <option value="">— Todos los estudiantes —</option>
+          <option value="">— Todos los aprendices —</option>
         </select>
-        <button onclick="loadBitacoras()" class="btn btn-outline btn-sm">↻ Actualizar</button>
-        <button onclick="generateConsolidatedReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">📄 Reporte consolidado</button>
+        <input type="date" id="bmFilterDate" onchange="loadBitacoras()" title="Filtrar por día"
+          style="background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.25rem .6rem;font-size:.78rem;cursor:pointer">
+        <button onclick="clearBmDateFilter()" class="btn btn-outline btn-sm" title="Ver todos los días">✕ Fecha</button>
+        <button onclick="loadBitacoras()" class="btn btn-outline btn-sm">↻</button>
+        <button onclick="generateConsolidatedReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">📄 Consolidado</button>
+        <button onclick="generateClassReport()" class="btn btn-sm" style="background:#1d4ed8;border:none;color:white;font-weight:700">📊 Reporte del Día</button>
       </div>
     </div>
     <div class="card-body" style="padding:0;overflow-x:auto">
@@ -1511,24 +1515,30 @@ async function setAllOnline() {
 
 // ── STUDENTS ───────────────────────────────────────────────
 async function loadStudents() {
+  const tbody = document.getElementById('studentsTbody');
   try {
-    const r = await apiFetch('/api/students/');
-    const tbody = document.getElementById('studentsTbody');
-    if (!r.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center">Sin estudiantes registrados</td></tr>'; return; }
-    tbody.innerHTML = r.map(s => {
-      const roleClass = s.role==='instructor'?'badge-purple':'badge-blue';
-      const mttd = s.avg_mttd_seconds > 0 ? s.avg_mttd_seconds.toFixed(0)+'s' : '—';
-      const mttr = s.avg_mttr_seconds > 0 ? s.avg_mttr_seconds.toFixed(0)+'s' : '—';
+    // Solo aprendices con conexión WS activa en este momento
+    const online = await apiFetch('/api/students/online');
+    const aprendices = online.filter(s => s.role === 'student');
+    if (!aprendices.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:1.5rem">🔴 Sin aprendices conectados ahora mismo</td></tr>';
+      return;
+    }
+    tbody.innerHTML = aprendices.map(s => {
+      const mttd  = s.avg_mttd_seconds > 0 ? s.avg_mttd_seconds.toFixed(0)+'s' : '—';
+      const mttr  = s.avg_mttr_seconds > 0 ? s.avg_mttr_seconds.toFixed(0)+'s' : '—';
       const score = s.avg_score > 0 ? s.avg_score.toFixed(1) : '—';
       return `<tr>
-        <td><strong>${s.name}</strong><br><span style="font-size:.68rem;color:var(--muted)">${s.email}</span></td>
+        <td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite"></span><strong>${s.name}</strong><br><span style="font-size:.68rem;color:var(--muted)">${s.email}</span></td>
         <td><span class="badge badge-ok">${s.total_sessions||0}</span></td>
         <td style="color:var(--accent2)">${mttd}</td>
         <td style="color:var(--orange)">${mttr}</td>
         <td><span class="badge ${s.avg_score>=80?'badge-ok':s.avg_score>=50?'badge-warn':'badge-crit'}">${score}</span></td>
       </tr>`;
     }).join('');
-  } catch(e) {}
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center">Error cargando aprendices</td></tr>';
+  }
 }
 
 // ── STUDENT MANAGEMENT ─────────────────────────────────────
@@ -1777,31 +1787,41 @@ async function loadActiveSessions() {
 }
 
 async function _loadEvalStudentFilter() {
-  const token = localStorage.getItem('token') || '';
   try {
-    const r   = await fetch('/api/students/', { headers:{ 'Authorization':'Bearer '+token } });
-    const sts = await r.json();
-    // Selector individual
+    // Para el selector individual: solo aprendices que NO tienen sesión activa
+    // (para iniciarles una nueva). Para la evaluación en curso: loadActiveSessions() lo muestra.
+    const all  = await apiFetch('/api/students/');
+    const active = await apiFetch('/api/sessions/active').catch(() => []);
+    const activeIds = new Set((active||[]).map(s => s.student_id));
+    // Solo aprendices sin sesión activa aparecen disponibles para iniciar nueva
+    const available = all.filter(s => s.role === 'student' && !activeIds.has(s.id));
+
     const sel = document.getElementById('evalStudentSel');
     if (sel) {
-      sel.innerHTML = '<option value="">— Seleccionar aprendiz —</option>' +
-        (Array.isArray(sts)?sts:[]).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+      sel.innerHTML = available.length
+        ? '<option value="">— Seleccionar aprendiz —</option>' + available.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')
+        : '<option value="">Sin aprendices disponibles</option>';
     }
-    // Checkboxes para modo grupal
+
+    // Checkboxes para modo grupal: todos los aprendices registrados
     const box = document.getElementById('groupStudentChecks');
     if (box) {
-      if (!Array.isArray(sts) || sts.length === 0) {
+      const students = all.filter(s => s.role === 'student');
+      if (!students.length) {
         box.innerHTML = '<span style="color:#475569">No hay aprendices registrados.</span>';
         return;
       }
-      box.innerHTML = sts.map(s => `
-        <label style="display:flex;align-items:center;gap:.5rem;padding:.25rem .3rem;cursor:pointer;border-radius:4px;transition:background .15s"
+      box.innerHTML = students.map(s => {
+        const inSession = activeIds.has(s.id);
+        return `<label style="display:flex;align-items:center;gap:.5rem;padding:.25rem .3rem;cursor:pointer;border-radius:4px;transition:background .15s"
           onmouseover="this.style.background='#1e3a2e'" onmouseout="this.style.background=''"
           onclick="_updateGroupCount()">
           <input type="checkbox" value="${s.id}" data-name="${s.name}"
             style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer">
           <span style="color:#e2e8f0">${s.name}</span>
-        </label>`).join('');
+          ${inSession ? '<span style="font-size:.62rem;background:#14532d;color:#4ade80;border-radius:5px;padding:1px 5px">En sesión</span>' : ''}
+        </label>`;
+      }).join('');
       _updateGroupCount();
     }
   } catch(e) {}
@@ -1902,12 +1922,23 @@ const BM_LABELS = {
   disk_failure:'Fallo de Disco', power_failure:'Fallo Eléctrico',
 };
 
+function clearBmDateFilter() {
+  const d = document.getElementById('bmFilterDate');
+  if (d) d.value = '';
+  loadBitacoras();
+}
+
 async function loadBitacoras() {
-  const token = localStorage.getItem('token') || '';
-  const sel   = document.getElementById('bmFilterStudent');
-  const sid   = sel ? sel.value : '';
-  let url = '/api/bitacoras';
-  if (sid) url += '?student_id=' + sid;
+  const token   = localStorage.getItem('token') || '';
+  const sel     = document.getElementById('bmFilterStudent');
+  const dateEl  = document.getElementById('bmFilterDate');
+  const sid     = sel ? sel.value : '';
+  const dateVal = dateEl ? dateEl.value : '';
+  const params  = new URLSearchParams();
+  if (sid)     params.set('student_id', sid);
+  if (dateVal) params.set('date_str', dateVal);
+  params.set('limit', '200');
+  const url = '/api/bitacoras?' + params.toString();
   try {
     const r  = await fetch(url, { headers:{ 'Authorization':'Bearer '+token } });
     const bs = await r.json();
@@ -1984,14 +2015,13 @@ function showBitacoraDetail(bJson) {
 }
 
 async function _loadBmStudentFilter() {
-  const token = localStorage.getItem('token') || '';
   try {
-    const r   = await fetch('/api/students/', { headers:{ 'Authorization':'Bearer '+token } });
-    const sts = await r.json();
+    const sts = await apiFetch('/api/students/');
     const sel = document.getElementById('bmFilterStudent');
     if (!sel) return;
-    sel.innerHTML = '<option value="">— Todos los estudiantes —</option>' +
-      (Array.isArray(sts)?sts:[]).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    const aprendices = (Array.isArray(sts)?sts:[]).filter(s=>s.role==='student');
+    sel.innerHTML = '<option value="">— Todos los aprendices —</option>' +
+      aprendices.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
   } catch(e) {}
 }
 
@@ -2039,65 +2069,174 @@ async function loadClassReport() {
   }
 }
 
-function generateConsolidatedReport() {
-  const token = localStorage.getItem('token') || '';
-  fetch('/api/bitacoras', { headers:{ 'Authorization':'Bearer '+token } })
-    .then(r=>r.json())
-    .then(bs => {
-      if (!Array.isArray(bs) || bs.length === 0) { alert('No hay bitácoras registradas todavía.'); return; }
-      // Agrupar por estudiante
-      const byStudent = {};
-      bs.forEach(b => {
-        const key = b.student_name || 'Sin nombre';
-        if (!byStudent[key]) byStudent[key] = [];
-        byStudent[key].push(b);
-      });
-      const now = new Date().toLocaleDateString('es-CO', {day:'2-digit', month:'long', year:'numeric'});
-      let body = '';
-      Object.entries(byStudent).forEach(([name, recs]) => {
-        const avg = recs.reduce((s,r)=>s+(r.score||0),0)/recs.length;
-        body += `
-          <div style="page-break-inside:avoid;margin-bottom:2rem;border:1px solid #ccc;border-radius:8px;padding:1rem">
-            <h2 style="color:#1e3a5f;font-size:1rem;margin-bottom:.5rem">👤 ${name}</h2>
-            <p style="font-size:.8rem;color:#555">Bitácoras: ${recs.length} &nbsp;|&nbsp; Puntaje promedio: <strong>${avg.toFixed(1)}/100</strong></p>
-            ${recs.map((b,i) => `
-              <div style="margin-top:.75rem;padding:.75rem;background:#f9fafb;border-radius:6px;font-size:.78rem">
-                <strong style="color:#1e3a5f">${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type}</strong> · Nodo: ${b.node_id} · Puntaje: <strong>${(b.score||0).toFixed(1)}</strong><br>
-                <span style="color:#555"><b>Síntomas:</b> ${b.sintomas_observados||'—'}</span><br>
-                <span style="color:#555"><b>Causa raíz:</b> ${b.causa_raiz||'—'}</span><br>
-                <span style="color:#555"><b>Acciones:</b> ${b.acciones_tomadas||'—'}</span><br>
-                <span style="color:#555"><b>Lecciones:</b> ${b.lecciones||'—'}</span>
-              </div>`).join('')}
-            <div style="margin-top:1.5rem;display:flex;gap:3rem">
-              <div style="text-align:center;flex:1">
-                <div style="border-top:1px solid #333;padding-top:.25rem;font-size:.75rem">Firma del Aprendiz</div>
-              </div>
-              <div style="text-align:center;flex:1">
-                <div style="border-top:1px solid #333;padding-top:.25rem;font-size:.75rem">Firma del Instructor</div>
-              </div>
+async function generateConsolidatedReport() {
+  const dateEl  = document.getElementById('bmFilterDate');
+  const dateVal = dateEl?.value || '';
+  const stuEl   = document.getElementById('bmFilterStudent');
+  const sid     = stuEl?.value || '';
+  const params  = new URLSearchParams({ limit: '500' });
+  if (sid)     params.set('student_id', sid);
+  if (dateVal) params.set('date_str', dateVal);
+  try {
+    const bs = await apiFetch('/api/bitacoras?' + params.toString());
+    if (!Array.isArray(bs) || bs.length === 0) { notify('Sin bitácoras', 'No hay bitácoras con los filtros actuales', 'warn'); return; }
+    const byStudent = {};
+    bs.forEach(b => {
+      const key = b.student_name || 'Aprendiz #'+b.student_id;
+      if (!byStudent[key]) byStudent[key] = [];
+      byStudent[key].push(b);
+    });
+    const now      = new Date().toLocaleDateString('es-CO', {day:'2-digit',month:'long',year:'numeric'});
+    const dayLabel = dateVal ? `Día: <strong>${new Date(dateVal+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</strong>` : 'Todas las fechas';
+    let body = '';
+    Object.entries(byStudent).forEach(([name, recs]) => {
+      const avg  = recs.reduce((s,r)=>s+(r.score||0),0)/recs.length;
+      const mttd = recs.filter(r=>r.mttd_seconds).reduce((s,r)=>s+r.mttd_seconds,0)/(recs.filter(r=>r.mttd_seconds).length||1);
+      body += `
+        <div style="page-break-inside:avoid;margin-bottom:2rem;border:1px solid #ccc;border-radius:8px;padding:1.2rem">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">
+            <div>
+              <h2 style="color:#1e3a5f;font-size:1.05rem;margin:0">👤 ${name}</h2>
+              <p style="font-size:.78rem;color:#555;margin-top:.2rem">
+                Bitácoras registradas: <strong>${recs.length}</strong> &nbsp;|&nbsp;
+                Puntaje promedio: <strong style="color:${avg>=80?'#16a34a':avg>=60?'#d97706':'#dc2626'}">${avg.toFixed(1)}/100</strong> &nbsp;|&nbsp;
+                MTTD promedio: <strong>${mttd>0?mttd.toFixed(0)+'s':'—'}</strong>
+              </p>
             </div>
-          </div>`;
-      });
-      const win = window.open('', '_blank');
-      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte Consolidado Bitácoras</title>
-        <style>body{font-family:Arial,sans-serif;margin:2rem;color:#222}h1{color:#1e3a5f}@media print{.no-print{display:none}}</style></head>
-        <body>
-          <div class="no-print" style="margin-bottom:1rem"><button onclick="window.print()" style="background:#1e3a5f;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-size:.9rem">🖨️ Imprimir / Guardar PDF</button></div>
-          <h1>Reporte Consolidado de Bitácoras</h1>
-          <p style="color:#555;font-size:.85rem">SENA · Centro de Servicios y Gestión Empresarial · Fecha: ${now}</p>
-          <hr style="margin:1rem 0">
-          ${body}
-          <div style="margin-top:3rem;display:flex;gap:4rem;justify-content:center">
-            <div style="text-align:center">
-              <div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem">Instructor responsable</div>
-            </div>
-            <div style="text-align:center">
-              <div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem">Coordinador académico</div>
+            <div style="background:${avg>=80?'#dcfce7':avg>=60?'#fef9c3':'#fee2e2'};border-radius:8px;padding:.4rem .8rem;text-align:center">
+              <div style="font-size:1.4rem;font-weight:900;color:${avg>=80?'#16a34a':avg>=60?'#d97706':'#dc2626'}">${avg.toFixed(1)}</div>
+              <div style="font-size:.65rem;color:#555">/ 100</div>
             </div>
           </div>
-        </body></html>`);
-      win.document.close();
-    }).catch(e => alert('Error al generar reporte: ' + e.message));
+          ${recs.map((b,i) => {
+            const sc = b.score||0;
+            const bdate = new Date(b.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+            return `<div style="margin-top:.75rem;padding:.75rem;background:#f9fafb;border-radius:6px;font-size:.78rem;border-left:3px solid ${sc>=80?'#16a34a':sc>=60?'#d97706':'#dc2626'}">
+              <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+                <strong style="color:#1e3a5f">${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type} — ${b.node_id}</strong>
+                <span style="color:#555;font-size:.72rem">${bdate} &nbsp;|&nbsp; Score: <strong style="color:${sc>=80?'#16a34a':sc>=60?'#d97706':'#dc2626'}">${sc.toFixed(1)}</strong> &nbsp;|&nbsp; ${b.correct_answers||0}/${b.total_questions||4} correctas</span>
+              </div>
+              <p style="margin:.2rem 0"><b style="color:#374151">Síntomas observados:</b> ${b.sintomas_observados||'—'}</p>
+              <p style="margin:.2rem 0"><b style="color:#374151">Causa raíz identificada:</b> ${b.causa_raiz||'—'}</p>
+              <p style="margin:.2rem 0"><b style="color:#374151">Acciones tomadas:</b> ${b.acciones_tomadas||'—'}</p>
+              <p style="margin:.2rem 0"><b style="color:#374151">Lecciones aprendidas:</b> ${b.lecciones||'—'}</p>
+            </div>`;
+          }).join('')}
+          <div style="margin-top:1.5rem;display:flex;gap:3rem">
+            <div style="text-align:center;flex:1"><div style="border-top:1px solid #333;padding-top:.25rem;font-size:.72rem;color:#555">Firma del Aprendiz</div></div>
+            <div style="text-align:center;flex:1"><div style="border-top:1px solid #333;padding-top:.25rem;font-size:.72rem;color:#555">Firma del Instructor</div></div>
+          </div>
+        </div>`;
+    });
+    const win = window.open('', '_blank', 'width=900,height=700');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Bitácoras Consolidadas</title>
+      <style>body{font-family:Arial,sans-serif;margin:2rem;color:#222;max-width:850px;margin:2rem auto}h1{color:#1e3a5f;margin-bottom:.3rem}@media print{.no-print{display:none}}</style></head>
+      <body>
+        <div class="no-print" style="margin-bottom:1.2rem;display:flex;gap:.6rem">
+          <button onclick="window.print()" style="background:#1e3a5f;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-size:.85rem">🖨️ Imprimir / Guardar PDF</button>
+        </div>
+        <h1>Reporte Consolidado de Bitácoras</h1>
+        <p style="color:#555;font-size:.83rem">SENA · Programa: Análisis y Desarrollo de Software · ${dayLabel}</p>
+        <p style="color:#555;font-size:.78rem">Generado: ${now} &nbsp;|&nbsp; Total aprendices: ${Object.keys(byStudent).length} &nbsp;|&nbsp; Total bitácoras: ${bs.length}</p>
+        <hr style="margin:1rem 0">
+        ${body}
+        <div style="margin-top:3rem;display:flex;gap:4rem;justify-content:center">
+          <div style="text-align:center"><div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem;color:#555">Ing. Luis Alberto Vásquez Campos<br>Instructor</div></div>
+          <div style="text-align:center"><div style="width:200px;border-top:1px solid #333;padding-top:.3rem;font-size:.8rem;color:#555">Coordinador Académico</div></div>
+        </div>
+      </body></html>`);
+    win.document.close();
+  } catch(e) { notify('❌ Error al generar reporte', e.message, 'crit'); }
+}
+
+async function generateClassReport() {
+  const dateEl  = document.getElementById('bmFilterDate');
+  const dateVal = dateEl?.value || new Date().toISOString().slice(0,10);
+  try {
+    const data = await apiFetch(`/api/sessions/class-report?date_str=${dateVal}`);
+    const students = data.students || [];
+    const dayFmt = new Date(dateVal+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    const win = window.open('', '_blank', 'width=1000,height=750');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte del Día — ${dateVal}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;padding:1.5rem;color:#1e293b;max-width:900px;margin:0 auto}
+      h1{font-size:1.3rem;color:#1e3a5f;margin-bottom:.2rem}
+      h2{font-size:1rem;color:#1e3a5f;margin:1.2rem 0 .4rem}
+      .stu-header{background:#1e3a5f;color:white;padding:.7rem 1rem;border-radius:8px 8px 0 0;display:flex;justify-content:space-between}
+      .stu-body{border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding:1rem;margin-bottom:1.5rem}
+      .kpi-row{display:flex;gap:1rem;margin-bottom:.8rem;flex-wrap:wrap}
+      .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:.4rem .8rem;text-align:center;min-width:80px}
+      .kpi-val{font-size:1.2rem;font-weight:700}
+      .kpi-lbl{font-size:.65rem;color:#64748b}
+      .bm-item{background:#f9fafb;border-radius:6px;padding:.7rem;margin-bottom:.5rem;border-left:3px solid #94a3b8;font-size:.78rem}
+      .bm-item.ok{border-left-color:#16a34a}.bm-item.warn{border-left-color:#d97706}.bm-item.bad{border-left-color:#dc2626}
+      .no-activity{color:#94a3b8;font-size:.82rem;padding:.5rem;font-style:italic}
+      table{width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:.8rem}
+      th{color:#64748b;text-align:left;padding:.3rem .6rem;border-bottom:1px solid #e2e8f0;font-weight:600}
+      td{padding:.35rem .6rem;border-bottom:1px solid #f1f5f9}
+      @media print{.no-print{display:none}body{padding:.8rem}}
+    </style></head>
+    <body>
+      <div class="no-print" style="margin-bottom:1rem">
+        <button onclick="window.print()" style="background:#1e3a5f;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer">🖨️ Imprimir / PDF</button>
+      </div>
+      <h1>📊 Reporte de Clase — ${dayFmt}</h1>
+      <p style="color:#64748b;font-size:.8rem;margin-bottom:1rem">SENA · Análisis y Desarrollo de Software · Instructor: Ing. Luis Alberto Vásquez Campos · ${students.length} aprendice(s)</p>
+      <table>
+        <thead><tr><th>Aprendiz</th><th style="text-align:center">Bitácoras</th><th style="text-align:center">Guiados</th><th style="text-align:center">Sesiones</th><th style="text-align:center">Score Prom.</th><th style="text-align:center">MTTD Prom.</th><th style="text-align:center">Tiempo Total</th></tr></thead>
+        <tbody>
+          ${students.map(s => {
+            const sc = s.summary.avg_score;
+            return `<tr>
+              <td><strong>${s.student.name}</strong></td>
+              <td style="text-align:center">${s.summary.bitacoras}</td>
+              <td style="text-align:center">${s.summary.guided_sessions}</td>
+              <td style="text-align:center">${s.summary.eval_sessions}</td>
+              <td style="text-align:center;color:${sc>=80?'#16a34a':sc>=60?'#d97706':'#94a3b8'};font-weight:700">${sc?sc.toFixed(1):'—'}</td>
+              <td style="text-align:center">${s.summary.mttd_avg?s.summary.mttd_avg.toFixed(0)+'s':'—'}</td>
+              <td style="text-align:center">${s.summary.total_time_min?s.summary.total_time_min.toFixed(0)+' min':'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <hr style="margin:1rem 0">
+      ${students.map(s => {
+        const sc = s.summary.avg_score;
+        return `<div>
+          <div class="stu-header">
+            <span><strong>${s.student.name}</strong> — ${s.student.email}</span>
+            <span>Score: ${sc?sc.toFixed(1)+'/100':'Sin actividad'}</span>
+          </div>
+          <div class="stu-body">
+            ${s.bitacoras.length === 0
+              ? '<p class="no-activity">Sin bitácoras registradas este día.</p>'
+              : s.bitacoras.map((b,i) => {
+                  const cls = b.score>=80?'ok':b.score>=60?'warn':'bad';
+                  return `<div class="bm-item ${cls}">
+                    <strong>${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type} → ${b.node_id}</strong>
+                    &nbsp;&nbsp; Score: <strong>${(b.score||0).toFixed(1)}</strong>
+                    &nbsp; ${b.correct}/${b.total} correctas
+                    &nbsp; ${b.hints} pistas
+                    &nbsp; ${b.time}h
+                    <div style="margin-top:.3rem;color:#374151"><b>Síntomas:</b> ${b.sintomas}</div>
+                    <div style="color:#374151"><b>Causa raíz:</b> ${b.causa}</div>
+                    <div style="color:#374151"><b>Acciones:</b> ${b.acciones}</div>
+                    <div style="color:#374151"><b>Lecciones:</b> ${b.lecciones}</div>
+                  </div>`;
+                }).join('')}
+            ${s.sessions.length > 0 ? `
+              <table style="margin-top:.5rem"><thead><tr><th>Tipo sesión</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Score</th></tr></thead>
+              <tbody>${s.sessions.map(ss=>`<tr><td>${ss.type}</td><td>${ss.started}</td><td>${ss.ended}</td><td>${ss.duration_min} min</td><td><strong>${(ss.score||0).toFixed(1)}</strong></td></tr>`).join('')}</tbody></table>` : ''}
+            <div style="margin-top:1.2rem;display:flex;gap:3rem">
+              <div style="text-align:center;flex:1"><div style="border-top:1px solid #aaa;padding-top:.2rem;font-size:.7rem;color:#555">Firma del Aprendiz</div></div>
+              <div style="text-align:center;flex:1"><div style="border-top:1px solid #aaa;padding-top:.2rem;font-size:.7rem;color:#555">Visto Bueno Instructor</div></div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </body></html>`);
+    win.document.close();
+  } catch(e) { notify('❌ Error al generar reporte del día', e.message, 'crit'); }
 }
 
 // ── EVAL REPORTS ───────────────────────────────────────────

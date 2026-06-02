@@ -12,7 +12,7 @@ Estudiante:
   GET  /api/sessions/my             → mis sesiones
 """
 import json
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -703,3 +703,115 @@ async def all_groups_report(
             "individual_scores": scores,
         })
     return out
+
+
+# ══════════════════════════════════════════════════════════════
+# REPORTE DE CLASE POR DÍA
+# ══════════════════════════════════════════════════════════════
+
+@router.get("/class-report")
+async def class_report(
+    date_str:   Optional[str] = None,   # YYYY-MM-DD; omitir = hoy
+    student_id: Optional[int] = None,   # filtrar un aprendiz
+    db: AsyncSession = Depends(get_db),
+    _:  Student      = Depends(require_instructor),
+):
+    """
+    Reporte de clase por día.
+    Devuelve, para cada aprendiz (o uno específico), sus bitácoras,
+    sesiones y estadísticas del día indicado.
+    """
+    from ..database.models import Bitacora, GuidedSession, PracticeSession
+
+    # Determinar rango del día
+    if date_str:
+        try:
+            day = date.fromisoformat(date_str)
+        except ValueError:
+            day = datetime.utcnow().date()
+    else:
+        day = datetime.utcnow().date()
+
+    day_start = datetime(day.year, day.month, day.day, 0, 0, 0)
+    day_end   = day_start + timedelta(days=1)
+
+    # Obtener aprendices
+    stu_q = select(Student).where(Student.role == "student").order_by(Student.name)
+    if student_id:
+        stu_q = select(Student).where(Student.id == student_id, Student.role == "student")
+    students = (await db.execute(stu_q)).scalars().all()
+
+    result = []
+    for stu in students:
+        # Bitácoras del día
+        bits_q = await db.execute(
+            select(Bitacora).where(
+                Bitacora.student_id == stu.id,
+                Bitacora.created_at >= day_start,
+                Bitacora.created_at <  day_end,
+            ).order_by(Bitacora.created_at)
+        )
+        bits = bits_q.scalars().all()
+
+        # Ejercicios guiados del día
+        guided_q = await db.execute(
+            select(GuidedSession).where(
+                GuidedSession.student_id == stu.id,
+                GuidedSession.completed_at >= day_start,
+                GuidedSession.completed_at <  day_end,
+            )
+        )
+        guided = guided_q.scalars().all()
+
+        # Sesiones del día
+        sessions_q = await db.execute(
+            select(EvalSession).where(
+                EvalSession.student_id == stu.id,
+                EvalSession.started_at >= day_start,
+                EvalSession.started_at <  day_end,
+            ).order_by(EvalSession.started_at)
+        )
+        sessions = sessions_q.scalars().all()
+
+        avg_score = round(sum(b.score for b in bits) / len(bits), 1) if bits else 0.0
+        total_time = sum(b.duration_sec or 0 for b in bits)
+
+        result.append({
+            "student": {"id": stu.id, "name": stu.name, "email": stu.email},
+            "date":    day.isoformat(),
+            "summary": {
+                "bitacoras":       len(bits),
+                "guided_sessions": len(guided),
+                "eval_sessions":   len(sessions),
+                "avg_score":       avg_score,
+                "total_time_min":  round(total_time / 60, 1),
+                "mttd_avg":        round(sum(b.mttd_seconds or 0 for b in bits) / max(len(bits),1), 1),
+            },
+            "bitacoras": [
+                {
+                    "id":            b.id,
+                    "attack_type":   b.attack_type,
+                    "node_id":       b.node_id,
+                    "score":         b.score,
+                    "correct":       b.correct_answers,
+                    "total":         b.total_questions,
+                    "hints":         b.hints_used,
+                    "mttd_s":        b.mttd_seconds,
+                    "time":          b.created_at.strftime("%H:%M"),
+                    "sintomas":      b.sintomas_observados,
+                    "causa":         b.causa_raiz,
+                    "acciones":      b.acciones_tomadas,
+                    "lecciones":     b.lecciones,
+                } for b in bits
+            ],
+            "sessions": [
+                {
+                    "started":      s.started_at.strftime("%H:%M") if s.started_at else "—",
+                    "ended":        s.ended_at.strftime("%H:%M") if s.ended_at else "Activa",
+                    "duration_min": round(s.duration_min or 0, 1),
+                    "score":        s.score or 0,
+                    "type":         "Práctica" if "[practice]" in (s.notes or "") else "Formal",
+                } for s in sessions
+            ],
+        })
+    return {"date": day.isoformat(), "students": result}

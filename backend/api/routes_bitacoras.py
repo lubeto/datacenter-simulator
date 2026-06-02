@@ -6,10 +6,10 @@ GET  /api/bitacoras/{id}     → detalle de una bitácora
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, and_
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 from ..database.db import get_db
 from ..database.models import Bitacora, Student
@@ -101,20 +101,36 @@ async def create_bitacora(
 
 @router.get("", response_model=List[BitacoraOut])
 async def list_bitacoras(
-    student_id: Optional[int] = None,
-    db:         AsyncSession  = Depends(get_db),
-    me:         Student       = Depends(get_current_student),
+    student_id: Optional[int]  = None,
+    date_str:   Optional[str]  = None,   # formato YYYY-MM-DD
+    limit:      Optional[int]  = 100,
+    db:         AsyncSession   = Depends(get_db),
+    me:         Student        = Depends(get_current_student),
 ):
     """
-    Instructor: ve todas las bitácoras (filtrable por student_id).
+    Instructor: ve todas las bitácoras (filtrable por student_id y/o fecha).
     Aprendiz: solo ve las suyas.
+    date_str: filtro por día exacto, formato YYYY-MM-DD.
     """
+    filters = []
     if me.role == "student":
-        q = select(Bitacora).where(Bitacora.student_id == me.id).order_by(desc(Bitacora.created_at))
-    else:
-        q = select(Bitacora).order_by(desc(Bitacora.created_at))
-        if student_id:
-            q = select(Bitacora).where(Bitacora.student_id == student_id).order_by(desc(Bitacora.created_at))
+        filters.append(Bitacora.student_id == me.id)
+    elif student_id:
+        filters.append(Bitacora.student_id == student_id)
+
+    if date_str:
+        try:
+            day = date.fromisoformat(date_str)
+            day_start = datetime(day.year, day.month, day.day, 0, 0, 0)
+            day_end   = day_start + timedelta(days=1)
+            filters.append(Bitacora.created_at >= day_start)
+            filters.append(Bitacora.created_at <  day_end)
+        except ValueError:
+            pass  # fecha inválida → ignorar filtro
+
+    q = select(Bitacora).order_by(desc(Bitacora.created_at)).limit(limit)
+    if filters:
+        q = select(Bitacora).where(and_(*filters)).order_by(desc(Bitacora.created_at)).limit(limit)
 
     result = await db.execute(q)
     bitacoras = result.scalars().all()

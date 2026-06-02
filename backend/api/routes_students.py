@@ -144,6 +144,21 @@ async def list_students(
     return await crud.get_all_students(db)
 
 
+@router.get("/online")
+async def list_online_students(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_instructor)
+):
+    """Devuelve solo los aprendices con conexión WebSocket activa en este momento."""
+    from ..api.websocket import manager as ws_manager
+    connected = ws_manager.get_connected_students()
+    online_ids = {s["id"] for s in connected if s and s.get("id") and s.get("role") == "student"}
+    if not online_ids:
+        return []
+    all_students = await crud.get_all_students(db)
+    return [s for s in all_students if s.id in online_ids]
+
+
 @router.get("/{student_id}", response_model=StudentOut)
 async def get_student(
     student_id: int,
