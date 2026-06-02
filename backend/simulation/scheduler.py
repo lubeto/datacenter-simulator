@@ -53,6 +53,7 @@ class EventScheduler:
     # ──────────────────────────────────────────────────────────
     async def _metrics_loop(self):
         from .engine import generate_full_snapshot, tick_attacks
+        _db_tick = 0  # guardar en DB cada 15 ciclos (cada 30s) en vez de cada 2s
         while self._running:
             try:
                 tick_attacks()
@@ -61,8 +62,10 @@ class EventScheduler:
                 if self._broadcast_cb:
                     await self._broadcast_cb("metrics", snapshot)
 
-                if self._db_save_cb:
+                _db_tick += 1
+                if self._db_save_cb and _db_tick >= 15:
                     await self._db_save_cb("metrics", snapshot)
+                    _db_tick = 0
 
             except Exception as e:
                 logger.error(f"Error en metrics_loop: {e}")

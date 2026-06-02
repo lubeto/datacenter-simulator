@@ -130,13 +130,21 @@ async def lifespan(app: FastAPI):
     scheduler_task = asyncio.create_task(scheduler.start())
     logger.info("✅ Scheduler de simulación iniciado")
 
-    # Job de limpieza automática: borrar métricas >24h cada hora
+    # Limpieza inmediata al arrancar + cada hora (retener solo últimas 6h de métricas)
     async def _cleanup_loop():
+        # Primera limpieza al inicio para liberar espacio si el disco estaba lleno
+        try:
+            async with AsyncSessionLocal() as db:
+                deleted = await crud.cleanup_old_metrics(db, keep_hours=6)
+                logger.info(f"🧹 Limpieza inicial: {deleted} registros eliminados")
+        except Exception as e:
+            logger.warning(f"cleanup inicial error: {e}")
+        # Luego repetir cada hora
         while True:
-            await asyncio.sleep(3600)  # cada hora
+            await asyncio.sleep(3600)
             try:
                 async with AsyncSessionLocal() as db:
-                    deleted = await crud.cleanup_old_metrics(db, keep_hours=24)
+                    deleted = await crud.cleanup_old_metrics(db, keep_hours=6)
                     if deleted:
                         logger.info(f"🧹 Limpieza automática: {deleted} registros eliminados")
             except Exception as e:
