@@ -1319,7 +1319,7 @@ async function startPractice() {
   // 1. Cargar todos los aprendices registrados
   let students = [];
   try {
-    const all = await apiFetch('/api/students');
+    const all = await apiFetch('/api/students/');
     students = all.filter(s => s.role === 'student');
   } catch(e) {
     notify('❌ Error', 'No se pudo cargar la lista de aprendices', 'crit');
@@ -1592,7 +1592,7 @@ async function deleteStudent(id, name) {
 async function loadStudentList() {
   const body = document.getElementById('studentListBody');
   try {
-    const r = await apiFetch('/api/students');
+    const r = await apiFetch('/api/students/');
     const students = r.filter(s => s.role === 'student');
     if (!students.length) {
       body.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin estudiantes registrados aún</div>';
@@ -1639,7 +1639,10 @@ async function loadAllIncidents() {
         </div>
       </div>`;
     }).join('');
-  } catch(e) {}
+  } catch(e) {
+    const list = document.getElementById('allIncidentsList');
+    if (list) list.innerHTML = '<div style="color:var(--red);font-size:.82rem;text-align:center;padding:1rem">Error cargando incidentes</div>';
+  }
 }
 
 // ── TIMELINE ───────────────────────────────────────────────
@@ -1795,7 +1798,7 @@ async function _loadEvalStudentFilter() {
   try {
     // Para el selector individual: solo aprendices que NO tienen sesión activa
     // (para iniciarles una nueva). Para la evaluación en curso: loadActiveSessions() lo muestra.
-    const all  = await apiFetch('/api/students');
+    const all  = await apiFetch('/api/students/');
     const active = await apiFetch('/api/sessions/active').catch(() => []);
     const activeIds = new Set((active||[]).map(s => s.student_id));
     // Solo aprendices sin sesión activa aparecen disponibles para iniciar nueva
@@ -1829,7 +1832,12 @@ async function _loadEvalStudentFilter() {
       }).join('');
       _updateGroupCount();
     }
-  } catch(e) {}
+  } catch(e) {
+    const sel = document.getElementById('evalStudentSel');
+    if (sel) sel.innerHTML = '<option value="">Error cargando aprendices</option>';
+    const box = document.getElementById('groupStudentChecks');
+    if (box) box.innerHTML = '<span style="color:var(--red);font-size:.78rem">Error cargando aprendices</span>';
+  }
 }
 
 function _updateGroupCount() {
@@ -2037,7 +2045,7 @@ function showBitacoraDetail(bJson) {
 
 async function _loadBmStudentFilter() {
   try {
-    const sts = await apiFetch('/api/students');
+    const sts = await apiFetch('/api/students/');
     const sel = document.getElementById('bmFilterStudent');
     if (!sel) return;
     const aprendices = (Array.isArray(sts)?sts:[]).filter(s=>s.role==='student');
@@ -2048,10 +2056,11 @@ async function _loadBmStudentFilter() {
 
 async function loadClassReport() {
   const body = document.getElementById('classReportBody');
-  body.innerHTML = '<div style="color:#64748b;padding:16px;text-align:center">⏳ Cargando reporte...</div>';
+  if (!body) return;
   try {
+    body.innerHTML = '<div style="color:#64748b;padding:16px;text-align:center">⏳ Cargando reporte...</div>';
     const [students, incidents, bitacoras] = await Promise.all([
-      apiFetch('/api/students'),
+      apiFetch('/api/students/'),
       apiFetch('/api/attacks/incidents'),
       apiFetch('/api/bitacoras'),
     ]);
@@ -2607,7 +2616,7 @@ let monitorIntervalId = null;
 async function loadMonitor() {
   try {
     const [students, sessions, activeSess] = await Promise.all([
-      apiFetch('/api/students'),
+      apiFetch('/api/students/'),
       apiFetch('/api/sessions/active').catch(() => []),
       apiFetch('/api/attacks/active').catch(() => []),
     ]);
@@ -2713,7 +2722,7 @@ async function loadRecentActivity() {
   if (!feed) return;
   try {
     const bits = await apiFetch('/api/bitacoras?limit=15');
-    const students = await apiFetch('/api/students').catch(() => []);
+    const students = await apiFetch('/api/students/').catch(() => []);
     const stuMap = {};
     students.forEach(s => stuMap[s.id] = s.name);
     if (!bits.length) { feed.innerHTML = '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem">Sin actividad reciente</div>'; return; }
@@ -2883,7 +2892,7 @@ async function loadEvalReportsTab() {
 
 async function loadRepBmStudentFilter() {
   try {
-    const students = await apiFetch('/api/students');
+    const students = await apiFetch('/api/students/');
     const sel = document.getElementById('repBmFilter');
     if (sel) sel.innerHTML = '<option value="">— Todos los aprendices —</option>' +
       students.filter(s=>s.role==='student').map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
@@ -2898,7 +2907,7 @@ async function loadRepBitacoras() {
   try {
     const url = studentId ? `/api/bitacoras?student_id=${studentId}&limit=50` : '/api/bitacoras?limit=50';
     const bits = await apiFetch(url);
-    const students = await apiFetch('/api/students').catch(()=>[]);
+    const students = await apiFetch('/api/students/').catch(()=>[]);
     const stuMap = {}; students.forEach(s => stuMap[s.id] = s.name);
     if (!bits.length) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin bitácoras</td></tr>'; return; }
     tbody.innerHTML = bits.map(b => {
@@ -2921,7 +2930,7 @@ async function loadSessionHistory() {
   const tbody = document.getElementById('sessionHistoryTbody');
   if (!tbody) return;
   try {
-    const students = await apiFetch('/api/students').catch(()=>[]);
+    const students = await apiFetch('/api/students/').catch(()=>[]);
     const stuMap = {}; students.forEach(s => stuMap[s.id] = s.name);
     // Load active + recent sessions
     const active = await apiFetch('/api/sessions/active').catch(()=>[]);
