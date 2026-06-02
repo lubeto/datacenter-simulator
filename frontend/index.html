@@ -1392,105 +1392,359 @@ const GUIDED_HINTS = [
   ['Para ataques de red: rate limiting o firewall. Para brute force: fail2ban. Para memory leak: reiniciar el proceso afectado.','Abre el Lab de Mitigación para practicar el procedimiento completo paso a paso.'],
 ];
 
+// ── DIAGNÓSTICO GUIADO — SISTEMA POR CATEGORÍA DE INCIDENTE ──────────────────
+// Categorías: 'red' | 'hardware' | 'sst' | 'ssl'
+// Cada categoría tiene Stage 2 (analizar) y Stage 3 (clasificar) propias.
+
 function _gAttType(inc){ return (inc?.attack?.attack_type||'').toLowerCase(); }
 function _gCorrectDetect(inc){ return inc?.attack?.node_id||'WEB-01'; }
+
+function _gCategory(inc){
+  const t = _gAttType(inc);
+  if(t.includes('ssl')||t.includes('tls')||t.includes('cert')||t.includes('expir')) return 'ssl';
+  if(t.includes('thermal')||t.includes('smoke')||t.includes('power')||t.includes('unauth')||t.includes('access')) return 'sst';
+  if(t.includes('disk')||t.includes('memory')||t.includes('leak')||t.includes('storage')) return 'hardware';
+  return 'red'; // ddos, syn, flood, dos, brute, port_scan, arp, mitm, lateral
+}
+
+// Stage 2: respuesta correcta por categoría
 function _gCorrectAnalyze(inc){
-  // SIEMPRE usar la métrica que MÁS supera su umbral en tiempo real.
-  // Esto garantiza coherencia: la respuesta correcta es lo que el aprendiz
-  // puede observar visualmente en los valores mostrados.
-  const id=_gCorrectDetect(inc), m=(allNodes[id]||{}).metrics||{};
-  const overCpu=(m.cpu_pct||0)-70;
-  const overRam=(m.ram_pct||0)-80;
-  const overNet=(m.net_in_mbps||0)-200;
-  const overConn=(m.connections||0)-400;
-  const max=Math.max(overCpu,overRam,overNet,overConn);
-  // Si ninguna métrica supera su umbral, usar el tipo de ataque como desempate
-  if(max<=0){
-    const t=_gAttType(inc);
-    if(t.includes('ddos')||t.includes('syn')||t.includes('flood')) return 'net';
-    if(t.includes('memory')||t.includes('leak')) return 'ram';
-    if(t.includes('brute')||t.includes('force')||t.includes('port')||t.includes('scan')) return 'conn';
-    if(t.includes('disk')||t.includes('storage')||t.includes('thermal')||t.includes('power')) return 'cpu';
+  const cat = _gCategory(inc);
+  const t   = _gAttType(inc);
+  const id  = _gCorrectDetect(inc);
+  const m   = (allNodes[id]||{}).metrics||{};
+
+  if(cat === 'ssl'){
+    // SSL: el indicador es la fecha/estado del certificado, no métricas de rendimiento
+    if(t.includes('tls')||t.includes('downgrade')) return 'tls_ver';
+    if(t.includes('expir')||t.includes('soon'))    return 'days_left';
+    return 'cert_err';
+  }
+  if(cat === 'sst'){
+    if(t.includes('thermal')) return 'temp';
+    if(t.includes('smoke'))   return 'smoke';
+    if(t.includes('power'))   return 'power';
+    return 'access';
+  }
+  if(cat === 'hardware'){
+    if(t.includes('disk'))   return 'disk_io';
+    // memory leak: RAM es la métrica principal
+    const ram = (m.ram_pct||0);
+    const cpu = (m.cpu_pct||0);
+    if(t.includes('memory')||t.includes('leak')) return ram>cpu ? 'ram' : 'ram'; // siempre ram
+    return 'disk_io';
+  }
+  // Categoría 'red': usar la métrica más alta sobre umbral
+  const overCpu  = (m.cpu_pct||0) - 70;
+  const overRam  = (m.ram_pct||0) - 80;
+  const overNet  = (m.net_in_mbps||0) - 200;
+  const overConn = (m.connections||0) - 400;
+  const max = Math.max(overCpu, overRam, overNet, overConn);
+  if(max <= 0){
+    if(t.includes('ddos')||t.includes('syn')||t.includes('flood')||t.includes('dos')) return 'net';
+    if(t.includes('brute')||t.includes('force')) return 'conn';
+    if(t.includes('port')||t.includes('scan'))   return 'conn';
+    if(t.includes('arp')||t.includes('mitm'))    return 'net';
     return 'net';
   }
-  if(max===overNet) return 'net';
-  if(max===overRam) return 'ram';
+  if(max===overNet)  return 'net';
   if(max===overConn) return 'conn';
+  if(max===overRam)  return 'ram';
   return 'cpu';
 }
+
+// Stage 3: clave de clasificación correcta
 function _gCorrectDecide(inc){
-  const t=_gAttType(inc);
+  const t = _gAttType(inc);
   if(t.includes('ddos')||t.includes('syn')||t.includes('flood')) return 'ddos';
+  if(t.includes('dos')&&!t.includes('ddos'))                     return 'dos';
   if(t.includes('brute')||t.includes('ssh')||t.includes('force')) return 'brute';
-  if(t.includes('memory')||t.includes('leak')) return 'mem_leak';
-  if(t.includes('port')||t.includes('scan')) return 'port_scan';
-  if(t.includes('ssl')||t.includes('tls')||t.includes('cert')||t.includes('expir')) return 'ssl';
-  if(t.includes('unauth')||t.includes('access')||t.includes('mitm')||t.includes('arp')) return 'brute';
+  if(t.includes('port')||t.includes('scan'))                      return 'port_scan';
+  if(t.includes('arp')||t.includes('mitm')||t.includes('spoof'))  return 'arp';
+  if(t.includes('memory')||t.includes('leak'))                    return 'mem_leak';
+  if(t.includes('disk')||t.includes('raid'))                      return 'disk_fail';
+  if(t.includes('thermal'))                                        return 'thermal';
+  if(t.includes('smoke'))                                          return 'smoke';
+  if(t.includes('power'))                                          return 'power_fail';
+  if(t.includes('unauth')||t.includes('access'))                  return 'unauth';
+  if(t.includes('ssl_expir')||t.includes('expiring'))             return 'ssl_expiring';
+  if(t.includes('ssl_expired'))                                    return 'ssl_expired';
+  if(t.includes('tls')||t.includes('downgrade'))                  return 'tls_downgrade';
   return 'ddos';
 }
+
+// Stage 4: mitigación correcta
 function _gCorrectMitigate(inc){
-  return {ddos:'rate_limit',brute:'fail2ban',mem_leak:'restart_proc',port_scan:'stealth',ssl:'renew_cert'}[_gCorrectDecide(inc)]||'rate_limit';
-}
-function _gBuildMitigateOpts(inc){
-  const map={
-    ddos:[{label:'🚧 Activar rate limiting en el firewall',value:'rate_limit'},{label:'🔄 Reiniciar el servidor web',value:'restart'},{label:'📧 Solo notificar al equipo',value:'notify'},{label:'💾 Hacer backup inmediato',value:'backup'}],
-    brute:[{label:'🔒 Activar fail2ban y bloquear IPs',value:'fail2ban'},{label:'🌐 Cortar todo el tráfico externo',value:'block_all'},{label:'📧 Solo notificar al usuario',value:'notify'},{label:'🔄 Reiniciar el servicio SSH',value:'restart'}],
-    mem_leak:[{label:'🔄 Reiniciar el proceso con fuga de memoria',value:'restart_proc'},{label:'🚫 Apagar el servidor completamente',value:'shutdown'},{label:'📧 Solo notificar al desarrollador',value:'notify'},{label:'💾 Ampliar la RAM del servidor',value:'add_ram'}],
-    port_scan:[{label:'🛡️ Activar modo stealth y bloquear IP origen',value:'stealth'},{label:'📧 Ignorar, es tráfico normal',value:'ignore'},{label:'🔄 Reiniciar el firewall',value:'restart_fw'},{label:'💾 Hacer backup inmediato',value:'backup'}],
-    ssl:[{label:'🔐 Renovar el certificado SSL/TLS con certbot',value:'renew_cert'},{label:'🔄 Reiniciar el servidor web',value:'restart'},{label:'📧 Solo notificar a los usuarios',value:'notify'},{label:'🔒 Forzar TLS 1.3 y deshabilitar versiones antiguas',value:'force_tls'}],
+  const key = _gCorrectDecide(inc);
+  const map = {
+    ddos:'rate_limit', dos:'rate_limit', brute:'fail2ban', port_scan:'stealth',
+    arp:'arp_inspect', mem_leak:'restart_proc', disk_fail:'replace_disk',
+    thermal:'cool_crac', smoke:'evacuate', power_fail:'switch_ups',
+    unauth:'lock_access', ssl_expiring:'renew_cert', ssl_expired:'renew_cert',
+    tls_downgrade:'force_tls13',
   };
-  return map[_gCorrectDecide(inc)]||map.ddos;
+  return map[key]||'rate_limit';
+}
+
+// ── STAGE 2: Opciones y contexto por categoría ─────────────────────────────
+function _gBuildAnalyzeStage(inc){
+  const cat = _gCategory(inc);
+  const id  = _gCorrectDetect(inc);
+  const m   = (allNodes[id]||{}).metrics||{};
+  const ssl = (allNodes[id]||{}).ssl||{};
+  const col = (v,t)=>v>t?'color:#ef4444':'color:#22c55e';
+
+  if(cat === 'ssl'){
+    const days  = ssl.days_to_expire !== undefined ? ssl.days_to_expire : '—';
+    const proto = ssl.tls_version||'TLS 1.2';
+    const issuer= ssl.issuer||'Let\'s Encrypt';
+    const expDate = ssl.expires_at ? new Date(ssl.expires_at).toLocaleDateString('es-CO') : '—';
+    return {
+      q:`🔐 Nodo: <strong style="color:#60a5fa">${id}</strong>. Revisa el estado del certificado SSL/TLS. ¿Cuál es el indicador que confirma el problema?`,
+      ctx:`Estado SSL/TLS del nodo <strong>${id}</strong>:<br>
+        &bull; Versión TLS: <strong style="${proto==='TLS 1.0'||proto==='TLS 1.1'?'color:#ef4444':'color:#22c55e'}">${proto}</strong><br>
+        &bull; Días para vencer: <strong style="${days<30?'color:#ef4444':days<60?'color:#eab308':'color:#22c55e'}">${days} días</strong><br>
+        &bull; Fecha de expiración: <strong>${expDate}</strong><br>
+        &bull; Emisor: <strong>${issuer}</strong>`,
+      opts:[
+        {label:'📅 Certificado próximo a vencer (< 30 días)',value:'days_left'},
+        {label:'🔒 Versión TLS antigua o insegura detectada',value:'tls_ver'},
+        {label:'❌ Certificado ya expirado — HTTPS caído',value:'cert_err'},
+        {label:'🌊 Tráfico de red anormal hacia el puerto 443',value:'net'},
+      ],
+      correct:_gCorrectAnalyze(inc),
+      fb:['✅ ¡Exacto! Has identificado el indicador SSL correcto. Ahora clasifica el tipo de falla.','❌ Revisa los datos del certificado en el panel SST y el estado SSL del nodo.'],
+    };
+  }
+
+  if(cat === 'sst'){
+    const temp  = m.temperature !== undefined ? m.temperature.toFixed(1) : (28 + Math.random()*15).toFixed(1);
+    const power = m.power_status||'OK';
+    const smoke = m.smoke_level !== undefined ? m.smoke_level : 0;
+    return {
+      q:`🏭 Nodo: <strong style="color:#60a5fa">${id}</strong>. Revisa los sensores físicos del datacenter. ¿Qué indicador SST está fuera de rango?`,
+      ctx:`Lectura de sensores físicos — Zona de ${id}:<br>
+        &bull; Temperatura rack: <strong style="${+temp>35?'color:#ef4444':+temp>30?'color:#eab308':'color:#22c55e'}">${temp}°C</strong> (normal &lt; 27°C)<br>
+        &bull; Nivel de humo: <strong style="${smoke>0?'color:#ef4444':'color:#22c55e'}">${smoke>0?'⚠️ DETECTADO':'Normal'}</strong><br>
+        &bull; Estado energía: <strong style="${power!=='OK'?'color:#ef4444':'color:#22c55e'}">${power}</strong><br>
+        &bull; Control de acceso: <strong>${m.access_status||'Normal'}</strong>`,
+      opts:[
+        {label:'🌡️ Temperatura fuera de rango — riesgo de apagado',value:'temp'},
+        {label:'💨 Sensor de humo activado — posible incendio',value:'smoke'},
+        {label:'⚡ Falla en suministro eléctrico — UPS activo',value:'power'},
+        {label:'🚪 Acceso físico no autorizado detectado',value:'access'},
+      ],
+      correct:_gCorrectAnalyze(inc),
+      fb:['✅ ¡Correcto! Has identificado el indicador físico crítico. Ahora clasifica la emergencia.','❌ Revisa los sensores SST del panel de alertas físicas y el mapa de nodos.'],
+    };
+  }
+
+  if(cat === 'hardware'){
+    const cpu  = +(m.cpu_pct||0).toFixed(1);
+    const ram  = +(m.ram_pct||0).toFixed(1);
+    const disk = +(m.disk_io_mbps||0).toFixed(0);
+    const dPct = +(m.disk_used_pct||0).toFixed(1);
+    return {
+      q:`💾 Nodo: <strong style="color:#60a5fa">${id}</strong>. Hay una anomalía de hardware. ¿Qué indicador de rendimiento está fallando?`,
+      ctx:`Métricas de hardware en tiempo real — ${id}:<br>
+        &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> (normal &lt; 70%)<br>
+        &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%) — ¿tendencia creciente?<br>
+        &bull; Disco I/O: <strong style="${col(disk,150)}">${disk} MB/s</strong> (normal &lt; 150 MB/s)<br>
+        &bull; Disco usado: <strong style="${col(dPct,85)}">${dPct}%</strong> (crítico &gt; 85%)<br>
+        &bull; Errores SMART: <strong>${m.smart_errors||0}</strong> (normal = 0)`,
+      opts:[
+        {label:'🧠 RAM creciendo sin liberarse — fuga de memoria',value:'ram'},
+        {label:'💿 Disco con errores SMART y I/O degradado',value:'disk_io'},
+        {label:'⚡ CPU saturada por proceso descontrolado',value:'cpu'},
+        {label:'🌊 Tráfico de red causando saturación',value:'net'},
+      ],
+      correct:_gCorrectAnalyze(inc),
+      fb:['✅ ¡Exacto! Identificaste la falla de hardware correcta. Ahora clasifica el tipo.','❌ Observa cuál de las métricas tiene una tendencia anormal sostenida, no solo un pico puntual.'],
+    };
+  }
+
+  // Categoría 'red'
+  const cpu  = +(m.cpu_pct||0).toFixed(1);
+  const ram  = +(m.ram_pct||0).toFixed(1);
+  const net  = +(m.net_in_mbps||0).toFixed(0);
+  const conn = m.connections||0;
+  const lat  = +(m.latency_ms||0).toFixed(0);
+  return {
+    q:`📊 Nodo: <strong style="color:#60a5fa">${id}</strong>. Analiza sus métricas de red. ¿Cuál indicador confirma el ataque?`,
+    ctx:`Métricas en tiempo real de ${id}:<br>
+      &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> (normal &lt; 70%)<br>
+      &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%)<br>
+      &bull; Net IN: <strong style="${col(net,200)}">${net} Mbps</strong> (normal &lt; 200)<br>
+      &bull; Conexiones: <strong style="${col(conn,400)}">${conn}</strong> (normal &lt; 400)<br>
+      &bull; Latencia: <strong style="${col(lat,200)}">${lat} ms</strong> (normal &lt; 200 ms)`,
+    opts:[
+      {label:'🌊 Tráfico de red anormal — volumetría elevada',value:'net'},
+      {label:'🔗 Conexiones masivas desde múltiples IPs',value:'conn'},
+      {label:'⚡ CPU saturada — proceso malintencionado',value:'cpu'},
+      {label:'🧠 RAM elevada — proceso no controlado',value:'ram'},
+    ],
+    correct:_gCorrectAnalyze(inc),
+    fb:['✅ ¡Exacto! Identificaste la métrica de red clave. Ahora clasifica el ataque.','❌ Revisa qué valor supera más su umbral normal. En ataques de red, el tráfico o las conexiones suelen dispararse primero.'],
+  };
+}
+
+// ── STAGE 3: Opciones de clasificación por categoría ──────────────────────
+function _gBuildClassifyStage(inc){
+  const cat = _gCategory(inc);
+  const id  = _gCorrectDetect(inc);
+
+  if(cat === 'ssl'){
+    return {
+      q:'🔐 Identifica exactamente el tipo de falla SSL/TLS. ¿Cuál describe mejor lo que está pasando?',
+      ctx:`Falla SSL/TLS en el nodo <strong style="color:#60a5fa">${id}</strong>. En producción, un certificado mal gestionado puede causar downtime total del servicio HTTPS.`,
+      opts:[
+        {label:'⌛ Certificado SSL próximo a vencer (< 30 días)',value:'ssl_expiring'},
+        {label:'❌ Certificado SSL ya expirado — HTTPS caído',value:'ssl_expired'},
+        {label:'⬇️ TLS Downgrade — negociación a versión insegura',value:'tls_downgrade'},
+        {label:'💥 DDoS sobre puerto 443 — sin relación con el cert.',value:'ddos'},
+      ],
+      correct:_gCorrectDecide(inc),
+      fb:['✅ ¡Correcto! Clasificaste la falla SSL/TLS con precisión.','❌ Lee de nuevo el estado del certificado. ¿Está por vencer, ya expiró, o la versión TLS es insegura?'],
+    };
+  }
+
+  if(cat === 'sst'){
+    return {
+      q:'🏭 Clasifica el tipo de emergencia física. ¿Cuál describe mejor el incidente SST?',
+      ctx:`Emergencia física en la zona de <strong style="color:#60a5fa">${id}</strong>. Los incidentes SST requieren protocolo diferente a los ciberataques: implican respuesta física inmediata.`,
+      opts:[
+        {label:'🌡️ Sobrecalentamiento — falla CRAC / refrigeración',value:'thermal'},
+        {label:'💨 Alarma de humo — posible incendio en el rack',value:'smoke'},
+        {label:'⚡ Corte eléctrico — UPS o PDU comprometido',value:'power_fail'},
+        {label:'🚪 Acceso físico no autorizado al datacenter',value:'unauth'},
+      ],
+      correct:_gCorrectDecide(inc),
+      fb:['✅ ¡Exacto! Clasificaste la emergencia física correctamente.','❌ Recuerda: no todos los incidentes son ciberataques. Los sensores SST detectan fallas físicas reales.'],
+    };
+  }
+
+  if(cat === 'hardware'){
+    return {
+      q:'💾 Clasifica la falla de hardware. ¿Cuál describe mejor lo que está fallando?',
+      ctx:`Falla de hardware en <strong style="color:#60a5fa">${id}</strong>. Las fallas de hardware pueden causar pérdida de datos si no se actúa rápidamente.`,
+      opts:[
+        {label:'🧠 Memory Leak — proceso acumula RAM sin liberarla',value:'mem_leak'},
+        {label:'💿 Falla de Disco RAID — errores SMART detectados',value:'disk_fail'},
+        {label:'💥 DDoS — ataque externo causando saturación',value:'ddos'},
+        {label:'🔑 Brute Force — intentos de acceso a base de datos',value:'brute'},
+      ],
+      correct:_gCorrectDecide(inc),
+      fb:['✅ ¡Perfecto! Diferenciaste correctamente falla de hardware vs. ataque de red.','❌ Recuerda: Memory Leak y Falla de Disco son fallas internas, no ataques externos desde la red.'],
+    };
+  }
+
+  // Categoría 'red'
+  return {
+    q:'🌐 Clasifica el tipo de ataque de red. ¿Cuál describe mejor el vector de ataque?',
+    ctx:`Ataque de red en <strong style="color:#60a5fa">${id}</strong>. Cada tipo de ataque tiene una firma diferente en las métricas y requiere una mitigación específica.`,
+    opts:[
+      {label:'💥 DDoS / SYN Flood — saturación masiva de red',value:'ddos'},
+      {label:'🔑 Brute Force SSH — intentos de autenticación repetidos',value:'brute'},
+      {label:'🔍 Port Scan — reconocimiento activo de la red',value:'port_scan'},
+      {label:'☠️ ARP Spoofing — envenenamiento de caché de red',value:'arp'},
+    ],
+    correct:_gCorrectDecide(inc),
+    fb:['✅ ¡Correcto! Identificaste el vector de ataque de red.','❌ Piensa en qué recurso está saturado: ¿el ancho de banda (DDoS), las conexiones SSH (Brute Force), o el tráfico ARP?'],
+  };
+}
+
+// ── STAGE 4: Opciones de mitigación por categoría ─────────────────────────
+function _gBuildMitigateOpts(inc){
+  const cat = _gCategory(inc);
+  const key = _gCorrectDecide(inc);
+  const id  = _gCorrectDetect(inc);
+  const attackLabel = {
+    ddos:'DDoS / SYN Flood', dos:'Ataque DoS', brute:'Brute Force SSH',
+    port_scan:'Escaneo de Puertos', arp:'ARP Spoofing',
+    mem_leak:'Memory Leak', disk_fail:'Falla de Disco RAID',
+    thermal:'Sobrecalentamiento', smoke:'Alarma de Humo', power_fail:'Corte Eléctrico',
+    unauth:'Acceso No Autorizado',
+    ssl_expiring:'SSL Próximo a Vencer', ssl_expired:'SSL Expirado', tls_downgrade:'TLS Downgrade',
+  }[key] || key;
+
+  if(cat === 'ssl'){
+    return {
+      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es la acción de mitigación correcta?`,
+      ctx:'En certificados SSL/TLS, la velocidad de respuesta es crítica. Un certificado expirado genera errores inmediatos para todos los usuarios.',
+      opts:[
+        {label:'🔐 Renovar el certificado con certbot/Let\'s Encrypt',value:'renew_cert'},
+        {label:'⬆️ Forzar TLS 1.3 y deshabilitar TLS 1.0/1.1',value:'force_tls13'},
+        {label:'🔄 Reiniciar el servidor web (nginx/apache)',value:'restart'},
+        {label:'📧 Solo notificar al equipo de infraestructura',value:'notify'},
+      ],
+      correct:_gCorrectMitigate(inc),
+      fb:['✅ ¡Excelente! Esa es la acción correcta según el tipo de falla SSL.','❌ Reiniciar el servidor no resuelve el certificado. Notificar tampoco. La solución es directa sobre el cert.'],
+    };
+  }
+
+  if(cat === 'sst'){
+    return {
+      q:`🛡️ Emergencia confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es el primer paso del protocolo SST?`,
+      ctx:'Los incidentes SST activan protocolos físicos de seguridad. La prioridad es proteger el equipo y el personal, no solo los datos.',
+      opts:[
+        {label:'❄️ Reiniciar unidad CRAC y aumentar extracción de aire',value:'cool_crac'},
+        {label:'🚨 Activar protocolo de evacuación y suppressión',value:'evacuate'},
+        {label:'🔋 Verificar UPS y conmutar a generador de respaldo',value:'switch_ups'},
+        {label:'🔒 Revocar credenciales de acceso físico comprometidas',value:'lock_access'},
+      ],
+      correct:_gCorrectMitigate(inc),
+      fb:['✅ ¡Correcto! Activaste el protocolo SST adecuado para esta emergencia.','❌ El protocolo SST depende del tipo de sensor activado: temperatura, humo, energía o acceso.'],
+    };
+  }
+
+  if(cat === 'hardware'){
+    return {
+      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es la primera acción de mitigación?`,
+      ctx:'Las fallas de hardware tienen ventanas de tiempo críticas. Actuar rápido puede prevenir pérdida de datos y downtime prolongado.',
+      opts:[
+        {label:'🔄 Reiniciar el proceso con fuga y ajustar límites de memoria',value:'restart_proc'},
+        {label:'💿 Reemplazar disco fallido y reconstruir el RAID',value:'replace_disk'},
+        {label:'🚫 Apagar el servidor completamente de emergencia',value:'shutdown'},
+        {label:'📧 Solo notificar al proveedor de hardware',value:'notify'},
+      ],
+      correct:_gCorrectMitigate(inc),
+      fb:['✅ ¡Perfecto! Esa es la mitigación correcta para esta falla de hardware.','❌ Apagar el servidor es el último recurso. Hay acciones más precisas que resuelven la causa raíz.'],
+    };
+  }
+
+  // Categoría 'red'
+  return {
+    q:`🛡️ Ataque confirmado: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es la primera línea de defensa?`,
+    ctx:'En ataques de red, la velocidad de respuesta define si el incidente se contiene o se expande. Cada tipo de ataque tiene una contramedida primaria diferente.',
+    opts:[
+      {label:'🚧 Activar rate limiting y null-route en el firewall',value:'rate_limit'},
+      {label:'🔒 Activar fail2ban y bloquear IPs origen',value:'fail2ban'},
+      {label:'🛡️ Poner interfaz en modo stealth y ACL restrictiva',value:'stealth'},
+      {label:'🔍 Activar ARP inspection y dynamic ARP protection',value:'arp_inspect'},
+    ],
+    correct:_gCorrectMitigate(inc),
+    fb:['✅ ¡Excelente respuesta! Esa contramedida ataca directamente el vector de ataque.','❌ Piensa en qué mecanismo detiene específicamente este tipo de ataque, no la solución genérica.'],
+  };
 }
 
 const GUIDED_STAGES = [
+  // STAGE 1: Detectar nodo (igual para todas las categorías)
   (inc) => ({
-    q:'🔴 ¡Alerta! Actividad anómala detectada. Observa el mapa de red arriba. ¿Qué nodo muestra el estado más crítico?',
-    ctx:'El mapa de red muestra en tiempo real el estado de cada nodo. Los nodos en <strong style="color:#ef4444">rojo</strong> están bajo ataque o en estado crítico. Identifica y selecciona el nodo afectado.',
-    opts:(()=>{const c=_gCorrectDetect(inc);const o=Object.keys(allNodes).filter(n=>n!==c).sort(()=>Math.random()-.5).slice(0,3);return [c,...o].sort(()=>Math.random()-.5).map(n=>({label:'🖥️ '+n,value:n}));})(),
+    q:'🔴 ¡Alerta! Actividad anómala detectada. Observa el mapa de red. ¿Qué nodo muestra el estado más crítico?',
+    ctx:'El mapa de red muestra en tiempo real el estado de cada nodo. Los nodos en <strong style="color:#ef4444">rojo</strong> tienen un incidente activo. Identifica el nodo afectado.',
+    opts:(()=>{ const c=_gCorrectDetect(inc); const o=Object.keys(allNodes).filter(n=>n!==c).sort(()=>Math.random()-.5).slice(0,3); return [c,...o].sort(()=>Math.random()-.5).map(n=>({label:'🖥️ '+n,value:n})); })(),
     correct:_gCorrectDetect(inc),
-    fb:['✅ ¡Correcto! Has localizado el nodo comprometido. Pasa a analizar sus métricas.','❌ No es ese nodo. Busca el nodo en rojo en el mapa de red y vuelve a intentarlo.'],
+    fb:['✅ ¡Correcto! Has localizado el nodo con el incidente. Ahora analiza sus indicadores.','❌ No es ese nodo. Busca el nodo en rojo en el mapa de red y vuelve a intentarlo.'],
   }),
+  // STAGE 2: Analizar — pregunta específica por categoría
+  (inc) => _gBuildAnalyzeStage(inc),
+  // STAGE 3: Clasificar — opciones específicas por categoría
+  (inc) => _gBuildClassifyStage(inc),
+  // STAGE 4: Mitigar — opciones específicas por categoría
   (inc) => {
-    const id=_gCorrectDetect(inc), m=(allNodes[id]||{}).metrics||{};
-    const cpu=+(m.cpu_pct||0).toFixed(1), ram=+(m.ram_pct||0).toFixed(1), net=+(m.net_in_mbps||0).toFixed(0), conn=m.connections||0, lat=+(m.latency_ms||0).toFixed(0);
-    const col=(v,t)=>v>t?'color:#ef4444':'color:#22c55e';
-    return {
-      q:`📊 Nodo identificado: <strong style="color:#60a5fa">${id}</strong>. Analiza sus métricas actuales. ¿Cuál indicador confirma el problema?`,
-      ctx:`Métricas en tiempo real de ${id}:<br>
-        &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> &nbsp;(normal &lt; 70%)<br>
-        &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> &nbsp;(normal &lt; 80%)<br>
-        &bull; Net IN: <strong style="${col(net,200)}">${net} Mbps</strong> &nbsp;(normal &lt; 200)<br>
-        &bull; Conexiones: <strong style="${col(conn,400)}">${conn}</strong> &nbsp;(normal &lt; 400)<br>
-        &bull; Latencia: <strong style="${col(lat,200)}">${lat} ms</strong> &nbsp;(normal &lt; 200 ms)`,
-      opts:[
-        {label:'⚡ CPU elevada — sobrecarga de proceso',value:'cpu'},
-        {label:'🧠 RAM al máximo — posible fuga de memoria',value:'ram'},
-        {label:'🌊 Tráfico de red anormal — posible DDoS',value:'net'},
-        {label:'🔗 Conexiones masivas — acceso no autorizado',value:'conn'},
-      ],
-      correct:_gCorrectAnalyze(inc),
-      fb:['✅ ¡Exacto! Has identificado la métrica clave del ataque. Ahora clasifícalo.','❌ Revisa qué valor supera MÁS su umbral normal en las métricas mostradas arriba.'],
-    };
+    const s = _gBuildMitigateOpts(inc);
+    return { q:s.q, ctx:s.ctx, opts:s.opts, correct:_gCorrectMitigate(inc), fb:['✅ ¡Excelente! Esa es la acción correcta como primera respuesta inmediata.','❌ Esa acción no ataca la raíz del problema. Piensa en qué detiene específicamente este tipo de incidente.'] };
   },
-  (inc) => ({
-    q:'🎯 Basado en el patrón de métricas, ¿cuál es el tipo de ataque más probable?',
-    ctx:`Tienes identificado el indicador principal del nodo <strong style="color:#60a5fa">${_gCorrectDetect(inc)}</strong>. Ahora clasifica el ataque basándote en ese patrón.`,
-    opts:[
-      {label:'💥 DDoS / SYN Flood — saturación de red',value:'ddos'},
-      {label:'🔑 Brute Force — intentos SSH repetidos',value:'brute'},
-      {label:'🧠 Memory Leak — fuga de memoria del proceso',value:'mem_leak'},
-      {label:'🔍 Port Scan — reconocimiento de puertos',value:'port_scan'},
-    ],
-    correct:_gCorrectDecide(inc),
-    fb:['✅ ¡Correcto! Has clasificado el ataque perfectamente. Último paso: mitigación.','❌ Revisa el patrón de métricas. ¿Qué recurso está más afectado? Eso revela el tipo de ataque.'],
-  }),
-  (inc) => ({
-    q:'🛡️ ¡Último paso! Has diagnosticado el ataque. ¿Cuál es tu primera acción de mitigación?',
-    ctx:`Ataque identificado: <strong style="color:#f97316">${{ddos:'DDoS/SYN Flood',brute:'Brute Force SSH',mem_leak:'Memory Leak',port_scan:'Port Scan'}[_gCorrectDecide(inc)]||'desconocido'}</strong> en <strong style="color:#60a5fa">${_gCorrectDetect(inc)}</strong>. ¿Cuál es la respuesta inmediata más efectiva?`,
-    opts:_gBuildMitigateOpts(inc),
-    correct:_gCorrectMitigate(inc),
-    fb:['✅ ¡Excelente! Esa es la acción correcta como primera respuesta inmediata.','❌ Esa acción no ataca la raíz del problema. Piensa en qué detiene el ataque directamente.'],
-  }),
 ];
 
 function startGuidedMode(incident) {
