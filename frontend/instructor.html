@@ -2246,47 +2246,89 @@ function _scoreColor(s) {
   if (s >= 60) return '#facc15';
   return '#f87171';
 }
-function _scoreCell(val, sessions) {
-  if (!sessions) return `<span style="color:#334155;font-size:.7rem">Sin datos</span>`;
-  return `<span style="color:${_scoreColor(val)};font-weight:700">${val.toFixed(1)}</span>
-          <span style="font-size:.65rem;color:#475569"> (${sessions} ses.)</span>`;
+function _scoreCell(val, count, label) {
+  // Siempre muestra un número — nunca "Sin datos"
+  const c = _scoreColor(val);
+  const n = (val || 0).toFixed(1);
+  const sub = count > 0 ? label : '<span style="color:#475569;font-style:italic">0 actividades</span>';
+  return `<span style="color:${c};font-weight:700;font-size:.95rem">${n}</span>
+          <span style="font-size:.65rem;color:#475569">/100</span>
+          <div style="font-size:.62rem;margin-top:2px">${sub}</div>`;
+}
+
+function _volBar(vol, bench, count) {
+  const pct = Math.min((count / bench) * 100, 100);
+  const c = pct >= 100 ? '#4ade80' : pct >= 60 ? '#facc15' : '#f87171';
+  return `<div style="height:4px;background:#1e2d45;border-radius:2px;margin-top:3px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle">
+    <div style="height:100%;width:${pct}%;background:${c};border-radius:2px"></div>
+  </div> <span style="font-size:.6rem;color:#475569">${count}/${bench}</span>`;
+}
+
+function _buildEvalRow(r) {
+  const p    = r.practice;
+  const b    = r.benchmarks || { guided:5, bitacora:5, lab:3 };
+  const gc   = _scoreColor(r.global_score);
+  const name = r.student.name.replace(/'/g,"\\'");
+  return `<tr style="border-bottom:1px solid rgba(30,45,69,.4)">
+    <td style="padding:9px 12px">
+      <strong>${r.student.name}</strong>
+      <div style="font-size:.65rem;color:#475569">${r.student.email}</div>
+      <div style="font-size:.62rem;color:#64748b;margin-top:2px">
+        ${p.total_iterations} iteraciones totales
+      </div>
+    </td>
+    <td style="padding:9px 12px;text-align:center">
+      ${_scoreCell(p.score, p.total_iterations, '')}
+      <div style="margin-top:4px">
+        <div style="font-size:.62rem;color:#818cf8;margin-bottom:1px">
+          Guiados: <strong>${p.guided_count}</strong>
+          ${_volBar(p.guided_vol, b.guided, p.guided_count)}
+        </div>
+        <div style="font-size:.62rem;color:#a78bfa;margin-bottom:1px">
+          Bitácoras: <strong>${p.bitacora_count}</strong>
+          ${_volBar(p.bitacora_vol, b.bitacora, p.bitacora_count)}
+        </div>
+        <div style="font-size:.62rem;color:#34d399">
+          Labs: <strong>${p.lab_count}</strong>
+          ${_volBar(p.lab_vol, b.lab, p.lab_count)}
+        </div>
+      </div>
+    </td>
+    <td style="padding:9px 12px;text-align:center">
+      ${_scoreCell(r.formal.individual.score, r.formal.individual.sessions,
+        r.formal.individual.sessions > 0
+          ? `${r.formal.individual.sessions} sesión(es)`
+          : '<span style="color:#475569;font-style:italic">No evaluado</span>')}
+    </td>
+    <td style="padding:9px 12px;text-align:center">
+      ${_scoreCell(r.formal.group.score, r.formal.group.sessions,
+        r.formal.group.sessions > 0
+          ? `${r.formal.group.sessions} grupo(s)`
+          : '<span style="color:#475569;font-style:italic">No evaluado</span>')}
+    </td>
+    <td style="padding:9px 12px;text-align:center">
+      <span style="font-size:1.1rem;font-weight:900;color:${gc}">${(r.global_score||0).toFixed(1)}</span>
+      <span style="font-size:.65rem;color:#475569">/100</span>
+    </td>
+    <td style="padding:9px 12px;text-align:center">
+      <button onclick="generateStudentReport(${r.student.id},'${name}')"
+        style="background:#7c3aed;border:none;border-radius:5px;color:white;font-size:.7rem;font-weight:700;padding:.3rem .7rem;cursor:pointer">
+        📄 Reporte
+      </button>
+    </td>
+  </tr>`;
 }
 
 async function loadEvalReports() {
   const tbody = document.getElementById('evalReportTbody');
+  if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">⏳ Cargando...</td></tr>';
   try {
     const rows = await apiFetch('/api/sessions/report/all');
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">Sin aprendices registrados</td></tr>';
-      return;
-    }
-    tbody.innerHTML = rows.map(r => {
-      const global = r.global_score;
-      const globalColor = _scoreColor(global);
-      return `<tr style="border-bottom:1px solid rgba(30,45,69,.4)">
-        <td style="padding:9px 12px;font-weight:600">${r.student.name}
-          <div style="font-size:.68rem;color:#475569">${r.student.email}</div></td>
-        <td style="padding:9px 12px;text-align:center">
-          ${_scoreCell(r.practice.score, r.practice.sessions + r.practice.guided_count)}
-          <div style="font-size:.65rem;color:#6366f1;margin-top:2px">
-            Guiados: ${r.practice.guided_count} · Labs: ${r.practice.lab_count} · Bitácoras: ${r.practice.bitacora_count}
-          </div>
-        </td>
-        <td style="padding:9px 12px;text-align:center">${_scoreCell(r.formal.individual.score, r.formal.individual.sessions)}</td>
-        <td style="padding:9px 12px;text-align:center">${_scoreCell(r.formal.group.score, r.formal.group.sessions)}</td>
-        <td style="padding:9px 12px;text-align:center">
-          <span style="font-size:1rem;font-weight:900;color:${globalColor}">${global ? global.toFixed(1) : '—'}</span>
-          <span style="font-size:.65rem;color:#475569">/100</span>
-        </td>
-        <td style="padding:9px 12px;text-align:center;display:flex;gap:.4rem;justify-content:center">
-          <button onclick="generateStudentReport(${r.student.id},'${r.student.name.replace(/'/g,"\\'")}' )"
-            style="background:#7c3aed;border:none;border-radius:5px;color:white;font-size:.7rem;font-weight:700;padding:.25rem .6rem;cursor:pointer">
-            📄 Reporte
-          </button>
-        </td>
-      </tr>`;
-    }).join('');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">Sin aprendices registrados</td></tr>'; return; }
+    // Ordenar por score global descendente (más actividades + mejor calidad = primero)
+    rows.sort((a, b) => (b.global_score||0) - (a.global_score||0));
+    tbody.innerHTML = rows.map(_buildEvalRow).join('');
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f87171;padding:16px">Error: ${e.message}</td></tr>`;
   }
@@ -2319,65 +2361,140 @@ async function generateStudentReport(studentId, studentName) {
   .history td{padding:5px 8px;border-bottom:1px solid #f1f5f9}
   .formula{background:#f1f5f9;border-radius:8px;padding:10px 14px;font-size:.75rem;color:#475569;margin-bottom:20px}
   .formula strong{color:#1e293b}
+  .vol-bar{height:7px;border-radius:4px;margin-top:4px;background:#e2e8f0;overflow:hidden}
+  .vol-fill{height:100%;border-radius:4px}
+  .activity-table table{width:100%;border-collapse:collapse;font-size:.73rem;margin-top:6px}
+  .activity-table th{color:#94a3b8;font-weight:600;text-align:left;padding:4px 6px;border-bottom:1px solid #e2e8f0}
+  .activity-table td{padding:4px 6px;border-bottom:1px solid #f1f5f9}
   .footer{margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:.72rem;color:#94a3b8;text-align:center}
   @media print{body{padding:12px}.card{box-shadow:none}}
 </style></head><body>
 <h1>📊 Reporte Evaluativo — ${r.student.name}</h1>
-<div class="subtitle">${r.student.email} &nbsp;·&nbsp; Generado: ${date}</div>
+<div class="subtitle">${r.student.email} &nbsp;·&nbsp; Generado: ${date} &nbsp;·&nbsp; Total iteraciones: <strong>${r.total_iterations||0}</strong></div>
 
 <div class="formula">
-  <strong>Fórmula de ponderación:</strong>
-  &nbsp;Score Global = <strong>30%</strong> Práctica + <strong>70%</strong> Evaluación Formal
-  &nbsp;|&nbsp; Práctica = Diagnóstico Guiado 40% + Bitácoras 35% + Labs 25%
-  &nbsp;|&nbsp; Formal = Individual 60% + Grupal 40%
+  <strong>Sistema de puntuación por volumen:</strong>
+  Score por actividad = (Puntos acumulados / Puntos esperados) × 100
+  &nbsp;|&nbsp; Benchmark: ${r.benchmarks?.guided||5} guiados · ${r.benchmarks?.bitacora||5} bitácoras · ${r.benchmarks?.lab||3} labs
+  &nbsp;|&nbsp; Global = Práctica 30% + Formal 70% (si hay evaluación formal)
 </div>
 
 <div class="grid">
+  <!-- Práctica: Diagnósticos guiados -->
   <div class="card practice">
-    <div class="label">🏃 Práctica</div>
-    <div class="score ${r.practice.score>=80?'ok':r.practice.score>=60?'warn':r.practice.score?'bad':'na'}">
-      ${r.practice.score ? r.practice.score.toFixed(1) : 'S/D'}
+    <div class="label">🔍 Diagnósticos Guiados</div>
+    <div class="score ${r.practice.guided_vol>=80?'ok':r.practice.guided_vol>=40?'warn':r.practice.guided_vol>0?'bad':'na'}">
+      ${(r.practice.guided_vol||0).toFixed(1)}
     </div>
     <div class="detail">
-      Ejercicios guiados: <b>${r.practice.guided_count}</b> (prom. ${r.practice.guided_avg}/100)<br>
-      Labs de mitigación: <b>${r.practice.lab_count}</b> (prom. ${r.practice.lab_avg}/100)<br>
-      Bitácoras: <b>${r.practice.bitacora_count}</b> (prom. ${r.practice.bitacora_avg}/100)<br>
-      Sesiones de práctica: <b>${r.practice.sessions}</b>
+      <strong>${r.practice.guided_count}</strong> realizados de ${r.benchmarks?.guided||5} esperados<br>
+      Puntos acumulados: <strong>${(r.practice.guided_total||0).toFixed(0)}</strong> / ${(r.benchmarks?.guided||5)*100} posibles<br>
+      Promedio por diagnóstico: <strong>${(r.practice.guided_avg||0).toFixed(1)}/100</strong>
+    </div>
+    <div class="vol-bar"><div class="vol-fill" style="width:${Math.min(r.practice.guided_count/(r.benchmarks?.guided||5)*100,100)}%;background:${r.practice.guided_vol>=80?'#16a34a':r.practice.guided_vol>=40?'#d97706':'#dc2626'}"></div></div>
+    ${r.practice.guided_detail?.length ? `
+    <div class="activity-table"><table>
+      <tr><th>#</th><th>Ataque</th><th>Nodo</th><th>Correct</th><th>Score</th><th>Pistas</th></tr>
+      ${r.practice.guided_detail.map((d,i)=>`<tr><td>${i+1}</td><td>${d.attack||'?'}</td><td>${d.node||'?'}</td><td>${d.correct||0}/${d.total||4}</td><td><strong style="color:${d.score>=80?'#16a34a':d.score>=60?'#d97706':'#dc2626'}">${(d.score||0).toFixed(1)}</strong></td><td>${d.hints||0}</td></tr>`).join('')}
+    </table></div>` : ''}
+  </div>
+
+  <!-- Práctica: Bitácoras -->
+  <div class="card" style="border-top:4px solid #8b5cf6">
+    <div class="label">📝 Bitácoras de Incidentes</div>
+    <div class="score ${r.practice.bitacora_vol>=80?'ok':r.practice.bitacora_vol>=40?'warn':r.practice.bitacora_vol>0?'bad':'na'}">
+      ${(r.practice.bitacora_vol||0).toFixed(1)}
+    </div>
+    <div class="detail">
+      <strong>${r.practice.bitacora_count}</strong> registradas de ${r.benchmarks?.bitacora||5} esperadas<br>
+      Puntos acumulados: <strong>${(r.practice.bitacora_total||0).toFixed(0)}</strong> / ${(r.benchmarks?.bitacora||5)*100} posibles<br>
+      Promedio por bitácora: <strong>${(r.practice.bitacora_avg||0).toFixed(1)}/100</strong>
+    </div>
+    <div class="vol-bar"><div class="vol-fill" style="width:${Math.min(r.practice.bitacora_count/(r.benchmarks?.bitacora||5)*100,100)}%;background:${r.practice.bitacora_vol>=80?'#16a34a':r.practice.bitacora_vol>=40?'#d97706':'#dc2626'}"></div></div>
+    ${r.practice.bitacora_detail?.length ? `
+    <div class="activity-table"><table>
+      <tr><th>#</th><th>Ataque</th><th>Nodo</th><th>Correct.</th><th>Score</th></tr>
+      ${r.practice.bitacora_detail.map((d,i)=>`<tr><td>${i+1}</td><td>${d.attack||'?'}</td><td>${d.node||'?'}</td><td>${d.correct||0}/${d.total||4}</td><td><strong style="color:${d.score>=80?'#16a34a':d.score>=60?'#d97706':'#dc2626'}">${(d.score||0).toFixed(1)}</strong></td></tr>`).join('')}
+    </table></div>` : ''}
+  </div>
+
+  <!-- Labs de mitigación -->
+  <div class="card" style="border-top:4px solid #10b981">
+    <div class="label">🛡️ Labs de Mitigación</div>
+    <div class="score ${r.practice.lab_vol>=80?'ok':r.practice.lab_vol>=40?'warn':r.practice.lab_vol>0?'bad':'na'}">
+      ${(r.practice.lab_vol||0).toFixed(1)}
+    </div>
+    <div class="detail">
+      <strong>${r.practice.lab_count}</strong> completados de ${r.benchmarks?.lab||3} esperados<br>
+      Puntos acumulados: <strong>${(r.practice.lab_total||0).toFixed(0)}</strong> / ${(r.benchmarks?.lab||3)*100} posibles<br>
+      Promedio por lab: <strong>${(r.practice.lab_avg||0).toFixed(1)}/100</strong>
+    </div>
+    <div class="vol-bar"><div class="vol-fill" style="width:${Math.min(r.practice.lab_count/(r.benchmarks?.lab||3)*100,100)}%;background:${r.practice.lab_vol>=80?'#16a34a':r.practice.lab_vol>=40?'#d97706':'#dc2626'}"></div></div>
+  </div>
+
+  <!-- Score práctica consolidado -->
+  <div class="card practice" style="background:#f5f3ff">
+    <div class="label">🏃 Score Práctica Consolidado</div>
+    <div class="score ${r.practice.score>=80?'ok':r.practice.score>=40?'warn':r.practice.score>0?'bad':'na'}">
+      ${(r.practice.score||0).toFixed(1)}
+    </div>
+    <div class="detail" style="font-size:.78rem">
+      Diagnósticos: ${(r.practice.guided_vol||0).toFixed(1)} × 40%<br>
+      Bitácoras: ${(r.practice.bitacora_vol||0).toFixed(1)} × 35%<br>
+      Labs: ${(r.practice.lab_vol||0).toFixed(1)} × 25%<br>
+      <strong>= ${(r.practice.score||0).toFixed(1)} / 100</strong>
     </div>
   </div>
 
+  <!-- Formal individual -->
   <div class="card formal-ind">
     <div class="label">🎓 Evaluación Formal — Individual</div>
-    <div class="score ${r.formal.individual.score>=80?'ok':r.formal.individual.score>=60?'warn':r.formal.individual.score?'bad':'na'}">
-      ${r.formal.individual.sessions ? r.formal.individual.score.toFixed(1) : 'S/D'}
+    <div class="score ${r.formal.individual.score>=80?'ok':r.formal.individual.score>=60?'warn':r.formal.individual.sessions?'bad':'na'}">
+      ${r.formal.individual.sessions ? r.formal.individual.score.toFixed(1) : '0.0'}
     </div>
-    <div class="detail">Sesiones evaluadas: <b>${r.formal.individual.sessions}</b></div>
+    <div class="detail">
+      ${r.formal.individual.sessions > 0
+        ? `Sesiones evaluadas: <b>${r.formal.individual.sessions}</b>`
+        : '<em>No ha tenido evaluación formal individual</em>'}
+    </div>
     ${r.formal.individual.history?.length ? `
-    <div class="history"><table>
+    <div class="activity-table"><table>
       <tr><th>Fecha</th><th>Duración</th><th>Score</th></tr>
       ${r.formal.individual.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO')}</td><td>${h.duration_min} min</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
     </table></div>` : ''}
   </div>
 
+  <!-- Formal grupal -->
   <div class="card formal-grp">
     <div class="label">👥 Evaluación Formal — Grupal</div>
-    <div class="score ${r.formal.group.score>=80?'ok':r.formal.group.score>=60?'warn':r.formal.group.score?'bad':'na'}">
-      ${r.formal.group.sessions ? r.formal.group.score.toFixed(1) : 'S/D'}
+    <div class="score ${r.formal.group.score>=80?'ok':r.formal.group.score>=60?'warn':r.formal.group.sessions?'bad':'na'}">
+      ${r.formal.group.sessions ? r.formal.group.score.toFixed(1) : '0.0'}
     </div>
-    <div class="detail">Sesiones grupales: <b>${r.formal.group.sessions}</b></div>
+    <div class="detail">
+      ${r.formal.group.sessions > 0
+        ? `Sesiones grupales: <b>${r.formal.group.sessions}</b>`
+        : '<em>No ha participado en evaluación grupal</em>'}
+    </div>
     ${r.formal.group.history?.length ? `
-    <div class="history"><table>
+    <div class="activity-table"><table>
       <tr><th>Fecha</th><th>Grupo</th><th>Score</th></tr>
-      ${r.formal.group.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO')}</td><td>${h.notes||'—'}</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
+      ${r.formal.group.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO')}</td><td>${h.notes?.replace(/\[.*?\]/g,'').trim()||'Grupal'}</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
     </table></div>` : ''}
   </div>
 
+  <!-- Score global -->
   <div class="card global">
-    <div class="label">⭐ Score Global (Práctica 30% + Formal 70%)</div>
-    <div class="score ${r.global_score>=80?'ok':r.global_score>=60?'warn':r.global_score?'bad':'na'}" style="font-size:3rem">
-      ${r.global_score ? r.global_score.toFixed(1) : 'Sin datos suficientes'}
+    <div class="label">⭐ Score Global</div>
+    <div class="score ${r.global_score>=80?'ok':r.global_score>=60?'warn':r.global_score>0?'bad':'na'}" style="font-size:3rem">
+      ${(r.global_score||0).toFixed(1)}
     </div>
-    <div class="detail">Formal ponderado: ${r.formal.combined.toFixed(1)} / 100</div>
+    <div class="detail" style="margin-top:8px;font-size:.8rem">
+      Práctica: ${(r.practice.score||0).toFixed(1)} × 30% &nbsp;+&nbsp;
+      Formal: ${(r.formal.combined||0).toFixed(1)} × 70%
+      ${!r.formal.individual.sessions && !r.formal.group.sessions
+        ? '<br><em style="color:#d97706">Sin evaluación formal — el score global refleja solo la práctica</em>' : ''}
+    </div>
+    <div class="vol-bar" style="margin-top:8px"><div class="vol-fill" style="width:${r.global_score||0}%;background:${r.global_score>=80?'#16a34a':r.global_score>=60?'#d97706':'#dc2626'}"></div></div>
   </div>
 </div>
 
@@ -2731,21 +2848,8 @@ async function loadEvalReportsTab() {
   try {
     const rows = await apiFetch('/api/sessions/report/all');
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">Sin aprendices</td></tr>'; return; }
-    tbody.innerHTML = rows.map(r => {
-      const g = r.global_score;
-      const gc = g>=80?'#4ade80':g>=60?'#facc15':'#f87171';
-      const sc = (v,n) => n ? `<span style="color:${v>=80?'#4ade80':v>=60?'#facc15':'#f87171'};font-weight:700">${v.toFixed(1)}</span> <span style="font-size:.65rem;color:#475569">(${n})</span>` : '<span style="color:#334155;font-size:.7rem">Sin datos</span>';
-      return `<tr style="border-bottom:1px solid rgba(30,45,69,.4)">
-        <td style="padding:8px 12px;font-weight:600">${r.student.name}<div style="font-size:.65rem;color:#475569">${r.student.email}</div></td>
-        <td style="padding:8px 12px;text-align:center">${sc(r.practice.score,r.practice.sessions+r.practice.guided_count)}</td>
-        <td style="padding:8px 12px;text-align:center">${sc(r.formal.individual.score,r.formal.individual.sessions)}</td>
-        <td style="padding:8px 12px;text-align:center">${sc(r.formal.group.score,r.formal.group.sessions)}</td>
-        <td style="padding:8px 12px;text-align:center"><span style="font-size:1rem;font-weight:900;color:${gc}">${g?g.toFixed(1):'—'}</span></td>
-        <td style="padding:8px 12px;text-align:center">
-          <button onclick="generateStudentReport(${r.student.id},'${r.student.name.replace(/'/g,"\\'")}')" style="background:#7c3aed;border:none;border-radius:5px;color:white;font-size:.7rem;font-weight:700;padding:.25rem .6rem;cursor:pointer">📄 Reporte</button>
-        </td>
-      </tr>`;
-    }).join('');
+    rows.sort((a, b) => (b.global_score||0) - (a.global_score||0));
+    tbody.innerHTML = rows.map(_buildEvalRow).join('');
   } catch(e) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f87171;padding:16px">Error: ${e.message}</td></tr>`; }
 }
 

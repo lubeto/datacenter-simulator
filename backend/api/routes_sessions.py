@@ -499,7 +499,29 @@ async def get_active_groups(
 
 # ══════════════════════════════════════════════════════════════
 # REPORTES DIFERENCIADOS: PRÁCTICA vs EVALUACIÓN FORMAL
+# Sistema de puntuación por VOLUMEN Y ACUMULACIÓN
 # ══════════════════════════════════════════════════════════════
+
+# Benchmarks: cantidad esperada de actividades para obtener nota perfecta
+GUIDED_BENCHMARK    = 5   # diagnósticos guiados esperados por período
+BITACORA_BENCHMARK  = 5   # bitácoras esperadas por período
+LAB_BENCHMARK       = 3   # labs de mitigación esperados por período
+
+
+def _vol_score(count: int, total_earned: float, benchmark: int) -> float:
+    """
+    Puntuación por volumen y acumulación.
+    score = min((puntos_acumulados / puntos_esperados) × 100, 100)
+
+    Ejemplo:
+      benchmark=5, 12 actividades × avg 72 → earned=864, max=500 → score=100 (capped)
+      benchmark=5, 2 actividades × avg 95  → earned=190, max=500 → score=38
+    """
+    if count == 0 or benchmark == 0:
+        return 0.0
+    max_pts = benchmark * 100
+    return round(min((total_earned / max_pts) * 100, 100), 1)
+
 
 def _safe_avg(rows):
     scores = [r.score for r in rows if r.score is not None]
@@ -536,9 +558,13 @@ async def student_detailed_report(
 
 
 async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool = False) -> dict:
-    """Construye el reporte diferenciado de un aprendiz."""
+    """
+    Construye el reporte diferenciado por VOLUMEN Y ACUMULACIÓN.
+    La nota refleja tanto la calidad (promedio por actividad) como
+    la cantidad (cuántas actividades realizó vs. el benchmark esperado).
+    """
 
-    # ── Sesiones de práctica (notes contiene '[practice]') ──────────────────
+    # ── Sesiones evaluativas por tipo ──────────────────────────────────────
     prac_q = await db.execute(
         select(EvalSession).where(
             EvalSession.student_id == stu.id,
@@ -548,7 +574,6 @@ async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool =
     )
     prac_sessions = prac_q.scalars().all()
 
-    # ── Sesiones formales individuales (notes contiene '[formal:individual]') ─
     ind_q = await db.execute(
         select(EvalSession).where(
             EvalSession.student_id == stu.id,
@@ -558,7 +583,6 @@ async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool =
     )
     ind_sessions = ind_q.scalars().all()
 
-    # ── Sesiones formales grupales (notes contiene 'grupo:') ────────────────
     grp_q = await db.execute(
         select(EvalSession).where(
             EvalSession.student_id == stu.id,
@@ -568,55 +592,78 @@ async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool =
     )
     grp_sessions = grp_q.scalars().all()
 
-    # ── Ejercicios guiados ──────────────────────────────────────────────────
-    g_q = await db.execute(
-        select(func.avg(GuidedSession.score), func.count(GuidedSession.id))
-        .where(GuidedSession.student_id == stu.id)
+    # ── Actividades de práctica — obtener totales acumulados ───────────────
+
+    # Diagnósticos guiados: cada uno con su score individual
+    g_all_q = await db.execute(
+        select(GuidedSession).where(GuidedSession.student_id == stu.id)
+        .order_by(GuidedSession.completed_at.desc())
     )
-    g_r = g_q.first(); g_avg = round(g_r[0] or 0, 1); g_cnt = g_r[1] or 0
+    g_all   = g_all_q.scalars().all()
+    g_cnt   = len(g_all)
+    g_total = sum(gs.score or 0 for gs in g_all)   # puntos acumulados
+    g_avg   = round(g_total / g_cnt, 1) if g_cnt else 0.0
 
-    # ── Labs de mitigación ─────────────────────────────────────────────────
-    l_q = await db.execute(
-        select(func.avg(PracticeSession.score), func.count(PracticeSession.id))
-        .where(PracticeSession.student_id == stu.id)
+    # Labs de mitigación
+    l_all_q = await db.execute(
+        select(PracticeSession).where(PracticeSession.student_id == stu.id)
+        .order_by(PracticeSession.completed_at.desc())
     )
-    l_r = l_q.first(); l_avg = round(l_r[0] or 0, 1); l_cnt = l_r[1] or 0
+    l_all   = l_all_q.scalars().all()
+    l_cnt   = len(l_all)
+    l_total = sum(ls.score or 0 for ls in l_all)
+    l_avg   = round(l_total / l_cnt, 1) if l_cnt else 0.0
 
-    # ── Bitácoras ──────────────────────────────────────────────────────────
-    b_q = await db.execute(
-        select(func.avg(Bitacora.score), func.count(Bitacora.id))
-        .where(Bitacora.student_id == stu.id)
+    # Bitácoras
+    b_all_q = await db.execute(
+        select(Bitacora).where(Bitacora.student_id == stu.id)
+        .order_by(Bitacora.created_at.desc())
     )
-    b_r = b_q.first(); b_avg = round(b_r[0] or 0, 1); b_cnt = b_r[1] or 0
+    b_all   = b_all_q.scalars().all()
+    b_cnt   = len(b_all)
+    b_total = sum(bs.score or 0 for bs in b_all)
+    b_avg   = round(b_total / b_cnt, 1) if b_cnt else 0.0
 
-    # ── Cálculo scores de práctica ─────────────────────────────────────────
-    # Ponderación práctica: Diagnóstico guiado 40% | Bitácoras 35% | Labs 25%
-    prac_parts, prac_w = [], []
-    if g_cnt > 0:     prac_parts.append(g_avg); prac_w.append(0.40)
-    if b_cnt > 0:     prac_parts.append(b_avg); prac_w.append(0.35)
-    if l_cnt > 0:     prac_parts.append(l_avg); prac_w.append(0.25)
-    if prac_sessions: prac_parts.append(_safe_avg(prac_sessions)); prac_w.append(0.20)
-    total_pw    = sum(prac_w) or 1
-    prac_score  = round(sum(p * w for p, w in zip(prac_parts, prac_w)) / total_pw, 1) if prac_parts else 0.0
+    # ── Score por volumen: puntos acumulados / puntos esperados × 100 ──────
+    g_vol   = _vol_score(g_cnt, g_total, GUIDED_BENCHMARK)
+    b_vol   = _vol_score(b_cnt, b_total, BITACORA_BENCHMARK)
+    l_vol   = _vol_score(l_cnt, l_total, LAB_BENCHMARK)
 
-    # ── Cálculo scores formales ────────────────────────────────────────────
-    # Individual: sesiones formales individuales (score ya calculado en end_session)
-    ind_score = _safe_avg(ind_sessions)
-    # Grupal: sesiones formales grupales
-    grp_score = _safe_avg(grp_sessions)
-    # Formal ponderado: 60% individual + 40% grupal
-    formal_parts, formal_w = [], []
-    if ind_sessions: formal_parts.append(ind_score); formal_w.append(0.60)
-    if grp_sessions: formal_parts.append(grp_score); formal_w.append(0.40)
-    total_fw    = sum(formal_w) or 1
-    formal_score = round(sum(p * w for p, w in zip(formal_parts, formal_w)) / total_fw, 1) if formal_parts else 0.0
+    # Score de práctica: siempre visible (0 si sin actividades)
+    # Ponderación: guiados 40% | bitácoras 35% | labs 25%
+    prac_score = round(g_vol * 0.40 + b_vol * 0.35 + l_vol * 0.25, 1)
 
-    # ── Score global: 30% práctica + 70% evaluación formal ────────────────
-    global_parts, global_w = [], []
-    if prac_parts:   global_parts.append(prac_score);   global_w.append(0.30)
-    if formal_parts: global_parts.append(formal_score); global_w.append(0.70)
-    total_gw     = sum(global_w) or 1
-    global_score = round(sum(p * w for p, w in zip(global_parts, global_w)) / total_gw, 1) if global_parts else 0.0
+    # ── Score formal ───────────────────────────────────────────────────────
+    # Usa promedio clásico (las evaluaciones formales ya son controladas)
+    ind_score  = _safe_avg(ind_sessions)
+    grp_score  = _safe_avg(grp_sessions)
+    # Ponderado formal: 60% individual + 40% grupal; si solo hay uno aplica 100%
+    if ind_sessions and grp_sessions:
+        formal_score = round(ind_score * 0.60 + grp_score * 0.40, 1)
+    elif ind_sessions:
+        formal_score = ind_score
+    elif grp_sessions:
+        formal_score = grp_score
+    else:
+        formal_score = 0.0
+
+    # ── Score global ───────────────────────────────────────────────────────
+    # Si no hay evaluación formal: global = solo práctica (100% peso práctico)
+    # Si hay ambos: 30% práctica + 70% formal
+    has_practice = (g_cnt + b_cnt + l_cnt) > 0
+    has_formal   = len(ind_sessions) + len(grp_sessions) > 0
+
+    if has_practice and has_formal:
+        global_score = round(prac_score * 0.30 + formal_score * 0.70, 1)
+    elif has_practice:
+        global_score = prac_score
+    elif has_formal:
+        global_score = formal_score
+    else:
+        global_score = 0.0
+
+    # Totales de iteraciones para el ranking
+    total_iterations = g_cnt + b_cnt + l_cnt
 
     result = {
         "student": {
@@ -624,14 +671,30 @@ async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool =
             "name":  stu.name,
             "email": stu.email,
         },
+        "benchmarks": {
+            "guided":   GUIDED_BENCHMARK,
+            "bitacora": BITACORA_BENCHMARK,
+            "lab":      LAB_BENCHMARK,
+        },
         "practice": {
             "score":           prac_score,
+            # Diagnósticos guiados
             "guided_count":    g_cnt,
+            "guided_total":    round(g_total, 1),
             "guided_avg":      g_avg,
-            "lab_count":       l_cnt,
-            "lab_avg":         l_avg,
+            "guided_vol":      g_vol,
+            # Bitácoras
             "bitacora_count":  b_cnt,
+            "bitacora_total":  round(b_total, 1),
             "bitacora_avg":    b_avg,
+            "bitacora_vol":    b_vol,
+            # Labs
+            "lab_count":       l_cnt,
+            "lab_total":       round(l_total, 1),
+            "lab_avg":         l_avg,
+            "lab_vol":         l_vol,
+            # General
+            "total_iterations": total_iterations,
             "sessions":        len(prac_sessions),
         },
         "formal": {
@@ -645,20 +708,35 @@ async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool =
             },
             "combined": formal_score,
         },
-        "global_score": global_score,
+        "global_score":      global_score,
+        "total_iterations":  total_iterations,
     }
 
     if detailed:
-        result["practice"]["history"] = [
-            {"score": s.score, "date": s.started_at.isoformat(),
-             "duration_min": round(s.duration_min or 0, 1)} for s in prac_sessions[:10]
+        result["practice"]["guided_detail"] = [
+            {"score": gs.score or 0, "attack": gs.attack_type, "node": gs.node_id,
+             "correct": gs.correct_answers, "total": gs.total_questions,
+             "hints": gs.hints_used, "date": gs.completed_at.isoformat() if gs.completed_at else None}
+            for gs in g_all[:20]
+        ]
+        result["practice"]["bitacora_detail"] = [
+            {"score": bs.score or 0, "attack": bs.attack_type, "node": bs.node_id,
+             "correct": bs.correct_answers, "total": bs.total_questions,
+             "hints": bs.hints_used, "date": bs.created_at.isoformat() if bs.created_at else None}
+            for bs in b_all[:20]
+        ]
+        result["practice"]["lab_detail"] = [
+            {"score": ls.score or 0, "scenario": ls.scenario_name,
+             "steps": ls.steps_completed, "total": ls.total_steps,
+             "date": ls.completed_at.isoformat() if ls.completed_at else None}
+            for ls in l_all[:10]
         ]
         result["formal"]["individual"]["history"] = [
-            {"score": s.score, "date": s.started_at.isoformat(),
+            {"score": s.score or 0, "date": s.started_at.isoformat() if s.started_at else None,
              "duration_min": round(s.duration_min or 0, 1)} for s in ind_sessions[:10]
         ]
         result["formal"]["group"]["history"] = [
-            {"score": s.score, "date": s.started_at.isoformat(),
+            {"score": s.score or 0, "date": s.started_at.isoformat() if s.started_at else None,
              "notes": s.notes or ""} for s in grp_sessions[:10]
         ]
 
