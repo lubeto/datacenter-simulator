@@ -155,8 +155,62 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 .notif-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;font-size:.78rem;animation:slide-in .3s;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .notif-item.crit{border-left:3px solid var(--red)}.notif-item.warn{border-left:3px solid var(--yellow)}.notif-item.ok{border-left:3px solid var(--green)}
 @keyframes slide-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-@media(max-width:1000px){.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
-@media(max-width:650px){.grid-3,.grid-2{grid-template-columns:1fr}}
+/* ── TABS ── */
+.tab-nav{display:flex;gap:2px;padding:.5rem 1.2rem 0;background:#0a0e1a;border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:90}
+.tab-btn{padding:.55rem 1.2rem;border:none;background:transparent;color:var(--muted);font-size:.82rem;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;border-radius:6px 6px 0 0;letter-spacing:.02em}
+.tab-btn:hover{color:var(--text);background:rgba(59,130,246,.06)}
+.tab-btn.active{color:var(--purple);border-bottom-color:var(--purple);background:rgba(168,85,247,.08)}
+.tab-btn .tab-badge{display:inline-block;background:var(--red);color:#fff;border-radius:8px;font-size:.6rem;padding:1px 5px;margin-left:4px;vertical-align:middle}
+.tab-pane{display:none}.tab-pane.active{display:block}
+/* ── MONITOR TAB ── */
+.monitor-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:.7rem;margin-bottom:1rem}
+.mon-kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;text-align:center;position:relative;overflow:hidden}
+.mon-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.mon-kpi.blue::before{background:var(--accent)}.mon-kpi.green::before{background:var(--green)}
+.mon-kpi.yellow::before{background:var(--yellow)}.mon-kpi.red::before{background:var(--red)}.mon-kpi.purple::before{background:var(--purple)}
+.mon-kpi-val{font-size:1.7rem;font-weight:900;line-height:1.1}
+.mon-kpi-lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.2rem}
+.student-monitor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.8rem;margin-bottom:1rem}
+.stu-mon-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;transition:all .2s;position:relative}
+.stu-mon-card.online{border-color:rgba(34,197,94,.3)}
+.stu-mon-card.warning{border-color:rgba(234,179,8,.5);animation:stu-pulse 2s ease-in-out infinite}
+.stu-mon-card.offline{opacity:.55}
+@keyframes stu-pulse{0%,100%{box-shadow:0 0 0 0 rgba(234,179,8,.2)}50%{box-shadow:0 0 0 6px rgba(234,179,8,0)}}
+.stu-mon-name{font-size:.9rem;font-weight:700;margin-bottom:.25rem}
+.stu-mon-status{font-size:.7rem;padding:.15rem .5rem;border-radius:8px;display:inline-flex;align-items:center;gap:.3rem;margin-bottom:.5rem}
+.stu-mon-status.online{background:rgba(34,197,94,.12);color:var(--green)}
+.stu-mon-status.idle{background:rgba(100,116,139,.12);color:var(--muted)}
+.stu-mon-status.warning{background:rgba(234,179,8,.12);color:var(--yellow)}
+.stu-mon-meta{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.72rem;color:var(--muted);margin-top:.4rem}
+.stu-mon-meta span{background:var(--card2);border-radius:5px;padding:.25rem .5rem}
+.stu-mon-meta strong{color:var(--text)}
+.stu-alert-badge{position:absolute;top:.6rem;right:.7rem;background:var(--yellow);color:#000;border-radius:6px;font-size:.62rem;font-weight:800;padding:2px 6px}
+.activity-feed{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:.3rem}
+.act-item{background:var(--card2);border-radius:7px;padding:.5rem .8rem;font-size:.75rem;display:flex;gap:.6rem;align-items:flex-start;border-left:3px solid var(--border)}
+.act-item.ok{border-left-color:var(--green)}.act-item.warn{border-left-color:var(--yellow)}.act-item.crit{border-left-color:var(--red)}
+/* ── ANALYTICS TAB ── */
+.analytics-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:.7rem;margin-bottom:1rem}
+.a-kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;text-align:center;position:relative;overflow:hidden}
+.a-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.a-kpi.blue::before{background:var(--accent)}.a-kpi.green::before{background:var(--green)}
+.a-kpi.yellow::before{background:var(--yellow)}.a-kpi.red::before{background:var(--red)}.a-kpi.purple::before{background:var(--purple)}
+.a-kpi-val{font-size:1.7rem;font-weight:900;line-height:1.1}
+.a-kpi-lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:.2rem}
+.ranking-full{width:100%;border-collapse:collapse;font-size:.78rem}
+.ranking-full th{color:var(--muted);font-weight:600;text-align:left;padding:.5rem .8rem;border-bottom:1px solid var(--border);font-size:.7rem;text-transform:uppercase}
+.ranking-full td{padding:.55rem .8rem;border-bottom:1px solid rgba(30,45,69,.4);vertical-align:middle}
+.ranking-full tr:hover td{background:rgba(59,130,246,.04);cursor:pointer}
+.ranking-full tr:last-child td{border-bottom:none}
+.lvl-badge{display:inline-block;padding:.15rem .5rem;border-radius:8px;font-size:.65rem;font-weight:700}
+.lvl-elite{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000}
+.lvl-avanzado{background:rgba(168,85,247,.2);color:var(--purple)}
+.lvl-intermedio{background:rgba(59,130,246,.2);color:var(--accent)}
+.lvl-principiante{background:rgba(34,197,94,.2);color:var(--green)}
+.score-bar{width:80px;height:7px;background:var(--border);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:.4rem}
+.score-fill{height:100%;border-radius:4px;transition:width .5s}
+.chart-wrap-sm{position:relative;height:220px}
+@media(max-width:1000px){.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}.monitor-kpi-row,.analytics-summary{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){.grid-3,.grid-2{grid-template-columns:1fr}.monitor-kpi-row,.analytics-summary{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -172,7 +226,18 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
   </div>
 </header>
+<!-- TAB NAV -->
+<nav class="tab-nav">
+  <button class="tab-btn active" id="tabBtn-control"  onclick="switchTab('control')">🚀 Control</button>
+  <button class="tab-btn"        id="tabBtn-monitor"  onclick="switchTab('monitor')">👁️ Monitor en Vivo <span class="tab-badge" id="monitorAlertBadge" style="display:none">!</span></button>
+  <button class="tab-btn"        id="tabBtn-analytics" onclick="switchTab('analytics')">📊 Analytics</button>
+  <button class="tab-btn"        id="tabBtn-reportes" onclick="switchTab('reportes')">📋 Reportes</button>
+</nav>
+
 <div class="container">
+
+<!-- ══ TAB: CONTROL ══════════════════════════════════════════ -->
+<div id="tab-control" class="tab-pane active">
 
   <!-- ROW 1: Attack form + Active attacks + Node control -->
   <div class="grid-3">
@@ -617,7 +682,212 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     </div>
   </div>
 
-</div>
+</div><!-- /tab-control -->
+
+<!-- ══ TAB: MONITOR EN VIVO ══════════════════════════════════ -->
+<div id="tab-monitor" class="tab-pane">
+
+  <!-- KPIs del grupo -->
+  <div class="monitor-kpi-row" style="margin-top:1rem">
+    <div class="mon-kpi blue"><div class="mon-kpi-val" id="mon-online">—</div><div class="mon-kpi-lbl">Aprendices Online</div></div>
+    <div class="mon-kpi green"><div class="mon-kpi-val" id="mon-session">—</div><div class="mon-kpi-lbl">En Sesión Activa</div></div>
+    <div class="mon-kpi red"><div class="mon-kpi-val" id="mon-attacks">—</div><div class="mon-kpi-lbl">Ataques Activos</div></div>
+    <div class="mon-kpi yellow"><div class="mon-kpi-val" id="mon-incidents">—</div><div class="mon-kpi-lbl">Incidentes Activos</div></div>
+    <div class="mon-kpi purple"><div class="mon-kpi-val" id="mon-alerts">—</div><div class="mon-kpi-lbl">Aprendices sin actividad</div></div>
+  </div>
+
+  <!-- Student Monitor Grid -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+    <span style="font-size:.8rem;font-weight:700;color:var(--accent2)">Estado por Aprendiz</span>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <span style="font-size:.68rem;color:var(--muted)">Actualización automática cada 15s</span>
+      <button onclick="loadMonitor()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+    </div>
+  </div>
+  <div class="student-monitor-grid" id="studentMonitorGrid">
+    <div style="color:var(--muted);font-size:.82rem;padding:2rem;text-align:center;grid-column:1/-1">Haz clic en ↻ Actualizar para cargar el monitor</div>
+  </div>
+
+  <!-- Actividad Reciente -->
+  <div class="grid-2" style="margin-top:1rem">
+    <div class="card">
+      <div class="card-header" style="justify-content:space-between">
+        <span class="card-title">📝 Bitácoras Recientes (últimos 30 min)</span>
+        <button onclick="loadRecentActivity()" class="btn btn-outline btn-sm">↻</button>
+      </div>
+      <div class="card-body" style="padding:.6rem">
+        <div class="activity-feed" id="recentActivityFeed">
+          <div style="color:var(--muted);font-size:.8rem;padding:1rem;text-align:center">Sin actividad reciente</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚡ Incidentes Activos del Simulador</span></div>
+      <div class="card-body" style="max-height:280px;overflow-y:auto;padding:.6rem" id="monIncidentsList">
+        <div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem">Cargando...</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-monitor -->
+
+<!-- ══ TAB: ANALYTICS ════════════════════════════════════════ -->
+<div id="tab-analytics" class="tab-pane">
+
+  <!-- KPIs del grupo -->
+  <div class="analytics-summary" style="margin-top:1rem">
+    <div class="a-kpi blue"><div class="a-kpi-val" id="an-students">—</div><div class="a-kpi-lbl">Aprendices</div></div>
+    <div class="a-kpi green"><div class="a-kpi-val" id="an-score">—</div><div class="a-kpi-lbl">Score Promedio</div></div>
+    <div class="a-kpi yellow"><div class="a-kpi-val" id="an-mttd">—</div><div class="a-kpi-lbl">MTTD Prom (s)</div></div>
+    <div class="a-kpi red"><div class="a-kpi-val" id="an-mttr">—</div><div class="a-kpi-lbl">MTTR Prom (s)</div></div>
+    <div class="a-kpi purple"><div class="a-kpi-val" id="an-sessions">—</div><div class="a-kpi-lbl">Sesiones Totales</div></div>
+  </div>
+
+  <!-- Ranking completo -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header" style="justify-content:space-between">
+      <span class="card-title">🏆 Ranking de Aprendices</span>
+      <div style="display:flex;gap:.5rem">
+        <button onclick="exportRankingCSV()" class="btn btn-sm" style="background:#16a34a;border:none;color:white;font-weight:700">⬇ CSV</button>
+        <button onclick="loadAnalytics()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="ranking-full">
+        <thead><tr>
+          <th style="width:42px;text-align:center">#</th>
+          <th>Aprendiz</th>
+          <th>Nivel</th>
+          <th>Score</th>
+          <th>MTTD</th>
+          <th>MTTR</th>
+          <th>Sesiones</th>
+          <th>Incidentes</th>
+        </tr></thead>
+        <tbody id="rankingFullTbody">
+          <tr><td colspan="8" style="color:var(--muted);text-align:center;padding:2rem">Haz clic en ↻ Actualizar para cargar el ranking</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Detalle expandible -->
+    <div id="rankingDetail" style="display:none;padding:1rem;border-top:1px solid var(--border);background:#0a1220"></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid-2" style="margin-bottom:1rem">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📊 Distribución de Scores</span></div>
+      <div class="card-body"><div class="chart-wrap-sm"><canvas id="anScoreChart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">⏱️ MTTD vs MTTR por Aprendiz</span></div>
+      <div class="card-body"><div class="chart-wrap-sm"><canvas id="anTimeChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Historial de incidentes resueltos -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header" style="justify-content:space-between">
+      <span class="card-title">🔍 Historial de Incidentes Resueltos</span>
+      <a onclick="exportIncidentsCSV(event)" href="/api/analytics/export/incidents-csv" class="btn btn-sm" style="background:#1d4ed8;border:none;color:white;font-weight:700">⬇ CSV</a>
+    </div>
+    <div style="overflow-x:auto;max-height:300px">
+      <table class="ranking-full">
+        <thead><tr>
+          <th>Aprendiz</th><th>Ataque</th><th>Nodo</th><th>MTTD</th><th>MTTR</th><th>Score</th><th>Fecha</th>
+        </tr></thead>
+        <tbody id="incidentHistoryTbody">
+          <tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1.5rem">Se carga al actualizar</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-analytics -->
+
+<!-- ══ TAB: REPORTES ═════════════════════════════════════════ -->
+<div id="tab-reportes" class="tab-pane">
+
+  <!-- Reportes evaluativos diferenciados (moved here from control tab) -->
+  <div class="card full" style="margin-top:1rem;border-color:#7c3aed">
+    <div class="card-header" style="border-bottom-color:#4c1d95;justify-content:space-between">
+      <span class="card-title" style="color:#c4b5fd">📊 Reportes Evaluativos — Práctica vs. Evaluación Formal</span>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button onclick="loadEvalReports()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+        <button onclick="generateGroupsReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">👥 Reporte de Grupos</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:.8rem 1rem">
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.9rem;font-size:.72rem;color:var(--muted)">
+        <span style="color:#a78bfa;font-weight:700">🏃 Práctica = 30% del score global</span>
+        <span style="color:#a78bfa">→ Diagnóstico guiado 40% · Bitácoras 35% · Labs 25%</span>
+        <span style="color:#34d399;font-weight:700">🎓 Evaluación Formal = 70% del score global</span>
+        <span style="color:#34d399">→ Individual 60% · Grupal 40%</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead>
+            <tr style="background:#0f172a">
+              <th style="padding:9px 12px;text-align:left;color:#94a3b8;font-weight:600">Aprendiz</th>
+              <th style="padding:9px 12px;text-align:center;color:#a78bfa;font-weight:600">🏃 Score Práctica</th>
+              <th style="padding:9px 12px;text-align:center;color:#93c5fd;font-weight:600">🎓 Formal Ind.</th>
+              <th style="padding:9px 12px;text-align:center;color:#6ee7b7;font-weight:600">👥 Formal Grupal</th>
+              <th style="padding:9px 12px;text-align:center;color:#fbbf24;font-weight:600">⭐ Score Global</th>
+              <th style="padding:9px 12px;text-align:center;color:#94a3b8;font-weight:600">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="evalReportTbody2">
+            <tr><td colspan="6" style="text-align:center;color:#64748b;padding:20px">Haz clic en ↻ Actualizar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sesiones evaluativas -->
+  <div class="card full" style="margin-top:1rem;border-color:#22c55e">
+    <div class="card-header" style="border-bottom-color:#14532d">
+      <span class="card-title" style="color:#4ade80">🎓 Sesiones Evaluativas — Historial</span>
+      <button onclick="loadSessionHistory()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+    </div>
+    <div style="overflow-x:auto;max-height:300px">
+      <table class="ranking-full">
+        <thead><tr>
+          <th>Aprendiz</th><th>Tipo</th><th>Inicio</th><th>Duración</th><th>Score</th><th>Estado</th>
+        </tr></thead>
+        <tbody id="sessionHistoryTbody">
+          <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1.5rem">Haz clic en ↻ Actualizar</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bitácoras consolidadas -->
+  <div class="card full" style="margin-top:1rem">
+    <div class="card-header" style="justify-content:space-between">
+      <span class="card-title">📓 Bitácoras — Vista Instructor</span>
+      <div style="display:flex;gap:.5rem">
+        <select id="repBmFilter" onchange="loadRepBitacoras()" style="background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.25rem .6rem;font-size:.78rem">
+          <option value="">— Todos los aprendices —</option>
+        </select>
+        <button onclick="generateConsolidatedReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">📄 Reporte consolidado</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;max-height:400px">
+      <table class="ranking-full">
+        <thead><tr>
+          <th>Aprendiz</th><th>Tipo Ataque</th><th>Nodo</th><th>Score</th><th>Respuestas</th><th>Pistas</th><th>Fecha</th>
+        </tr></thead>
+        <tbody id="repBmTbody">
+          <tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1.5rem">Selecciona un aprendiz o actualiza</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-reportes -->
+
+</div><!-- /container -->
 
 <div class="notif" id="notifContainer"></div>
 
@@ -2041,6 +2311,363 @@ ${groups.length === 0 ? '<p style="color:#64748b">No hay grupos evaluativos regi
   }
 }
 
+// ── TAB SWITCHING ─────────────────────────────────────────
+let currentTab = 'control';
+function switchTab(tab) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  document.getElementById('tabBtn-' + tab)?.classList.add('active');
+  currentTab = tab;
+  if (tab === 'monitor')   loadMonitor();
+  if (tab === 'analytics') loadAnalytics();
+  if (tab === 'reportes')  { loadEvalReportsTab(); loadRepBmStudentFilter(); loadSessionHistory(); }
+}
+
+// ── MONITOR EN VIVO ────────────────────────────────────────
+let monitorIntervalId = null;
+
+async function loadMonitor() {
+  try {
+    const [students, sessions, activeSess] = await Promise.all([
+      apiFetch('/api/students/'),
+      apiFetch('/api/sessions/active').catch(() => []),
+      apiFetch('/api/attacks/active').catch(() => []),
+    ]);
+    const aprendices = students.filter(s => s.role === 'student');
+    const activeIds = new Set((sessions||[]).map(s => s.student_id));
+    const now = Date.now();
+
+    // KPIs
+    document.getElementById('mon-online').textContent   = aprendices.length;
+    document.getElementById('mon-session').textContent  = (sessions||[]).length;
+    document.getElementById('mon-attacks').textContent  = (activeSess||[]).length;
+
+    // Cargar bitácoras recientes para saber actividad
+    let recentBits = [];
+    try { recentBits = await apiFetch('/api/bitacoras/?limit=50'); } catch(_) {}
+    const bitByStudent = {};
+    (recentBits||[]).forEach(b => {
+      if (!bitByStudent[b.student_id] || new Date(b.created_at) > new Date(bitByStudent[b.student_id].created_at)) {
+        bitByStudent[b.student_id] = b;
+      }
+    });
+
+    // Incidentes activos del simulador
+    let simIncidents = [];
+    try { simIncidents = await apiFetch('/api/attacks/incidents?limit=20').catch(() => []); } catch(_) {}
+
+    // Alertas (estudiantes sin actividad durante sesión activa > 5 min)
+    let alertCount = 0;
+    const grid = document.getElementById('studentMonitorGrid');
+    if (!aprendices.length) {
+      grid.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:2rem;grid-column:1/-1">Sin aprendices registrados</div>';
+      return;
+    }
+
+    grid.innerHTML = aprendices.map(stu => {
+      const inSession = activeIds.has(stu.id);
+      const sessionInfo = (sessions||[]).find(s => s.student_id === stu.id);
+      const lastBit = bitByStudent[stu.id];
+      const lastBitTime = lastBit ? new Date(lastBit.created_at) : null;
+      const minsSinceActivity = lastBitTime ? Math.floor((now - lastBitTime.getTime()) / 60000) : null;
+      const isStuck = inSession && (!lastBitTime || minsSinceActivity > 5);
+      if (isStuck) alertCount++;
+
+      const statusCls = isStuck ? 'warning' : inSession ? 'online' : 'idle';
+      const statusLabel = isStuck ? '⚠️ Sin actividad' : inSession ? '🟢 En sesión' : '⚫ Sin sesión';
+      const statusLabelCls = isStuck ? 'warning' : inSession ? 'online' : 'idle';
+
+      const elapsed = sessionInfo ? Math.floor((now - new Date(sessionInfo.started_at).getTime()) / 60000) : null;
+      const score = stu.avg_score ? stu.avg_score.toFixed(1) : '—';
+      const mttd = stu.avg_mttd_seconds ? stu.avg_mttd_seconds.toFixed(0) + 's' : '—';
+
+      return `<div class="stu-mon-card ${statusCls}">
+        ${isStuck ? '<span class="stu-alert-badge">⚠️ ATENCIÓN</span>' : ''}
+        <div class="stu-mon-name">${stu.name}</div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.4rem">${stu.email}</div>
+        <span class="stu-mon-status ${statusLabelCls}">${statusLabel}</span>
+        <div class="stu-mon-meta">
+          <span>⏱ En sesión: <strong>${elapsed !== null ? elapsed + ' min' : '—'}</strong></span>
+          <span>⭐ Score: <strong style="color:${stu.avg_score>=80?'#4ade80':stu.avg_score>=60?'#facc15':'#f87171'}">${score}</strong></span>
+          <span>🎯 Sesiones: <strong>${stu.total_sessions||0}</strong></span>
+          <span>⚡ MTTD: <strong>${mttd}</strong></span>
+        </div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:.5rem;border-top:1px solid var(--border);padding-top:.4rem">
+          ${lastBit ? `📝 Última bitácora: <strong style="color:var(--text)">${minsSinceActivity === 0 ? 'Ahora' : minsSinceActivity + ' min atrás'}</strong> — ${lastBit.attack_type||'?'} en ${lastBit.node_id||'?'}` : 'Sin bitácoras registradas'}
+        </div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('mon-alerts').textContent = alertCount;
+    const badge = document.getElementById('monitorAlertBadge');
+    if (badge) { badge.style.display = alertCount ? '' : 'none'; badge.textContent = alertCount; }
+
+    // Incidentes activos en el simulador
+    loadMonIncidents();
+  } catch(e) {
+    document.getElementById('studentMonitorGrid').innerHTML = `<div style="color:var(--red);padding:1rem;grid-column:1/-1">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadMonIncidents() {
+  const el = document.getElementById('monIncidentsList');
+  if (!el) return;
+  try {
+    const r = await apiFetch('/api/attacks/active');
+    if (!r.length) { el.innerHTML = '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem">Sin ataques activos</div>'; return; }
+    el.innerHTML = r.map(a => {
+      const pct = a.elapsed_pct !== undefined ? (100 - a.elapsed_pct) : 50;
+      return `<div style="background:var(--card2);border-radius:8px;padding:.6rem .8rem;border-left:3px solid var(--red);margin-bottom:.4rem">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:.8rem;font-weight:700">${a.attack?.name||a.attack_type}</span>
+          <span style="font-size:.68rem;color:var(--muted)">${a.node_id}</span>
+        </div>
+        <div style="height:3px;background:var(--border);border-radius:2px;margin-top:.4rem;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--red);border-radius:2px;transition:width 1s"></div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem">Sin datos</div>`; }
+}
+
+async function loadRecentActivity() {
+  const feed = document.getElementById('recentActivityFeed');
+  if (!feed) return;
+  try {
+    const bits = await apiFetch('/api/bitacoras/?limit=15');
+    const students = await apiFetch('/api/students/').catch(() => []);
+    const stuMap = {};
+    students.forEach(s => stuMap[s.id] = s.name);
+    if (!bits.length) { feed.innerHTML = '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem">Sin actividad reciente</div>'; return; }
+    feed.innerHTML = bits.map(b => {
+      const sc = b.score||0;
+      const cls = sc>=80?'ok':sc>=50?'warn':'crit';
+      const date = new Date(b.created_at).toLocaleTimeString('es-CO', {hour:'2-digit',minute:'2-digit'});
+      return `<div class="act-item ${cls}">
+        <span style="font-size:1.1rem">${sc>=80?'✅':sc>=50?'⚠️':'❌'}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.78rem">${stuMap[b.student_id]||'#'+b.student_id}</div>
+          <div style="color:var(--muted);font-size:.7rem">${b.attack_type||'?'} → ${b.node_id||'?'} · Score: <strong style="color:${sc>=80?'#4ade80':sc>=50?'#facc15':'#f87171'}">${sc.toFixed(0)}</strong> · ${date}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── ANALYTICS EMBEBIDO ─────────────────────────────────────
+let anScoreChart = null, anTimeChart = null, openRankId = null;
+
+async function loadAnalytics() {
+  try {
+    const r = await apiFetch('/api/analytics/ranking');
+    const tbody = document.getElementById('rankingFullTbody');
+
+    const scored = r.filter(s => s.total_sessions > 0);
+    document.getElementById('an-students').textContent  = r.length;
+    document.getElementById('an-score').textContent     = scored.length ? (scored.reduce((a,s)=>a+(s.avg_score||0),0)/scored.length).toFixed(1) : '—';
+    document.getElementById('an-mttd').textContent      = scored.length ? (scored.reduce((a,s)=>a+(s.avg_mttd_seconds||0),0)/scored.length).toFixed(0) : '—';
+    document.getElementById('an-mttr').textContent      = scored.length ? (scored.reduce((a,s)=>a+(s.avg_mttr_seconds||0),0)/scored.length).toFixed(0) : '—';
+    document.getElementById('an-sessions').textContent  = r.reduce((a,s)=>a+(s.total_sessions||0),0);
+
+    const medals = ['🥇','🥈','🥉'];
+    const levelBadge = sc => {
+      if(sc>=2500) return '<span class="lvl-badge lvl-elite">Elite</span>';
+      if(sc>=1000) return '<span class="lvl-badge lvl-avanzado">Avanzado</span>';
+      if(sc>=500)  return '<span class="lvl-badge lvl-intermedio">Intermedio</span>';
+      return '<span class="lvl-badge lvl-principiante">Principiante</span>';
+    };
+    const scoreColor = sc => sc>=80?'#4ade80':sc>=60?'#facc15':'#f87171';
+
+    tbody.innerHTML = r.map((s,i) => `
+      <tr onclick="toggleRankDetail(${s.id})">
+        <td style="text-align:center;font-size:1rem">${i<3?medals[i]:`<span style="color:var(--muted)">${i+1}</span>`}</td>
+        <td><strong>${s.name}</strong><div style="font-size:.68rem;color:var(--muted)">${s.email}</div></td>
+        <td>${levelBadge(s.avg_score*25||0)}</td>
+        <td>
+          <strong style="color:${scoreColor(s.avg_score||0)}">${(s.avg_score||0).toFixed(1)}</strong>
+          <span class="score-bar"><span class="score-fill" style="width:${Math.min(s.avg_score||0,100)}%;background:${scoreColor(s.avg_score||0)}"></span></span>
+        </td>
+        <td style="color:${(s.avg_mttd_seconds||0)<60?'#4ade80':(s.avg_mttd_seconds||0)<120?'#facc15':'#f87171'}">${s.avg_mttd_seconds?(s.avg_mttd_seconds/1).toFixed(0)+'s':'—'}</td>
+        <td style="color:var(--muted)">${s.avg_mttr_seconds?(s.avg_mttr_seconds/1).toFixed(0)+'s':'—'}</td>
+        <td style="text-align:center">${s.total_sessions||0}</td>
+        <td style="text-align:center">${s.total_incidents||0}</td>
+      </tr>`).join('');
+
+    // Charts
+    const labels = r.map(s => s.name.split(' ')[0]);
+    const scores  = r.map(s => +(s.avg_score||0).toFixed(1));
+    const mttds   = r.map(s => +(s.avg_mttd_seconds||0).toFixed(0));
+    const mttrs   = r.map(s => +(s.avg_mttr_seconds||0).toFixed(0));
+    const colors  = scores.map(sc => sc>=80?'rgba(74,222,128,.7)':sc>=60?'rgba(250,204,21,.7)':'rgba(248,113,113,.7)');
+
+    if (anScoreChart) anScoreChart.destroy();
+    anScoreChart = new Chart(document.getElementById('anScoreChart'), {
+      type:'bar',
+      data:{ labels, datasets:[{label:'Score',data:scores,backgroundColor:colors,borderRadius:5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}},
+    });
+    if (anTimeChart) anTimeChart.destroy();
+    anTimeChart = new Chart(document.getElementById('anTimeChart'), {
+      type:'bar',
+      data:{ labels, datasets:[
+        {label:'MTTD (s)',data:mttds,backgroundColor:'rgba(96,165,250,.7)',borderRadius:4},
+        {label:'MTTR (s)',data:mttrs,backgroundColor:'rgba(167,139,250,.7)',borderRadius:4},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}},
+    });
+
+    // Incident history
+    loadIncidentHistory();
+  } catch(e) {
+    document.getElementById('rankingFullTbody').innerHTML = `<tr><td colspan="8" style="color:var(--red);text-align:center;padding:1.5rem">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function toggleRankDetail(id) {
+  const panel = document.getElementById('rankingDetail');
+  if (openRankId === id) { panel.style.display='none'; openRankId=null; return; }
+  openRankId = id;
+  panel.style.display = 'block';
+  panel.innerHTML = '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem">Cargando detalle...</div>';
+  try {
+    const s = await apiFetch(`/api/analytics/student/${id}`);
+    const st = s.student;
+    panel.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.8rem">
+        <div style="background:var(--card);border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.65rem;color:var(--muted)">Score</div><div style="font-size:1.2rem;font-weight:900;color:${st.avg_score>=80?'#4ade80':st.avg_score>=60?'#facc15':'#f87171'}">${(st.avg_score||0).toFixed(1)}</div></div>
+        <div style="background:var(--card);border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.65rem;color:var(--muted)">MTTD</div><div style="font-size:1.2rem;font-weight:900;color:#60a5fa">${(st.avg_mttd_seconds||0).toFixed(0)}s</div></div>
+        <div style="background:var(--card);border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.65rem;color:var(--muted)">MTTR</div><div style="font-size:1.2rem;font-weight:900;color:#a78bfa">${(st.avg_mttr_seconds||0).toFixed(0)}s</div></div>
+        <div style="background:var(--card);border-radius:8px;padding:.6rem;text-align:center"><div style="font-size:.65rem;color:var(--muted)">Sesiones</div><div style="font-size:1.2rem;font-weight:900">${st.total_sessions||0}</div></div>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted)">Bitácoras recientes:</div>
+      <div style="font-size:.75rem;margin-top:.3rem">${(s.recent_bitacoras||[]).slice(0,5).map(b=>`<span style="display:inline-block;background:var(--card);border-radius:5px;padding:.2rem .5rem;margin:.15rem;font-size:.7rem">${b.attack_type} → ${b.node_id} · ${(b.score||0).toFixed(0)}/100</span>`).join('')||'—'}</div>`;
+  } catch(e) { panel.innerHTML = `<div style="color:var(--muted);padding:.5rem">Sin datos detallados</div>`; }
+}
+
+async function loadIncidentHistory() {
+  const tbody = document.getElementById('incidentHistoryTbody');
+  if (!tbody) return;
+  try {
+    const students = await apiFetch('/api/students/').catch(() => []);
+    const stuMap = {}; students.forEach(s => stuMap[s.id] = s.name);
+    const bits = await apiFetch('/api/bitacoras/?limit=30').catch(() => []);
+    if (!bits.length) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin registros</td></tr>'; return; }
+    tbody.innerHTML = bits.map(b => {
+      const sc = b.score||0;
+      const date = new Date(b.created_at||b.completed_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<tr>
+        <td>${stuMap[b.student_id]||'#'+b.student_id}</td>
+        <td>${b.attack_type||'?'}</td>
+        <td><code style="font-size:.7rem">${b.node_id||'?'}</code></td>
+        <td>${b.mttd_seconds?b.mttd_seconds.toFixed(0)+'s':'—'}</td>
+        <td>${b.mttr_seconds?b.mttr_seconds.toFixed(0)+'s':'—'}</td>
+        <td><strong style="color:${sc>=80?'#4ade80':sc>=60?'#facc15':'#f87171'}">${sc.toFixed(0)}</strong></td>
+        <td style="font-size:.7rem;color:var(--muted)">${date}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin datos</td></tr>'; }
+}
+
+async function exportRankingCSV(e) {
+  if (e) e.preventDefault();
+  const r = await fetch('/api/analytics/export/students-csv', {headers:{'Authorization':'Bearer '+TOKEN}});
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='ranking.csv'; a.click();
+}
+async function exportIncidentsCSV(e) {
+  if (e) e.preventDefault();
+  const r = await fetch('/api/analytics/export/incidents-csv', {headers:{'Authorization':'Bearer '+TOKEN}});
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='incidentes.csv'; a.click();
+}
+
+// ── TAB REPORTES ───────────────────────────────────────────
+async function loadEvalReportsTab() {
+  const tbody = document.getElementById('evalReportTbody2');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">⏳ Cargando...</td></tr>';
+  try {
+    const rows = await apiFetch('/api/sessions/report/all');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px">Sin aprendices</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => {
+      const g = r.global_score;
+      const gc = g>=80?'#4ade80':g>=60?'#facc15':'#f87171';
+      const sc = (v,n) => n ? `<span style="color:${v>=80?'#4ade80':v>=60?'#facc15':'#f87171'};font-weight:700">${v.toFixed(1)}</span> <span style="font-size:.65rem;color:#475569">(${n})</span>` : '<span style="color:#334155;font-size:.7rem">Sin datos</span>';
+      return `<tr style="border-bottom:1px solid rgba(30,45,69,.4)">
+        <td style="padding:8px 12px;font-weight:600">${r.student.name}<div style="font-size:.65rem;color:#475569">${r.student.email}</div></td>
+        <td style="padding:8px 12px;text-align:center">${sc(r.practice.score,r.practice.sessions+r.practice.guided_count)}</td>
+        <td style="padding:8px 12px;text-align:center">${sc(r.formal.individual.score,r.formal.individual.sessions)}</td>
+        <td style="padding:8px 12px;text-align:center">${sc(r.formal.group.score,r.formal.group.sessions)}</td>
+        <td style="padding:8px 12px;text-align:center"><span style="font-size:1rem;font-weight:900;color:${gc}">${g?g.toFixed(1):'—'}</span></td>
+        <td style="padding:8px 12px;text-align:center">
+          <button onclick="generateStudentReport(${r.student.id},'${r.student.name.replace(/'/g,"\\'")}')" style="background:#7c3aed;border:none;border-radius:5px;color:white;font-size:.7rem;font-weight:700;padding:.25rem .6rem;cursor:pointer">📄 Reporte</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f87171;padding:16px">Error: ${e.message}</td></tr>`; }
+}
+
+async function loadRepBmStudentFilter() {
+  try {
+    const students = await apiFetch('/api/students/');
+    const sel = document.getElementById('repBmFilter');
+    if (sel) sel.innerHTML = '<option value="">— Todos los aprendices —</option>' +
+      students.filter(s=>s.role==='student').map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function loadRepBitacoras() {
+  const sel = document.getElementById('repBmFilter');
+  const tbody = document.getElementById('repBmTbody');
+  if (!tbody) return;
+  const studentId = sel?.value || '';
+  try {
+    const url = studentId ? `/api/bitacoras/?student_id=${studentId}&limit=50` : '/api/bitacoras/?limit=50';
+    const bits = await apiFetch(url);
+    const students = await apiFetch('/api/students/').catch(()=>[]);
+    const stuMap = {}; students.forEach(s => stuMap[s.id] = s.name);
+    if (!bits.length) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin bitácoras</td></tr>'; return; }
+    tbody.innerHTML = bits.map(b => {
+      const sc = b.score||0;
+      const date = new Date(b.created_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<tr>
+        <td style="padding:.5rem .8rem">${stuMap[b.student_id]||'#'+b.student_id}</td>
+        <td style="padding:.5rem .8rem">${b.attack_type||'?'}</td>
+        <td style="padding:.5rem .8rem"><code style="font-size:.7rem">${b.node_id||'?'}</code></td>
+        <td style="padding:.5rem .8rem;text-align:center"><strong style="color:${sc>=80?'#4ade80':sc>=60?'#facc15':'#f87171'}">${sc.toFixed(0)}</strong></td>
+        <td style="padding:.5rem .8rem;text-align:center">${b.correct_answers||0}/${b.total_questions||4}</td>
+        <td style="padding:.5rem .8rem;text-align:center">${b.hints_used||0}</td>
+        <td style="padding:.5rem .8rem;font-size:.7rem;color:var(--muted)">${date}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Error cargando</td></tr>'; }
+}
+
+async function loadSessionHistory() {
+  const tbody = document.getElementById('sessionHistoryTbody');
+  if (!tbody) return;
+  try {
+    const students = await apiFetch('/api/students/').catch(()=>[]);
+    const stuMap = {}; students.forEach(s => stuMap[s.id] = s.name);
+    // Load active + recent sessions
+    const active = await apiFetch('/api/sessions/active').catch(()=>[]);
+    tbody.innerHTML = [...active].map(s => {
+      const elapsed = Math.floor((Date.now()-new Date(s.started_at).getTime())/60000);
+      return `<tr>
+        <td style="padding:.5rem .8rem;font-weight:600">${s.student_name||stuMap[s.student_id]||'#'+s.student_id}</td>
+        <td style="padding:.5rem .8rem"><span class="badge badge-ok">Individual</span></td>
+        <td style="padding:.5rem .8rem;font-size:.7rem">${new Date(s.started_at).toLocaleTimeString('es-CO')}</td>
+        <td style="padding:.5rem .8rem">${elapsed} min</td>
+        <td style="padding:.5rem .8rem;color:var(--muted)">—</td>
+        <td style="padding:.5rem .8rem"><span class="badge badge-ok">Activa</span></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem">Sin sesiones activas actualmente</td></tr>';
+  } catch(e) {}
+}
+
 // ── INIT ─────────────────────────────────────────────────────
 // Load initial data after a short delay to ensure DOM and WS are ready
 setTimeout(() => {
@@ -2063,10 +2690,11 @@ setTimeout(() => {
   renderAptChains();
 }, 900);
 
-// Refresh active sessions and groups every 30 seconds
+// Refresh active sessions, groups, and monitor every 30 seconds
 setInterval(() => {
   loadActiveSessions();
   loadActiveGroups();
+  if (currentTab === 'monitor') { loadMonitor(); loadRecentActivity(); }
 }, 30000);
 
 </script>
