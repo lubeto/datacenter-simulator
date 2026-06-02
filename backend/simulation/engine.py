@@ -139,14 +139,27 @@ def generate_node_metrics(node: Node) -> Dict[str, Any]:
             connections = int(_clamp(connections + 5000 * ramp, 0, 65535))
 
         elif atype == "memory_leak":
-            ram      = _clamp(ram + 2 * elapsed / 60.0, 0, 100)  # +2% por minuto
+            # RAM sube ~3% por minuto desde el inicio, mínimo garantizado 82% para que sea visible
+            ram = _clamp(max(ram + 3 * elapsed / 60.0, 82.0), 0, 100)
 
         elif atype == "disk_failure":
-            disk_io  = _clamp(disk_io + 200 * ramp, 0, 2000)
+            # Disk I/O supera umbral (>150) desde el inicio; ramp solo amplifica
+            disk_io  = _clamp(disk_io + 160 + 200 * ramp * intensity, 0, 2000)
             pkt_loss = _clamp(pkt_loss + 5 * ramp, 0, 100)
+            disk_used = _clamp(disk_used + 20 * ramp, 0, 100)
 
         elif atype == "thermal":
             cpu      = _clamp(cpu * (1 - 0.3 * ramp), 0, 100)  # throttling
+
+    # Flags de ataque para el diagnóstico guiado
+    smart_errors = 0
+    access_alert = False
+    if attack:
+        atype = attack.get("type", "")
+        if atype == "disk_failure":
+            smart_errors = random.randint(5, 20)
+        elif atype in ("unauthorized_access", "unauth_access"):
+            access_alert = True
 
     # ── Overrides manuales del instructor ──────────────────
     overrides = state.node_overrides.get(node.id, {})
@@ -165,6 +178,8 @@ def generate_node_metrics(node: Node) -> Dict[str, Any]:
         "latency_ms":      round(latency, 3),
         "packet_loss_pct": round(pkt_loss, 4),
         "connections":     connections,
+        "smart_errors":    smart_errors,
+        "access_alert":    access_alert,
         "is_online":       node.id not in state.offline_nodes,
         "uptime_pct":      99.9 if node.id not in state.offline_nodes else 0.0,
     }

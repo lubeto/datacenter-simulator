@@ -1518,16 +1518,24 @@ function _gBuildAnalyzeStage(inc){
   }
 
   if(cat === 'sst'){
-    const temp  = m.temperature !== undefined ? m.temperature.toFixed(1) : (28 + Math.random()*15).toFixed(1);
-    const power = m.power_status||'OK';
-    const smoke = m.smoke_level !== undefined ? m.smoke_level : 0;
+    const t_      = _gAttType(inc);
+    const isThermal = t_.includes('thermal');
+    const isSmoke   = t_.includes('smoke');
+    const isPower   = t_.includes('power');
+    const isUnauth  = t_.includes('unauth') || t_.includes('access');
+    // Mostrar SOLO el sensor del ataque como anómalo; los demás siempre normales
+    const temp  = isThermal ? (38 + Math.random()*7).toFixed(1) : (22 + Math.random()*3).toFixed(1);
+    const smoke = isSmoke ? 1 : 0;
+    const power = isPower ? 'FALLA' : 'OK';
+    const accessTxt = isUnauth ? '⚠️ ALERTA — evento no autorizado' : 'Normal';
+    const accessCol = isUnauth ? 'color:#ef4444' : 'color:#22c55e';
     return {
       q:`🏭 Nodo: <strong style="color:#60a5fa">${id}</strong>. Revisa los sensores físicos del datacenter. ¿Qué indicador SST está fuera de rango?`,
       ctx:`Lectura de sensores físicos — Zona de ${id}:<br>
         &bull; Temperatura rack: <strong style="${+temp>35?'color:#ef4444':+temp>30?'color:#eab308':'color:#22c55e'}">${temp}°C</strong> (normal &lt; 27°C)<br>
         &bull; Nivel de humo: <strong style="${smoke>0?'color:#ef4444':'color:#22c55e'}">${smoke>0?'⚠️ DETECTADO':'Normal'}</strong><br>
         &bull; Estado energía: <strong style="${power!=='OK'?'color:#ef4444':'color:#22c55e'}">${power}</strong><br>
-        &bull; Control de acceso: <strong>${m.access_status||'Normal'}</strong>`,
+        &bull; Control de acceso: <strong style="${accessCol}">${accessTxt}</strong>`,
       opts:[
         {label:'🌡️ Temperatura fuera de rango — riesgo de apagado',value:'temp'},
         {label:'💨 Sensor de humo activado — posible incendio',value:'smoke'},
@@ -1540,10 +1548,18 @@ function _gBuildAnalyzeStage(inc){
   }
 
   if(cat === 'hardware'){
-    const cpu  = +(m.cpu_pct||0).toFixed(1);
-    const ram  = +(m.ram_pct||0).toFixed(1);
-    const disk = +(m.disk_io_mbps||0).toFixed(0);
-    const dPct = +(m.disk_used_pct||0).toFixed(1);
+    const t_h     = _gAttType(inc);
+    const isLeak  = t_h.includes('memory') || t_h.includes('leak');
+    const isDisk  = t_h.includes('disk');
+    // Usar métricas live pero garantizar que la métrica del ataque aparezca anómala
+    let cpu  = +(m.cpu_pct||0).toFixed(1);
+    let ram  = +(m.ram_pct||0).toFixed(1);
+    let disk = +(m.disk_io_mbps||0).toFixed(0);
+    let dPct = +(m.disk_used_pct||0).toFixed(1);
+    let smart = m.smart_errors||0;
+    if(isLeak && ram < 82) ram = +(82 + Math.random()*10).toFixed(1);  // RAM siempre anómala
+    if(isDisk && disk < 160){ disk = Math.floor(160 + Math.random()*200); } // I/O siempre anómalo
+    if(isDisk && smart === 0) smart = Math.floor(5 + Math.random()*15);      // SMART errors visibles
     return {
       q:`💾 Nodo: <strong style="color:#60a5fa">${id}</strong>. Hay una anomalía de hardware. ¿Qué indicador de rendimiento está fallando?`,
       ctx:`Métricas de hardware en tiempo real — ${id}:<br>
@@ -1551,7 +1567,7 @@ function _gBuildAnalyzeStage(inc){
         &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%) — ¿tendencia creciente?<br>
         &bull; Disco I/O: <strong style="${col(disk,150)}">${disk} MB/s</strong> (normal &lt; 150 MB/s)<br>
         &bull; Disco usado: <strong style="${col(dPct,85)}">${dPct}%</strong> (crítico &gt; 85%)<br>
-        &bull; Errores SMART: <strong>${m.smart_errors||0}</strong> (normal = 0)`,
+        &bull; Errores SMART: <strong style="${smart>0?'color:#ef4444':'color:#22c55e'}">${smart}</strong> (normal = 0)`,
       opts:[
         {label:'🧠 RAM creciendo sin liberarse — fuga de memoria',value:'ram'},
         {label:'💿 Disco con errores SMART y I/O degradado',value:'disk_io'},
