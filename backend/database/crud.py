@@ -371,3 +371,18 @@ async def get_all_practice_sessions(db: AsyncSession):
         select(PracticeSession).order_by(desc(PracticeSession.completed_at))
     )
     return result.scalars().all()
+
+
+# ============================================================
+# MANTENIMIENTO — Rotación de métricas para evitar disco lleno
+# ============================================================
+async def cleanup_old_metrics(db: AsyncSession, keep_hours: int = 24) -> int:
+    """Elimina métricas y lecturas SST más antiguas que keep_hours horas.
+    Llama esto periódicamente para evitar que el disco se llene."""
+    from datetime import timedelta
+    from sqlalchemy import delete
+    cutoff = datetime.utcnow() - timedelta(hours=keep_hours)
+    r1 = await db.execute(delete(Metric).where(Metric.timestamp < cutoff))
+    r2 = await db.execute(delete(SSTReading).where(SSTReading.timestamp < cutoff))
+    await db.commit()
+    return (r1.rowcount or 0) + (r2.rowcount or 0)

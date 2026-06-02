@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database.db import get_db
 from ..database import crud
+from ..database.models import Incident
 from ..simulation.attacks import attack_manager, ATTACK_CATALOG
 from ..simulation.engine import state as sim_state
 from ..api.routes_students import get_current_student, require_instructor

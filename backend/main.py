@@ -87,7 +87,8 @@ async def db_save_callback(data_type: str, data):
                     if sensor_id:
                         await crud.save_sst_reading(db, sensor_id, stype, zone, {
                             k: v for k, v in reading.items()
-                            if k not in ("sensor_id", "type", "zone", "id", "name", "unit")
+                            if k not in ("sensor_id", "type", "zone", "id", "name", "unit",
+                                         "sensor_name", "alert_level")
                         })
 
             await db.commit()
@@ -128,6 +129,19 @@ async def lifespan(app: FastAPI):
     # Iniciar scheduler en background
     scheduler_task = asyncio.create_task(scheduler.start())
     logger.info("✅ Scheduler de simulación iniciado")
+
+    # Job de limpieza automática: borrar métricas >24h cada hora
+    async def _cleanup_loop():
+        while True:
+            await asyncio.sleep(3600)  # cada hora
+            try:
+                async with AsyncSessionLocal() as db:
+                    deleted = await crud.cleanup_old_metrics(db, keep_hours=24)
+                    if deleted:
+                        logger.info(f"🧹 Limpieza automática: {deleted} registros eliminados")
+            except Exception as e:
+                logger.warning(f"cleanup_loop error: {e}")
+    asyncio.create_task(_cleanup_loop())
     logger.info("🖥️  Dashboard disponible en: http://localhost:8000")
     logger.info("📚 API Docs en: http://localhost:8000/docs")
 
