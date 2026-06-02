@@ -197,16 +197,33 @@ async def end_session(
 # ── Sesiones activas ───────────────────────────────────────────
 @router.get("/active")
 async def get_active_sessions(
+    formal_only: bool = False,   # True = solo sesiones formales (no práctica)
     db: AsyncSession = Depends(get_db),
     _:  Student      = Depends(require_instructor),
 ):
-    q   = select(EvalSession).where(EvalSession.is_active == True)
+    """
+    Devuelve sesiones activas.
+    - formal_only=True: solo sesiones [formal:individual] o grupo (no [practice])
+    - Excluye automáticamente sesiones con más de 12 horas sin cerrar (ghost sessions)
+    """
+    cutoff_ghost = datetime.utcnow() - timedelta(hours=12)   # ignora sesiones de >12h
+
+    q   = select(EvalSession).where(
+        EvalSession.is_active  == True,
+        EvalSession.started_at >= cutoff_ghost,
+    )
+    if formal_only:
+        q = q.where(
+            or_(
+                EvalSession.notes.like('%[formal:individual]%'),
+                EvalSession.notes.like('grupo:%'),
+            )
+        )
     res = await db.execute(q)
     sessions = res.scalars().all()
 
-    # Deduplicar: solo la sesión más reciente por estudiante,
-    # y solo si el estudiante tiene rol "student" (no instructores)
-    seen_students: dict = {}  # student_id -> session más reciente
+    # Deduplicar: solo la sesión más reciente por estudiante
+    seen_students: dict = {}
     for s in sessions:
         if s.student_id not in seen_students:
             seen_students[s.student_id] = s
@@ -217,18 +234,19 @@ async def get_active_sessions(
     for s in seen_students.values():
         stu_q   = await db.execute(select(Student).where(Student.id == s.student_id))
         student = stu_q.scalar_one_or_none()
-        # Solo mostrar aprendices, ignorar instructores o entradas huérfanas
         if not student or student.role != "student":
             continue
         elapsed = (datetime.utcnow() - s.started_at).total_seconds() // 60
+        session_type = "practice" if "[practice]" in (s.notes or "") else "formal"
         out.append({
             "id":           s.id,
             "student_id":   s.student_id,
             "student_name": student.name,
             "started_at":   s.started_at.isoformat(),
             "elapsed_min":  int(elapsed),
+            "session_type": session_type,
+            "notes":        s.notes or "",
         })
-    # Ordenar por nombre de aprendiz
     out.sort(key=lambda x: x["student_name"])
     return out
 

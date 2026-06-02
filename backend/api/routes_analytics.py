@@ -69,26 +69,29 @@ async def get_student_ranking(
 
         # ── MTTD: promedio desde Incident.mttd_seconds (join Session→student) ──
         # También fallback a Bitacora.mttd_seconds si no hay incidentes detectados
-        inc_mttd_q = await db.execute(
-            select(func.avg(Incident.mttd_seconds))
-            .join(Session, Incident.session_id == Session.id)
-            .where(Session.student_id == s.id, Incident.mttd_seconds.isnot(None))
+        # MTTD desde bitácoras del aprendiz (campo más confiable, sin necesidad de join)
+        bit_mttd_q = await db.execute(
+            select(func.avg(Bitacora.mttd_seconds))
+            .where(Bitacora.student_id == s.id, Bitacora.mttd_seconds.isnot(None))
         )
-        mttd_val = inc_mttd_q.scalar()
-        if not mttd_val:
-            bit_mttd_q = await db.execute(
-                select(func.avg(Bitacora.mttd_seconds))
-                .where(Bitacora.student_id == s.id, Bitacora.mttd_seconds.isnot(None))
-            )
-            mttd_val = bit_mttd_q.scalar() or s.avg_mttd_seconds or 0
+        mttd_val = bit_mttd_q.scalar() or s.avg_mttd_seconds or 0
 
-        # ── MTTR: promedio desde Incident.mttr_seconds (join Session→student) ──
-        inc_mttr_q = await db.execute(
-            select(func.avg(Incident.mttr_seconds))
-            .join(Session, Incident.session_id == Session.id)
-            .where(Session.student_id == s.id, Incident.mttr_seconds.isnot(None))
+        # MTTR: desde incidentes ligados a sesiones del aprendiz
+        # Usamos subquery para evitar el problema del JOIN con session_id nullable
+        student_sessions_q = await db.execute(
+            select(Session.id).where(Session.student_id == s.id)
         )
-        mttr_val = inc_mttr_q.scalar() or s.avg_mttr_seconds or 0
+        student_session_ids = [r[0] for r in student_sessions_q.all()]
+        mttr_val = 0.0
+        if student_session_ids:
+            inc_mttr_q = await db.execute(
+                select(func.avg(Incident.mttr_seconds))
+                .where(
+                    Incident.session_id.in_(student_session_ids),
+                    Incident.mttr_seconds.isnot(None)
+                )
+            )
+            mttr_val = inc_mttr_q.scalar() or s.avg_mttr_seconds or 0
 
         # Actualizar Student con los valores calculados (para que otros endpoints los lean)
         if mttd_val and mttd_val != s.avg_mttd_seconds:
