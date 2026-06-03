@@ -8,6 +8,16 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{--bg:#18181b;--card:#27272a;--card2:#2d2d30;--border:#3f3f46;--accent:#f59e0b;--accent2:#f97316;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a78bfa;--text:#fafafa;--muted:#a1a1aa;--font:'Segoe UI',sans-serif}
+/* TEMAS */
+body[data-theme="oceanic"]{--bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d45;--accent:#3b82f6;--accent2:#06b6d4;--text:#e2e8f0;--muted:#64748b}
+body[data-theme="purple"]{--bg:#13111e;--card:#1c1a2e;--card2:#24223a;--border:#3b3458;--accent:#a78bfa;--accent2:#8b5cf6;--text:#f0eeff;--muted:#8b83b8}
+body[data-theme="light"]{--bg:#f8fafc;--card:#ffffff;--card2:#f1f5f9;--border:#e2e8f0;--accent:#2563eb;--accent2:#0891b2;--text:#1e293b;--muted:#64748b;--green:#16a34a;--red:#dc2626;--yellow:#ca8a04}
+.theme-opt{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:.35rem .5rem;border-radius:5px;cursor:pointer;font-size:.8rem;transition:background .15s}
+.theme-opt:hover{background:rgba(255,255,255,.07)}
+.theme-opt.active{background:rgba(245,158,11,.15);color:#f59e0b;font-weight:700}
+body[data-theme="oceanic"] .theme-opt.active{background:rgba(59,130,246,.15);color:#60a5fa}
+body[data-theme="purple"] .theme-opt.active{background:rgba(167,139,250,.15);color:#a78bfa}
+body[data-theme="light"] .theme-opt.active{background:rgba(37,99,235,.1);color:#2563eb}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
 /* HEADER */
@@ -307,6 +317,17 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
       <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;display:inline-block;animation:pulse 1.2s infinite"></span>
       <span id="evalNavText">EN EVALUACIÓN</span>
     </span>
+    <!-- SELECTOR DE TEMA -->
+    <div style="position:relative" id="themeMenuWrap">
+      <button onclick="toggleThemeMenu()" title="Cambiar tema" style="background:#27272a;border:1px solid #3f3f46;border-radius:6px;color:#a1a1aa;padding:.3rem .55rem;cursor:pointer;font-size:.82rem" id="themeBtn">🎨</button>
+      <div id="themeMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#232326;border:1px solid #3f3f46;border-radius:8px;padding:.4rem;z-index:500;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+        <div style="font-size:.65rem;color:#71717a;padding:.2rem .5rem .35rem;text-transform:uppercase;letter-spacing:.06em">Tema</div>
+        <button class="theme-opt" onclick="applyTheme('graphite')" data-theme="graphite">🌑 Graphite Cálido</button>
+        <button class="theme-opt" onclick="applyTheme('oceanic')" data-theme="oceanic">🌊 Oceanic</button>
+        <button class="theme-opt" onclick="applyTheme('purple')" data-theme="purple">🟣 Slate Púrpura</button>
+        <button class="theme-opt" onclick="applyTheme('light')" data-theme="light">☀️ Claro / Light</button>
+      </div>
+    </div>
     <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
   </div>
 </header>
@@ -377,8 +398,13 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
         <span class="card-title">🗺️ Mapa de Red — Tiempo Real</span>
         <span style="font-size:.72rem;color:#71717a">Haz clic en un nodo para ver sus métricas · Rojo = ataque activo</span>
       </div>
-      <div class="card-body" style="padding:.5rem 1rem 1rem">
-        <svg id="networkMapSVG" style="width:100%;height:auto;display:block" viewBox="0 0 1100 430" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="card-body" style="padding:.5rem 1rem 1rem;position:relative">
+        <div style="position:absolute;top:.6rem;right:.8rem;z-index:10;display:flex;gap:.3rem">
+          <button onclick="nmZoom(1.3)" title="Acercar" style="background:#27272a;border:1px solid #3f3f46;border-radius:5px;color:#a1a1aa;width:26px;height:26px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center">+</button>
+          <button onclick="nmZoom(0.77)" title="Alejar" style="background:#27272a;border:1px solid #3f3f46;border-radius:5px;color:#a1a1aa;width:26px;height:26px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center">−</button>
+          <button onclick="nmReset()" title="Resetear vista" style="background:#27272a;border:1px solid #3f3f46;border-radius:5px;color:#a1a1aa;width:26px;height:26px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center">⌂</button>
+        </div>
+        <svg id="networkMapSVG" style="width:100%;height:auto;display:block;cursor:grab;touch-action:none" viewBox="0 0 1100 430" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
     </div>
 
@@ -413,6 +439,17 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
       <div class="card-body"><div class="incident-list" id="incidentList"><div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin incidentes activos</div></div></div>
     </div>
 
+    <!-- LEADERBOARD ANÓNIMO -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🏆 Top Detección — Esta Sesión</span>
+        <span style="font-size:.65rem;color:var(--muted)">Anónimo · MTTD más rápido</span>
+      </div>
+      <div class="card-body" id="leaderboardBody" style="padding:.6rem .8rem">
+        <div style="color:var(--muted);font-size:.78rem;text-align:center;padding:.5rem">Esperando incidentes detectados...</div>
+      </div>
+    </div>
+
     <!-- ALERTS -->
     <div class="card">
       <div class="card-header">
@@ -420,6 +457,17 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
         <span class="badge badge-blue" id="alertCount">0 activas</span>
       </div>
       <div class="card-body"><div class="alert-list" id="alertList"><div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin alertas</div></div></div>
+    </div>
+
+    <!-- LÍNEA DE TIEMPO DE SESIÓN -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📅 Línea de Tiempo — Sesión</span>
+        <button onclick="clearSessionTimeline()" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:.7rem;padding:2px 7px;cursor:pointer">Limpiar</button>
+      </div>
+      <div class="card-body" id="timelineBody" style="padding:.5rem .8rem;max-height:220px;overflow-y:auto">
+        <div style="color:var(--muted);font-size:.78rem;text-align:center;padding:.5rem">Sin eventos aún...</div>
+      </div>
     </div>
 
     <!-- SST SENSORS -->
@@ -461,6 +509,12 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
       <span id="guidedScoreDisplay" title="Puntaje actual — Inicia en 100. Pista: −10 pts. Respuesta incorrecta: −15 pts. Mínimo: 30."
         style="background:#451a03;border:1px solid #f59e0b;border-radius:6px;padding:2px 7px;font-size:.74rem;font-weight:800;color:#f59e0b;cursor:help;white-space:nowrap">⭐ 100</span>
       <span id="guidedTimer" style="background:#27272a;border:1px solid #3f3f46;border-radius:6px;padding:2px 6px;font-size:.72rem;color:#a1a1aa;font-variant-numeric:tabular-nums;white-space:nowrap">⏱ 0:00</span>
+      <select id="guidedDiffSel" onchange="setGuidedDifficulty(this.value)" title="Nivel de dificultad"
+        style="background:#27272a;border:1px solid #3f3f46;border-radius:6px;color:#a1a1aa;font-size:.7rem;padding:2px 4px;cursor:pointer">
+        <option value="guiado">🟢 Guiado</option>
+        <option value="asistido" selected>🟡 Asistido</option>
+        <option value="experto">🔴 Experto</option>
+      </select>
     </div>
     <div style="display:flex;gap:4px;flex-shrink:0;margin-left:.3rem">
       <!-- Botón recoger / expandir -->
@@ -928,7 +982,15 @@ async function loadIncidents() {
     const r = await apiFetch('/api/attacks/incidents/active');
     const list = document.getElementById('incidentList');
     document.getElementById('sc-incidents').textContent = r.length || 0;
-    if (!r.length) { list.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin incidentes activos ✅</div>'; return; }
+    if (!r.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin incidentes activos ✅</div>';
+      checkAlertCorrelation([]);
+      return;
+    }
+    checkAlertCorrelation(r);
+    // Propagación: marcar nodos bajo ataque para que updatePropagation los difunda
+    r.forEach(i => { if(i.node_affected) nmAttacked.add(i.node_affected); });
+    updatePropagation();
     list.innerHTML = r.map(i => {
       const since = i.started_at ? new Date(i.started_at).toLocaleTimeString('es') : '—';
       const sevClass = i.severity === 'critical' ? 'badge-crit' : i.severity === 'warning' ? 'badge-warn' : 'badge-blue';
@@ -952,6 +1014,8 @@ async function detectIncident(id, attackType, nodeId) {
     const r = await apiFetch(`/api/attacks/incidents/detect?incident_id=${id}&session_id=${sessId}`, {method:'POST'});
     const mttd = r.mttd_seconds ? r.mttd_seconds.toFixed(1) + 's' : '—';
     notify('🔍 Incidente detectado', `MTTD: ${mttd} — Iniciando diagnóstico...`, 'warn');
+    if (r.mttd_seconds) leaderboardAdd(r.mttd_seconds);
+    addTimelineEvent('🔍 DETECCIÓN', `${(attackType||'incidente').toUpperCase()} en ${nodeId||'—'} · MTTD: ${mttd}`, 'warn');
     loadIncidents();
     // Acción explícita → marcar nodo rojo + abrir panel guiado directamente
     if (STUDENT?.role !== 'instructor' && attackType && nodeId) {
@@ -1224,6 +1288,8 @@ async function quickDetect() {
   try {
     const r = await apiFetch(`/api/attacks/incidents/detect?incident_id=${escIncidentId}&session_id=1`, {method:'POST'});
     notify('✅ Detectado', `MTTD: ${r.mttd_seconds?.toFixed(1)}s`, 'ok');
+    if (r.mttd_seconds) leaderboardAdd(r.mttd_seconds);
+    addTimelineEvent('⚡ ALERTA', `Detección rápida · MTTD: ${r.mttd_seconds?.toFixed(1)}s`, 'warn');
     document.getElementById('escTimer').classList.remove('visible');
     clearInterval(escInterval);
     await loadMitigationSuggestion(escIncidentId, null, null);
@@ -1347,18 +1413,19 @@ function renderNetworkMap() {
     const online=m.is_online!==false, cpu=m.cpu_pct||0, ram=m.ram_pct||0;
     const atk=nmAttacked.has(id);
     const mitigated=nmMitigated.has(id);
+    const propagated=!atk && nmPropagated.has(id); // latencia por upstream atacado
     let st='ok';
     if (!online) st='offline';
     else if (mitigated) st='mitigated';
     else if (atk||cpu>90||ram>92) st='crit';
-    else if (cpu>75||ram>80) st='warn';
+    else if (propagated||cpu>75||ram>80) st='warn';
     const icon=NM_ICONS[nd.type||'web']||'🖥';
     const metric=online?`CPU ${cpu.toFixed(0)}% · RAM ${ram.toFixed(0)}%`:'OFFLINE';
     const isGuided = id === guidedNode;
     const atkAnim=atk?` style="animation:nmPulse .8s infinite"`:'';
-    const fillC = mitigated?'#14532d': isGuided?'#451a03': fc[st]||fc.ok;
-    const strkC = mitigated?'#4ade80': isGuided?'#f59e0b': sc[st]||sc.ok;
-    const strkW = (atk||mitigated||isGuided)?3:1.5;
+    const fillC = mitigated?'#14532d': isGuided?'#451a03': propagated?'#422006': fc[st]||fc.ok;
+    const strkC = mitigated?'#4ade80': isGuided?'#f59e0b': propagated?'#f97316': sc[st]||sc.ok;
+    const strkW = (atk||mitigated||isGuided||propagated)?3:1.5;
     return `<g class="nm-node" onclick="openNodeModal('${id}')">
       ${isGuided?`<circle cx="${pos.x}" cy="${pos.y}" r="30" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.3)" stroke-width="1"><animate attributeName="r" values="26;34;26" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;.1;.5" dur="1.5s" repeatCount="indefinite"/></circle>`:''}
       <circle cx="${pos.x}" cy="${pos.y}" r="24" fill="${fillC}" stroke="${strkC}" stroke-width="${strkW}"${isGuided?'':atkAnim}/>
@@ -1410,7 +1477,21 @@ function _updateGuidedHUD() {
   if (timerEl && guidedState.startTime) {
     const sec = Math.floor((Date.now() - guidedState.startTime) / 1000);
     const m = Math.floor(sec / 60), s = sec % 60;
-    timerEl.textContent = '⏱ ' + m + ':' + String(s).padStart(2,'0');
+    if (_guidedDifficulty === 'experto') {
+      const LIMIT = 300; // 5 min
+      const rem = Math.max(0, LIMIT - sec);
+      const rm = Math.floor(rem / 60), rs = rem % 60;
+      timerEl.textContent = '⏳ ' + rm + ':' + String(rs).padStart(2,'0');
+      timerEl.style.color = rem < 60 ? '#ef4444' : rem < 120 ? '#fbbf24' : '#a1a1aa';
+      if (rem === 0 && guidedState.active) {
+        // Tiempo agotado en modo experto → forzar resultado
+        guidedState.score = Math.max(20, guidedState.score - 20);
+        showGuidedResults();
+      }
+    } else {
+      timerEl.style.color = '#a1a1aa';
+      timerEl.textContent = '⏱ ' + m + ':' + String(s).padStart(2,'0');
+    }
   }
 }
 
@@ -1538,7 +1619,7 @@ function _gBuildAnalyzeStage(inc){
     const issuer= ssl.issuer||'Let\'s Encrypt';
     const expDate = ssl.expires_at ? new Date(ssl.expires_at).toLocaleDateString('es-CO') : '—';
     return {
-      q:`🔐 Nodo: <strong style="color:#fbbf24">${id}</strong>. Revisa el estado del certificado SSL/TLS. ¿Cuál es el indicador que confirma el problema?`,
+      q:`${_getQVariant('analyze','ssl')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
       ctx:`Estado SSL/TLS del nodo <strong>${id}</strong>:<br>
         &bull; Versión TLS: <strong style="${proto==='TLS 1.0'||proto==='TLS 1.1'?'color:#ef4444':'color:#22c55e'}">${proto}</strong><br>
         &bull; Días para vencer: <strong style="${days<30?'color:#ef4444':days<60?'color:#eab308':'color:#22c55e'}">${days} días</strong><br>
@@ -1568,7 +1649,7 @@ function _gBuildAnalyzeStage(inc){
     const accessTxt = isUnauth ? '⚠️ ALERTA — evento no autorizado' : 'Normal';
     const accessCol = isUnauth ? 'color:#ef4444' : 'color:#22c55e';
     return {
-      q:`🏭 Nodo: <strong style="color:#fbbf24">${id}</strong>. Revisa los sensores físicos del datacenter. ¿Qué indicador SST está fuera de rango?`,
+      q:`${_getQVariant('analyze','sst')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
       ctx:`Lectura de sensores físicos — Zona de ${id}:<br>
         &bull; Temperatura rack: <strong style="${+temp>35?'color:#ef4444':+temp>30?'color:#eab308':'color:#22c55e'}">${temp}°C</strong> (normal &lt; 27°C)<br>
         &bull; Nivel de humo: <strong style="${smoke>0?'color:#ef4444':'color:#22c55e'}">${smoke>0?'⚠️ DETECTADO':'Normal'}</strong><br>
@@ -1599,7 +1680,7 @@ function _gBuildAnalyzeStage(inc){
     if(isDisk && disk < 160){ disk = Math.floor(160 + Math.random()*200); } // I/O siempre anómalo
     if(isDisk && smart === 0) smart = Math.floor(5 + Math.random()*15);      // SMART errors visibles
     return {
-      q:`💾 Nodo: <strong style="color:#fbbf24">${id}</strong>. Hay una anomalía de hardware. ¿Qué indicador de rendimiento está fallando?`,
+      q:`${_getQVariant('analyze','hardware')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
       ctx:`Métricas de hardware en tiempo real — ${id}:<br>
         &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> (normal &lt; 70%)<br>
         &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%) — ¿tendencia creciente?<br>
@@ -1624,7 +1705,7 @@ function _gBuildAnalyzeStage(inc){
   const conn = m.connections||0;
   const lat  = +(m.latency_ms||0).toFixed(0);
   return {
-    q:`📊 Nodo: <strong style="color:#fbbf24">${id}</strong>. Analiza sus métricas de red. ¿Cuál indicador confirma el ataque?`,
+    q:`${_getQVariant('analyze','red')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
     ctx:`Métricas en tiempo real de ${id}:<br>
       &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> (normal &lt; 70%)<br>
       &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%)<br>
@@ -1649,7 +1730,7 @@ function _gBuildClassifyStage(inc){
 
   if(cat === 'ssl'){
     return {
-      q:'🔐 Identifica exactamente el tipo de falla SSL/TLS. ¿Cuál describe mejor lo que está pasando?',
+      q: _getQVariant('classify','ssl'),
       ctx:`Falla SSL/TLS en el nodo <strong style="color:#fbbf24">${id}</strong>. En producción, un certificado mal gestionado puede causar downtime total del servicio HTTPS.`,
       opts:[
         {label:'⌛ Certificado SSL próximo a vencer (< 30 días)',value:'ssl_expiring'},
@@ -1664,7 +1745,7 @@ function _gBuildClassifyStage(inc){
 
   if(cat === 'sst'){
     return {
-      q:'🏭 Clasifica el tipo de emergencia física. ¿Cuál describe mejor el incidente SST?',
+      q: _getQVariant('classify','sst'),
       ctx:`Emergencia física en la zona de <strong style="color:#fbbf24">${id}</strong>. Los incidentes SST requieren protocolo diferente a los ciberataques: implican respuesta física inmediata.`,
       opts:[
         {label:'🌡️ Sobrecalentamiento — falla CRAC / refrigeración',value:'thermal'},
@@ -1679,7 +1760,7 @@ function _gBuildClassifyStage(inc){
 
   if(cat === 'hardware'){
     return {
-      q:'💾 Clasifica la falla de hardware. ¿Cuál describe mejor lo que está fallando?',
+      q: _getQVariant('classify','hardware'),
       ctx:`Falla de hardware en <strong style="color:#fbbf24">${id}</strong>. Las fallas de hardware pueden causar pérdida de datos si no se actúa rápidamente.`,
       opts:[
         {label:'🧠 Memory Leak — proceso acumula RAM sin liberarla',value:'mem_leak'},
@@ -1694,7 +1775,7 @@ function _gBuildClassifyStage(inc){
 
   // Categoría 'red'
   return {
-    q:'🌐 Clasifica el tipo de ataque de red. ¿Cuál describe mejor el vector de ataque?',
+    q: _getQVariant('classify','red'),
     ctx:`Ataque de red en <strong style="color:#fbbf24">${id}</strong>. Cada tipo de ataque tiene una firma diferente en las métricas y requiere una mitigación específica.`,
     opts:[
       {label:'💥 DDoS / SYN Flood — saturación masiva de red',value:'ddos'},
@@ -1723,7 +1804,7 @@ function _gBuildMitigateOpts(inc){
 
   if(cat === 'ssl'){
     return {
-      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es la acción de mitigación correcta?`,
+      q:`${_getQVariant('mitigate','ssl')} — <strong style="color:#f97316">${attackLabel}</strong> · <strong style="color:#fbbf24">${id}</strong>`,
       ctx:'En certificados SSL/TLS, la velocidad de respuesta es crítica. Un certificado expirado genera errores inmediatos para todos los usuarios.',
       opts:[
         {label:'🔐 Renovar el certificado con certbot/Let\'s Encrypt',value:'renew_cert'},
@@ -1738,7 +1819,7 @@ function _gBuildMitigateOpts(inc){
 
   if(cat === 'sst'){
     return {
-      q:`🛡️ Emergencia confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es el primer paso del protocolo SST?`,
+      q:`${_getQVariant('mitigate','sst')} — <strong style="color:#f97316">${attackLabel}</strong> · <strong style="color:#fbbf24">${id}</strong>`,
       ctx:'Los incidentes SST activan protocolos físicos de seguridad. La prioridad es proteger el equipo y el personal, no solo los datos.',
       opts:[
         {label:'❄️ Reiniciar unidad CRAC y aumentar extracción de aire',value:'cool_crac'},
@@ -1753,7 +1834,7 @@ function _gBuildMitigateOpts(inc){
 
   if(cat === 'hardware'){
     return {
-      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es la primera acción de mitigación?`,
+      q:`${_getQVariant('mitigate','hardware')} — <strong style="color:#f97316">${attackLabel}</strong> · <strong style="color:#fbbf24">${id}</strong>`,
       ctx:'Las fallas de hardware tienen ventanas de tiempo críticas. Actuar rápido puede prevenir pérdida de datos y downtime prolongado.',
       opts:[
         {label:'🔄 Reiniciar el proceso con fuga y ajustar límites de memoria',value:'restart_proc'},
@@ -1768,7 +1849,7 @@ function _gBuildMitigateOpts(inc){
 
   // Categoría 'red'
   return {
-    q:`🛡️ Ataque confirmado: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es la primera línea de defensa?`,
+    q:`${_getQVariant('mitigate','red')} — <strong style="color:#f97316">${attackLabel}</strong> · <strong style="color:#fbbf24">${id}</strong>`,
     ctx:'En ataques de red, la velocidad de respuesta define si el incidente se contiene o se expande. Cada tipo de ataque tiene una contramedida primaria diferente.',
     opts:[
       {label:'🚧 Activar rate limiting y null-route en el firewall',value:'rate_limit'},
@@ -1781,10 +1862,113 @@ function _gBuildMitigateOpts(inc){
   };
 }
 
+// ── BANCO DE VARIANTES DE PREGUNTAS ──────────────────────────
+// 2-3 variantes por etapa/categoría — se elige aleatoriamente al abrir el panel
+const GUIDED_Q_VARIANTS = {
+  detect: [
+    '🔴 ¡Alerta! Actividad anómala detectada. Observa el mapa de red. ¿Qué nodo muestra el estado más crítico?',
+    '⚠️ El sistema reporta un incidente activo. Examina el mapa de red. ¿En qué nodo se concentra la anomalía?',
+    '🚨 Tráfico inusual registrado. Identifica en el mapa el nodo que está siendo afectado ahora mismo.',
+  ],
+  analyze: {
+    red:  [
+      '📊 Revisa las métricas del nodo. ¿Qué indicador supera su umbral normal de forma más significativa?',
+      '🔎 Analiza los valores del nodo afectado. ¿Cuál es la métrica que está disparando las alertas?',
+      '📈 Compara las métricas con los rangos normales. ¿Qué recurso muestra el comportamiento más anómalo?',
+    ],
+    hardware: [
+      '💾 Este nodo presenta una falla de hardware. ¿Qué métrica refleja el problema de forma más directa?',
+      '🔧 El hardware del nodo está degradado. ¿Qué indicador confirma la anomalía de hardware?',
+      '📊 Analiza el nodo. ¿Qué métrica de hardware supera sus límites operativos?',
+    ],
+    ssl: [
+      '🔐 Hay un problema con el certificado. ¿Qué indicador SSL/TLS está fuera de rango?',
+      '🛡️ La capa de seguridad presenta un fallo. ¿Qué parámetro del certificado está afectado?',
+    ],
+    sst: [
+      '🌡️ Se detectó una alerta ambiental. ¿Qué sensor está reportando un valor fuera de rango?',
+      '⚡ El protocolo SST se activó. ¿Cuál es el sensor que desencadenó la alarma?',
+    ],
+  },
+  classify: {
+    red: [
+      '🏷️ Con base en las métricas observadas, ¿cómo clasificas este incidente de red?',
+      '📋 ¿Qué tipo de ataque de red describe mejor el patrón que observaste?',
+      '🎯 Identifica el tipo de ataque: ¿cuál coincide con las métricas anómalas del nodo?',
+    ],
+    hardware: [
+      '🔧 ¿Cuál es el tipo de fallo de hardware más consistente con las métricas observadas?',
+      '💻 Con base en los indicadores de hardware, ¿cómo clasificas este incidente?',
+    ],
+    ssl: [
+      '🔐 ¿Cómo clasificas el problema de seguridad detectado en la capa SSL/TLS?',
+      '🛡️ Con base en los indicadores, ¿qué tipo de vulnerabilidad SSL afecta al nodo?',
+    ],
+    sst: [
+      '🏷️ ¿Cómo se clasifica la alerta ambiental según los sensores activados?',
+      '⚡ Identifica el tipo de evento SST según el sensor y los valores reportados.',
+    ],
+  },
+  mitigate: {
+    red: [
+      '🛡️ ¿Cuál es la primera acción de mitigación para este tipo de ataque de red?',
+      '⚔️ Para contener este incidente de red, ¿qué medida debes aplicar de inmediato?',
+      '🔒 ¿Qué contramedida es más efectiva como respuesta inicial a este ataque?',
+    ],
+    hardware: [
+      '🔧 ¿Cuál es la acción inmediata para mitigar esta falla de hardware?',
+      '💡 Para detener el deterioro de este nodo, ¿qué debes hacer primero?',
+    ],
+    ssl: [
+      '🔐 ¿Cuál es el primer paso para resolver este problema de certificado SSL/TLS?',
+      '🛡️ Para restablecer la seguridad de la capa SSL, ¿qué acción es prioritaria?',
+    ],
+    sst: [
+      '⚡ Según el protocolo SST, ¿cuál es la primera acción ante esta alerta ambiental?',
+      '🌡️ ¿Qué medida inmediata corresponde ante este tipo de alerta SST?',
+    ],
+  },
+};
+
+// Variante elegida para la sesión actual (se randomiza al abrir el panel)
+let _gVariant = { detect: 0, analyze: 0, classify: 0, mitigate: 0 };
+function _pickVariants() {
+  const rnd = arr => Math.floor(Math.random() * arr.length);
+  _gVariant.detect = rnd(GUIDED_Q_VARIANTS.detect);
+  _gVariant.analyze = rnd([0,1,2]);
+  _gVariant.classify = rnd([0,1,2]);
+  _gVariant.mitigate = rnd([0,1,2]);
+}
+function _getQVariant(stageKey, cat) {
+  const bank = GUIDED_Q_VARIANTS[stageKey];
+  if (!bank) return '';
+  if (typeof bank[0] === 'string') return bank[_gVariant[stageKey]] || bank[0];
+  const arr = bank[cat] || bank.red;
+  return arr[_gVariant[stageKey] % arr.length] || arr[0];
+}
+
+// ── NIVELES DE DIFICULTAD ─────────────────────────────────────
+// guiado: pistas automáticas tras respuesta incorrecta
+// asistido: pistas a demanda (comportamiento actual)
+// experto: sin pistas, tiempo límite 5 min
+let _guidedDifficulty = localStorage.getItem('dc_difficulty') || 'asistido';
+function setGuidedDifficulty(val) {
+  _guidedDifficulty = val;
+  localStorage.setItem('dc_difficulty', val);
+  // Actualizar selector si está visible
+  const sel = document.getElementById('guidedDiffSel');
+  if (sel) sel.value = val;
+}
+// Inicializar selector al cargar
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('guidedDiffSel');
+  if (sel) sel.value = _guidedDifficulty;
+});
+
 const GUIDED_STAGES = [
   // STAGE 1: Detectar nodo (igual para todas las categorías)
   (inc) => ({
-    q:'🔴 ¡Alerta! Actividad anómala detectada. Observa el mapa de red. ¿Qué nodo muestra el estado más crítico?',
+    q: _getQVariant('detect', 'red'),
     ctx:'El mapa de red muestra en tiempo real el estado de cada nodo. Los nodos en <strong style="color:#ef4444">rojo</strong> tienen un incidente activo. Identifica el nodo afectado.',
     opts:(()=>{ const c=_gCorrectDetect(inc); const o=Object.keys(allNodes).filter(n=>n!==c).sort(()=>Math.random()-.5).slice(0,3); return [c,...o].sort(()=>Math.random()-.5).map(n=>({label:'🖥️ '+n,value:n})); })(),
     correct:_gCorrectDetect(inc),
@@ -1828,6 +2012,7 @@ function _openGuidedPanel(incId, attackType, nodeId) {
     lastIncidentId: incId, lastClosedAt: guidedState?.lastClosedAt || 0
   };
   XSESSION.activeType = 'guided';
+  _pickVariants(); // Nueva variante de preguntas cada sesión
   const el = document.getElementById('guidedSubtitle');
   if (el) el.textContent = (attackType || 'ATAQUE').toUpperCase() + ' · Nodo: ' + (nodeId || '—');
   const panel = document.getElementById('guidedPanel');
@@ -1882,7 +2067,13 @@ function renderGuidedStage(stage) {
   const stg=GUIDED_STAGES[stage](guidedState.incident);
   const nb=document.getElementById('guidedNextBtn'), hb=document.getElementById('guidedHintBtn');
   if(nb) nb.style.display='none';
-  if(hb) hb.style.display='';
+  // Nivel experto: sin botón de pista
+  if(hb) hb.style.display = (_guidedDifficulty === 'experto') ? 'none' : '';
+  // Nivel experto: mostrar tiempo límite de 5 min en timer
+  if(_guidedDifficulty === 'experto') {
+    const timerEl = document.getElementById('guidedTimer');
+    if(timerEl) timerEl.style.color = '#ef4444';
+  }
   const optH=stg.opts.map((o,i)=>
     `<button class="guided-option" id="gopt-${i}" data-val="${o.value}" onclick="checkGuidedAnswer('${o.value}','${stg.correct}')">${o.label}</button>`
   ).join('');
@@ -1908,7 +2099,11 @@ function showGuidedHint() {
 function checkGuidedAnswer(val,correct) {
   document.querySelectorAll('.guided-option').forEach(b=>{b.disabled=true;b.style.pointerEvents='none';});
   const isOK=val===correct;
-  if(!isOK) { guidedState.score=Math.max(30,guidedState.score-15); _updateGuidedHUD(); }
+  if(!isOK) {
+    guidedState.score=Math.max(30,guidedState.score-15); _updateGuidedHUD();
+    // Modo Guiado: mostrar pista automáticamente tras error
+    if(_guidedDifficulty === 'guiado') setTimeout(showGuidedHint, 600);
+  }
   guidedState.answers.push({stage:guidedState.stage,correct:isOK});
   document.querySelectorAll('.guided-option').forEach(b=>{
     const bv=b.dataset.val;
@@ -1960,6 +2155,7 @@ function _showGuidedResultsPanel(qualityInfo) {
     // Volver a normal después de 30 seg
     setTimeout(() => { nmMitigated.delete(mitigatedNode); renderNetworkMap(); }, 30000);
   }
+  addTimelineEvent('✅ DIAGNÓSTICO', `${guidedState.incident?.attack?.attack_type||'?'} en ${guidedState.incident?.attack?.node_id||'—'} · ${sc}/100 · ${dur}s`, sc>=75?'ok':'warn');
   XSESSION.saveGuided({type:guidedState.incident?.attack?.attack_type||'desconocido',node:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur});
   apiFetch('/api/analytics/guided/complete',{method:'POST',body:JSON.stringify({attack_type:guidedState.incident?.attack?.attack_type||'unknown',node_id:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur})}).catch(()=>{});
   XSESSION.lock(15); // 15 min cooldown al completar
@@ -2127,6 +2323,169 @@ function handlePracticeMode(data) {
   }
 }
 
+// ── SELECTOR DE TEMA ──────────────────────────────────────────
+const THEMES = ['graphite','oceanic','purple','light'];
+function applyTheme(name) {
+  document.body.setAttribute('data-theme', name === 'graphite' ? '' : name);
+  if (name === 'graphite') document.body.removeAttribute('data-theme');
+  localStorage.setItem('dc_theme', name);
+  document.querySelectorAll('.theme-opt').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === name);
+  });
+  document.getElementById('themeMenu').style.display = 'none';
+  // Re-render map with new colors
+  renderNetworkMap();
+}
+function toggleThemeMenu() {
+  const m = document.getElementById('themeMenu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+// Cerrar al hacer clic fuera
+document.addEventListener('click', e => {
+  if (!document.getElementById('themeMenuWrap')?.contains(e.target))
+    document.getElementById('themeMenu').style.display = 'none';
+});
+// Aplicar tema guardado al cargar
+(function() {
+  const saved = localStorage.getItem('dc_theme') || 'graphite';
+  if (saved && saved !== 'graphite') document.body.setAttribute('data-theme', saved);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.theme-opt').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === saved);
+    });
+  });
+})();
+
+// ── TABLA DE LIDERAZGO ANÓNIMA ────────────────────────────────
+(function() {
+  const KEY = 'dc_leaderboard';
+  const MEDALS = ['🥇','🥈','🥉'];
+  const MAX = 10;
+
+  function _load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) { return []; }
+  }
+  function _save(list) {
+    localStorage.setItem(KEY, JSON.stringify(list));
+  }
+
+  window.leaderboardAdd = function(mttdSeconds) {
+    if (!mttdSeconds || mttdSeconds <= 0) return;
+    const list = _load();
+    list.push({ mttd: parseFloat(mttdSeconds.toFixed(1)), ts: Date.now() });
+    list.sort((a, b) => a.mttd - b.mttd);
+    if (list.length > MAX) list.length = MAX;
+    _save(list);
+    renderLeaderboard();
+  };
+
+  window.renderLeaderboard = function() {
+    const body = document.getElementById('leaderboardBody');
+    if (!body) return;
+    const list = _load();
+    if (!list.length) {
+      body.innerHTML = '<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:.5rem">Esperando incidentes detectados...</div>';
+      return;
+    }
+    body.innerHTML = list.slice(0, 5).map((e, i) => {
+      const medal = MEDALS[i] || `#${i+1}`;
+      const bar = Math.round((list[0].mttd / e.mttd) * 100);
+      return `<div style="display:flex;align-items:center;gap:.5rem;padding:.28rem 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="font-size:1rem;width:1.4rem;text-align:center">${medal}</span>
+        <div style="flex:1">
+          <div style="height:5px;border-radius:3px;background:var(--border);overflow:hidden">
+            <div style="height:100%;width:${bar}%;background:${i===0?'var(--accent)':'var(--muted)'};border-radius:3px;transition:width .4s"></div>
+          </div>
+        </div>
+        <span style="font-size:.8rem;font-weight:700;color:${i===0?'var(--accent)':'var(--text)'};min-width:3.5rem;text-align:right">${e.mttd}s</span>
+      </div>`;
+    }).join('');
+  };
+
+  // Renderizar al cargar
+  document.addEventListener('DOMContentLoaded', renderLeaderboard);
+})();
+
+// ── ZOOM / PAN DEL MAPA SVG ───────────────────────────────────
+(function() {
+  let scale = 1, tx = 0, ty = 0;
+  let dragging = false, startX = 0, startY = 0, startTX = 0, startTY = 0;
+  const VW = 1100, VH = 430;
+
+  function applyTransform() {
+    const svg = document.getElementById('networkMapSVG');
+    if (!svg) return;
+    // Clamp translation so map doesn't go fully off screen
+    const maxTX = VW * (scale - 1);
+    const maxTY = VH * (scale - 1);
+    tx = Math.max(-maxTX, Math.min(0, tx));
+    ty = Math.max(-maxTY, Math.min(0, ty));
+    svg.setAttribute('viewBox', `${-tx/scale} ${-ty/scale} ${VW/scale} ${VH/scale}`);
+  }
+
+  window.nmZoom = function(factor) {
+    const prevScale = scale;
+    scale = Math.max(0.5, Math.min(4, scale * factor));
+    // Zoom toward center
+    tx = tx * (scale / prevScale);
+    ty = ty * (scale / prevScale);
+    applyTransform();
+  };
+  window.nmReset = function() { scale = 1; tx = 0; ty = 0; applyTransform(); };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const svg = document.getElementById('networkMapSVG');
+    if (!svg) return;
+
+    svg.addEventListener('wheel', e => {
+      e.preventDefault();
+      nmZoom(e.deltaY < 0 ? 1.15 : 0.87);
+    }, { passive: false });
+
+    svg.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      dragging = true; startX = e.clientX; startY = e.clientY;
+      startTX = tx; startTY = ty;
+      svg.style.cursor = 'grabbing';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      tx = startTX + (e.clientX - startX);
+      ty = startTY + (e.clientY - startY);
+      applyTransform();
+    });
+    document.addEventListener('mouseup', () => {
+      dragging = false;
+      const svg = document.getElementById('networkMapSVG');
+      if (svg) svg.style.cursor = 'grab';
+    });
+
+    // Touch support
+    let lastDist = 0;
+    svg.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        dragging = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        startTX = tx; startTY = ty;
+      } else if (e.touches.length === 2) {
+        dragging = false;
+        lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      }
+    }, { passive: true });
+    svg.addEventListener('touchmove', e => {
+      if (e.touches.length === 1 && dragging) {
+        tx = startTX + (e.touches[0].clientX - startX);
+        ty = startTY + (e.touches[0].clientY - startY);
+        applyTransform();
+      } else if (e.touches.length === 2) {
+        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        if (lastDist > 0) nmZoom(dist / lastDist);
+        lastDist = dist;
+      }
+    }, { passive: true });
+    svg.addEventListener('touchend', () => { dragging = false; lastDist = 0; });
+  });
+})();
+
 // ── INIT ──────────────────────────────────────────────────────
 initSession();
 loadSSTStatus();
@@ -2135,6 +2494,108 @@ loadIncidents();
 loadAlerts();
 loadSSL();
 setInterval(() => { loadIncidents(); loadAlerts(); loadSSL(); }, 15000);
+
+// ── PROPAGACIÓN DE ATAQUES EN TOPOLOGÍA ───────────────────────
+// Nodos aguas abajo de cada nodo infraestructura
+const TOPOLOGY_DOWNSTREAM = {
+  'FW-01':     ['RTR-EDGE','SW-CORE','LB-01','SW-ACC-01','WEB-01','WEB-02','APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
+  'RTR-EDGE':  ['SW-CORE','LB-01','SW-ACC-01','WEB-01','WEB-02','APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
+  'SW-CORE':   ['LB-01','SW-ACC-01','WEB-01','WEB-02','APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
+  'LB-01':     ['WEB-01','WEB-02'],
+  'SW-ACC-01': ['APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
+};
+// Latencia base agregada a nodos aguas abajo cuando su upstream está bajo ataque
+const PROPAGATION_LATENCY = { 'FW-01': 300, 'RTR-EDGE': 200, 'SW-CORE': 100, 'LB-01': 60, 'SW-ACC-01': 60 };
+let nmPropagated = new Set(); // nodos con latencia elevada por propagación
+
+function updatePropagation() {
+  const prev = new Set(nmPropagated);
+  nmPropagated.clear();
+  for (const [upstreamId, downstream] of Object.entries(TOPOLOGY_DOWNSTREAM)) {
+    if (nmAttacked.has(upstreamId)) {
+      downstream.forEach(n => nmPropagated.add(n));
+    }
+  }
+  // Re-render mapa solo si cambió algo
+  const changed = prev.size !== nmPropagated.size || [...prev].some(n => !nmPropagated.has(n));
+  if (changed) renderNetworkMap();
+}
+
+// ── CORRELACIÓN DE ALERTAS ────────────────────────────────────
+let _aptAlertShown = false;
+let _aptLastNodes = '';
+
+function checkAlertCorrelation(incidents) {
+  if (!incidents || !Array.isArray(incidents)) return;
+  const active = incidents.filter(i => !i.resolved_at && i.attack);
+  const nodes  = [...new Set(active.map(i => i.attack?.node_id).filter(Boolean))];
+  if (nodes.length >= 2) {
+    const key = nodes.sort().join(',');
+    if (key !== _aptLastNodes) {
+      _aptLastNodes = key;
+      _aptAlertShown = false;
+    }
+    if (!_aptAlertShown) {
+      _aptAlertShown = true;
+      addTimelineEvent('🔴 APT', `Múltiples nodos bajo ataque simultáneo (${nodes.join(', ')}) → posible ataque coordinado`, 'crit');
+      // Mostrar en panel de alertas del sistema
+      const alertList = document.getElementById('alertList');
+      if (alertList) {
+        const aptDiv = document.getElementById('apt-alert-banner');
+        if (!aptDiv) {
+          const d = document.createElement('div');
+          d.id = 'apt-alert-banner';
+          d.style.cssText = 'background:rgba(239,68,68,.12);border:1px solid #ef4444;border-radius:7px;padding:.5rem .7rem;margin-bottom:.4rem;font-size:.78rem;color:#fca5a5;font-weight:700';
+          d.innerHTML = `⚠️ POSIBLE APT COORDINADO — Nodos: <strong>${nodes.join(', ')}</strong><br><span style="font-size:.7rem;font-weight:400;color:#a1a1aa">Múltiples nodos bajo ataque simultáneo. Investiga correlación.</span>`;
+          alertList.prepend(d);
+        }
+      }
+      notify('🚨 Alerta APT', `Ataques simultáneos en ${nodes.join(', ')} — posible APT coordinado`, 'crit');
+    }
+  } else {
+    _aptAlertShown = false;
+    _aptLastNodes = '';
+    const aptDiv = document.getElementById('apt-alert-banner');
+    if (aptDiv) aptDiv.remove();
+  }
+}
+
+// ── LÍNEA DE TIEMPO DE SESIÓN ─────────────────────────────────
+const _sessionTimeline = [];
+const _sessionStart = Date.now();
+
+function addTimelineEvent(label, desc, type) {
+  const sec = Math.floor((Date.now() - _sessionStart) / 1000);
+  const m = Math.floor(sec / 60), s = sec % 60;
+  const ts = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  _sessionTimeline.unshift({ ts, label, desc, type }); // más reciente primero
+  if (_sessionTimeline.length > 50) _sessionTimeline.length = 50;
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const body = document.getElementById('timelineBody');
+  if (!body) return;
+  if (!_sessionTimeline.length) {
+    body.innerHTML = '<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:.5rem">Sin eventos aún...</div>';
+    return;
+  }
+  const typeColor = { crit:'#ef4444', warn:'#fbbf24', ok:'#22c55e', info:'#a78bfa' };
+  body.innerHTML = _sessionTimeline.map(e => `
+    <div style="display:flex;gap:.5rem;align-items:flex-start;padding:.25rem 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="font-size:.65rem;color:var(--muted);white-space:nowrap;margin-top:1px;min-width:2.8rem">${e.ts}</span>
+      <span style="font-size:.68rem;font-weight:700;color:${typeColor[e.type]||'#a1a1aa'};white-space:nowrap">${e.label}</span>
+      <span style="font-size:.72rem;color:var(--text);opacity:.8;line-height:1.35">${e.desc}</span>
+    </div>`).join('');
+}
+
+function clearSessionTimeline() {
+  _sessionTimeline.length = 0;
+  renderTimeline();
+}
+
+// Registrar inicio de sesión
+addTimelineEvent('🟢 INICIO', 'Sesión de monitoreo iniciada', 'ok');
 setInterval(loadSSTStatus, 5000);
 
 // ── LAB DE MITIGACIÓN ─────────────────────────────────────────
@@ -2146,6 +2607,7 @@ async function loadScenarios(){try{const data=await apiFetch('/api/analytics/mit
 async function startScenario(type){try{const plan=await apiFetch(`/api/analytics/mitigation/plan/${type}`);labState.current={type,plan};labState.steps=plan.steps||[];labState.currentStep=0;labState.startTime=Date.now();labState.executingStep=false;document.getElementById('labScenName').textContent=plan.mitigation_name||type;document.getElementById('labMeta').textContent=`Escenario: ${plan.mitigation_name}`;document.getElementById('labStepProg').textContent=`0 / ${labState.steps.length}`;const area=document.getElementById('labStepsArea');area.innerHTML=labState.steps.map((s,i)=>`<div class="lab-step ${i===0?'active':'pending'}" id="lstep-${i}"><div class="step-num">${i+1}</div><div class="step-info"><div class="step-desc">${s.desc||s.action}</div><div class="step-cmd">$ ${s.command||s.action}</div></div><span class="step-check">&#x2705;</span></div>`).join('');document.getElementById('labTermBody').innerHTML='<div class="term-line" style="color:#71717a"># Lab iniciado &mdash; escribe el primer comando en el panel de abajo</div><span class="term-cursor"></span>';document.getElementById('labTypingArea').style.display='';document.getElementById('labCmdSummary').innerHTML='';updateTypingPrompt(0);clearInterval(labState.timerInterval);labState.timerInterval=setInterval(()=>{const e=Math.floor((Date.now()-labState.startTime)/1000);document.getElementById('labTimer').textContent=`${String(Math.floor(e/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;},1000);showLabPhase(2);}catch(e){alert('Error: '+e.message);}}
 async function execStep(idx){if(labState.executingStep||idx!==labState.currentStep)return;labState.executingStep=true;const step=labState.steps[idx];const outputs=LAB_TERM[step.action]||[`$ ${step.command||step.action}`,`Executing ${step.action}...`,`[OK] ${step.desc||step.action} completed`];const tb=document.getElementById('labTermBody');tb.innerHTML=tb.innerHTML.replace('<span class="term-cursor"></span>','');for(let i=0;i<outputs.length;i++){await new Promise(r=>setTimeout(r,280+Math.random()*220));const l=outputs[i];const cls=l.startsWith('$')?'cmd':l.startsWith('[OK]')?'ok':l.startsWith('[ERR]')?'err':'';tb.innerHTML+=`<div class="term-line ${cls}">${l}</div>`;tb.parentElement.scrollTop=tb.parentElement.scrollHeight;}tb.innerHTML+='<span class="term-cursor"></span>';document.getElementById(`lstep-${idx}`).classList.remove('active');document.getElementById(`lstep-${idx}`).classList.add('done');labState.currentStep++;labState.executingStep=false;const total=labState.steps.length;document.getElementById('labStepProg').textContent=`${labState.currentStep} / ${total}`;if(labState.currentStep<total){document.getElementById(`lstep-${labState.currentStep}`).classList.remove('pending');document.getElementById(`lstep-${labState.currentStep}`).classList.add('active');updateTypingPrompt(labState.currentStep);}else{document.getElementById('labTypingArea').style.display='none';clearInterval(labState.timerInterval);showLabResults((Date.now()-labState.startTime)/1000,total);}}
 async function showLabResults(duration,stepsCompleted){const plan=labState.current.plan;const expected=plan.expected_recovery_sec||120;let score=100;if(duration>expected)score-=Math.min(30,((duration-expected)/expected)*30);if(duration<expected*0.6)score=Math.min(100,score+10);score=Math.max(30,Math.round(score));const grade=score>=90?'🏆 Excelente':score>=75?'✅ Bueno':score>=60?'📈 Aceptable':'⚠️ Necesita práctica';const msg=score>=90?'Dominas este protocolo.':score>=75?'Buen manejo. Puedes mejorar velocidad.':score>=60?'Completaste el procedimiento.':'Repasa el catálogo y vuelve a intentar.';document.getElementById('labScoreNum').textContent=score;document.getElementById('labScoreNum').style.color=score>=90?'#22c55e':score>=75?'#fbbf24':score>=60?'#fbbf24':'#ef4444';document.getElementById('labScoreGrade').textContent=grade;document.getElementById('labScoreMsg').textContent=msg;const m=String(Math.floor(duration/60)).padStart(2,'0'),s=String(Math.floor(duration%60)).padStart(2,'0');document.getElementById('labStatTime').textContent=`${m}:${s}`;document.getElementById('labStatSteps').textContent=`${stepsCompleted}/${labState.steps.length}`;document.getElementById('labStatScen').textContent=labState.current.type.replace(/_/g,' ').toUpperCase();try{await apiFetch('/api/analytics/practice/complete',{method:'POST',body:JSON.stringify({scenario_type:labState.current.type,scenario_name:plan.mitigation_name||labState.current.type,score,duration_sec:duration,steps_completed:stepsCompleted,total_steps:labState.steps.length})});}catch(e){}
+  addTimelineEvent('🧪 LAB', `${plan.mitigation_name||labState.current.type} · ${score}/100 · ${duration}s`, score>=75?'ok':'warn');
   XSESSION.saveLab({scenario:labState.current.type,scenarioName:plan.mitigation_name||labState.current.type,score,duration,steps:labState.steps.map(s=>({cmd:s.command||s.action,desc:s.desc||s.action,action:s.action}))});const sumEl=document.getElementById('labCmdSummary');if(sumEl){const sumHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div class="cmd-sum-item"><div class="cmd-sum-title">Paso ${i+1}: ${s.desc||s.action}</div><div class="cmd-sum-code">$ ${s.command||s.action}</div><div class="cmd-sum-exp">${expl}</div></div>`;}).join('');sumEl.innerHTML=`<div style="color:#a78bfa;font-size:.88rem;font-weight:700;margin:16px 0 8px;letter-spacing:.04em">📖 ¿Qué hizo cada comando?</div>${sumHtml}`;}showLabPhase(3);}
 function showLabPhase(n){[1,2,3].forEach(i=>{const el=document.getElementById(`labPhase${i}`);if(el)el.style.display=i===n?'':'none';});labState.phase=n;}
 function resetLab(){clearInterval(labState.timerInterval);document.getElementById('labMeta').textContent='Selecciona un escenario para practicar';showLabPhase(1);}
@@ -2298,6 +2760,7 @@ function submitSSTAction(){const inp=document.getElementById('sstActionInput');c
 function submitSSTReport(){const rawTxt=document.getElementById('sstReportInput').value||'';sstState.bitacoraText=rawTxt;const txt=rawTxt.toLowerCase();const fb=document.getElementById('sstRepFb');const s=sstState.protocol.stages[sstState.stage];if(txt.length<30){fb.className='lab-typing-fb err';fb.textContent='❌ Registro muy corto. Detalla: sensor, valor medido, acción tomada y quién fue notificado.';return;}const matched=s.keywords.filter(k=>txt.includes(k)).length;const ok=matched>=2;fb.className='lab-typing-fb '+(ok?'ok':'err');fb.textContent=ok?`✅ Bitácora aceptada (${matched} términos clave incluidos)`:'⚠️ Agrega más detalles: valor del sensor, acción ejecutada y contacto notificado.';sstState.answers.push({stage:sstState.stage,correct:ok});document.getElementById('sstNextBtn').style.display='';}
 function sstNext(){if(sstState.stage<3){sstState.stage++;renderSSTStage(sstState.stage);}else{completeSSTProtocol();}}
 function completeSSTProtocol(){const ok=sstState.answers.filter(a=>a.correct).length;const sc=Math.max(20,sstState.score);
+  addTimelineEvent('🟠 SST', `${sstState.protocol?.name||'Protocolo SST'} · ${sc}/100`, sc>=75?'ok':'warn');
   XSESSION.saveSST({protocol:sstState.ptype,name:sstState.protocol?.name||'—',sensor:sstState.alert?.name||'—',value:(sstState.alert?.value||'')+(sstState.alert?.unit||''),score:sc,correct:ok,total:sstState.answers.length,bitacora:sstState.bitacoraText||'(no registrada)',duration:Math.round((Date.now()-sstState.startTime)/1000)});
   apiFetch('/api/analytics/sst/complete',{method:'POST',body:JSON.stringify({protocol:sstState.ptype,name:sstState.protocol?.name||'—',sensor:sstState.alert?.name||'—',value:(sstState.alert?.value||'')+(sstState.alert?.unit||''),score:sc,correct:ok,total:sstState.answers.length,bitacora:sstState.bitacoraText||'',duration:Math.round((Date.now()-sstState.startTime)/1000)})}).catch(()=>{});
   XSESSION.lock(15);const dur=Math.round((Date.now()-sstState.startTime)/1000);const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Aceptable':'⚠️ Repasar protocolo';const col=sc>=90?'#22c55e':sc>=75?'#f97316':sc>=60?'#fbbf24':'#ef4444';for(let i=0;i<4;i++){const t=document.getElementById('sstab-'+i);if(t)t.className='sst-stage-tab done';}document.getElementById('sstNextBtn').style.display='none';document.getElementById('sstBody').innerHTML=`<div style="text-align:center;padding:12px 0 16px"><div style="font-size:3rem;font-weight:900;color:${col}">${sc}<span style="font-size:1.5rem">/100</span></div><div style="font-size:1.1rem;font-weight:700;margin:4px 0;color:#fed7aa">${grade}</div><div style="font-size:.76rem;color:#92400e;margin-bottom:14px">${ok}/${sstState.answers.length} etapas correctas · ${dur}s</div></div><div style="background:#1a0e00;border:1px solid #f97316;border-radius:8px;padding:12px 14px;font-size:.78rem;line-height:1.8"><div style="color:#fb923c;font-weight:700;margin-bottom:6px">📋 Protocolo: ${sstState.protocol.name}</div><div style="color:#a1a1aa">Sensor: <strong style="color:#fafafa">${sstState.alert.name}${sstState.alert.zone?' · '+sstState.alert.zone:''}</strong></div><div style="color:#a1a1aa">Valor detectado: <strong style="color:#fbbf24">${sstState.alert.value}${sstState.alert.unit||''}</strong></div><div style="color:#a1a1aa;margin-top:4px">📞 Notificar: ${sstState.protocol.contact}</div></div><div style="text-align:center;margin-top:14px"><button style="background:#ea580c;border:none;border-radius:8px;color:white;font-size:.85rem;font-weight:700;padding:10px 28px;cursor:pointer" onclick="closeSSTPanel()">✓ Cerrar protocolo</button></div>`;}
