@@ -166,11 +166,11 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 .nm-node{cursor:pointer}.nm-node:hover circle{filter:brightness(1.3)}
 @keyframes nmPulse{0%,100%{r:24}50%{r:30}}
 /* ── GUIDED DIAGNOSIS ──────────────────────────────────────── */
-.guided-panel{position:fixed;right:-105vw;top:60px;width:min(420px,96vw);max-height:calc(100vh - 72px);background:#232326;border-left:2px solid #8b5cf6;border-bottom:2px solid #8b5cf6;border-bottom-left-radius:12px;z-index:200;transition:right .35s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-4px 4px 24px rgba(139,92,246,.22)}
-.guided-panel.open{right:0}
-@media(max-width:500px){.guided-panel{width:100vw;border-left:none;border-bottom:none;top:0;max-height:100vh}}
+.guided-panel{position:fixed;left:-105vw;top:60px;width:min(420px,96vw);max-height:calc(100vh - 72px);background:#232326;border-right:2px solid #8b5cf6;border-bottom:2px solid #8b5cf6;border-bottom-right-radius:12px;z-index:200;transition:left .35s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:4px 4px 24px rgba(139,92,246,.22)}
+.guided-panel.open{left:0}
+@media(max-width:500px){.guided-panel{width:100vw;border-right:none;border-bottom:none;top:0;max-height:100vh}}
 /* Estado RECOGIDO: pestaña vertical de 36px en el borde derecho */
-.guided-panel.minimized{right:0;width:36px}
+.guided-panel.minimized{left:0;width:36px}
 .guided-panel.minimized .guided-header,
 .guided-panel.minimized .guided-stages,
 .guided-panel.minimized .guided-body,
@@ -2053,15 +2053,9 @@ function closeGuided(bySystem) {
 
 /** Mueve las notificaciones al lado contrario del panel activo */
 function _syncNotifSide() {
+  // Ambos paneles están a la izquierda → notificaciones siempre a la derecha
   const nc = document.getElementById('notifContainer');
-  if (!nc) return;
-  const guidedOpen = document.getElementById('guidedPanel')?.classList.contains('open');
-  const sstOpen    = document.getElementById('sstPanel')?.classList.contains('open');
-  if (guidedOpen || sstOpen) {
-    nc.classList.add('panel-open');    // va a la izquierda
-  } else {
-    nc.classList.remove('panel-open'); // vuelve a la derecha
-  }
+  if (nc) nc.classList.remove('panel-open');
 }
 
 function renderGuidedStage(stage) {
