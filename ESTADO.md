@@ -95,13 +95,41 @@ Simulador de monitoreo de datacenter con panel de instructor. Backend FastAPI + 
 - DB corrupta por disco lleno: recuperación manual via Shell Render (20 estudiantes, 284 bitácoras, 304 sesiones restaurados)
 - Diagnóstico guiado: SST muestra solo sensor relevante al ataque; hardware muestra métricas coherentes con ataque
 
+## Cambios sesión 2026-06-03 (quinta parte — reportes y materiales)
+
+### `frontend/reports.html`
+- Rediseño de tarjetas: 6 tipos reemplazados por 4 más claros
+- Tarjeta principal: **"Informe Completo del Aprendiz"** (tipo `full_summary`) destacada en ámbar
+- `downloadReport`: descarga como `.pdf` (antes forzaba `.txt`)
+- `printReport`: abre el PDF nativo del navegador (antes mostraba binario crudo como texto)
+- `TYPE_LABELS` actualizado con nuevo nombre
+
+### `backend/api/routes_reports.py`
+- `_serialize_report()`: devuelve JSON correcto con `format`, `student_name`, `download_url`
+- `/my-reports` y `/all`: usan `selectinload(Report.student)` para incluir nombre del aprendiz
+- `full_summary`: recopila bitácoras completas (texto de 4 campos), diagnósticos guiados, protocolos SST, labs, incidentes, salud del DC, SSL/TLS
+
+### `backend/reports/pdf_generator.py`
+- `_build_full_summary_section()`: nueva función con 8 secciones completas
+- `student_shift` → usa `_build_student_section()` (formato antiguo)
+- `full_summary` → usa `_build_full_summary_section()` (formato nuevo con "section" keys)
+- Fallback si no hay datos: mensaje explicativo en el PDF
+- `ATTACK_LABELS`: diccionario de traducción de tipos de ataque
+
+### Materiales educativos generados
+- `Guia_Ataques_Datacenter.pptx` — 18 diapositivas, tema oscuro cyberseguridad
+- `Guia_Ataques_Datacenter.html` — guía interactiva para estudiantes con buscador
+- `build_attacks_pptx.js` — script fuente para regenerar el PPTX
+
+---
+
 ## Estado pendiente (para próxima sesión)
 
-- [ ] Verificar en producción que instructor.html bugs están resueltos (incidentes, eval filter)
-- [ ] Bug diagnóstico BRUTE_FORCE: métricas no se elevan suficiente (conexiones: 48, umbral: 400) — `engine.py` línea `elif atype == "brute_force": connections += 200*ramp` debe ser más agresivo
-- [ ] Revisar si `loadEvalReports()` carga nombres correctamente en tab Reportes
-- [ ] Probar bitácora completa (4 campos + guardar) en producción
-- [ ] Confirmar que penalización de calidad aparece en panel resultados
+- [ ] Probar "Informe Completo del Aprendiz" en producción tras el último deploy — debe mostrar las 8 secciones
+- [ ] Bug BRUTE_FORCE: conexiones solo suben +200 (umbral 400) → engine.py línea `elif atype == "brute_force"` aumentar a `connections += 2000 * ramp`
+- [ ] Verificar que penalización de calidad de bitácora aparece en panel de resultados
+- [ ] Revisar `loadEvalReports()` en tab Reportes del instructor — nombres de aprendices
+- [ ] Probar bitácora completa en producción (4to campo + botón guardar ya corregidos)
 
 ## Cambios sesión 2026-06-02 (segunda parte)
 
