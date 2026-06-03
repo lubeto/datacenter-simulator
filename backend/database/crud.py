@@ -4,7 +4,7 @@ DC Monitoring Simulator - Operaciones CRUD
 from datetime import datetime
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, update, func
+from sqlalchemy import select, desc, update, func, delete as sa_delete
 from .models import (
     Student, Session, Metric, Incident, Alert,
     MitigationAction, Report, SSTReading, SSLCertificate
@@ -92,10 +92,20 @@ async def get_active_sessions(db: AsyncSession) -> List[Session]:
 # ============================================================
 # METRICS
 # ============================================================
+_METRIC_MAX_ROWS_PER_NODE = 60  # ~30 min de historial a 1 guardado/30s
+
 async def save_metric(db: AsyncSession, node_id: str, node_type: str,
                       data: dict) -> Metric:
     metric = Metric(node_id=node_id, node_type=node_type, **data)
     db.add(metric)
+    # Borrar filas antiguas del mismo nodo si supera el límite
+    subq = (
+        select(Metric.id)
+        .where(Metric.node_id == node_id)
+        .order_by(desc(Metric.timestamp))
+        .offset(_METRIC_MAX_ROWS_PER_NODE)
+    ).scalar_subquery()
+    await db.execute(sa_delete(Metric).where(Metric.id.in_(subq)))
     await db.commit()
     return metric
 
