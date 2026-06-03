@@ -1949,7 +1949,7 @@ function showGuidedResults() {
   });
   return; // el modal llama a _showGuidedResultsPanel() al guardar
 }
-function _showGuidedResultsPanel() {
+function _showGuidedResultsPanel(qualityInfo) {
   const { sc, ok, dur } = guidedState._pendingResult || { sc:0, ok:0, dur:0 };
   // Nodo mitigado → quitar rojo y poner verde brillante en el mapa
   const mitigatedNode = guidedState.incident?.attack?.node_id;
@@ -1978,6 +1978,7 @@ function _showGuidedResultsPanel() {
         <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#71717a">Respuestas correctas</span><span style="color:#22c55e;font-weight:700">${ok}/4</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#71717a">Pistas usadas</span><span style="color:${guidedState.hintsUsed?'#eab308':'#22c55e'};font-weight:700">${guidedState.hintsUsed}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.78rem"><span style="color:#71717a">Tiempo de diagnóstico</span><span style="color:#fbbf24;font-weight:700">${dur}s</span></div>
+        ${qualityInfo?.penalized ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #3f3f46;display:flex;justify-content:space-between;font-size:.78rem"><span style="color:#f87171">⚠️ Penalización bitácora</span><span style="color:#f87171;font-weight:700">${qualityInfo.original} → ${Math.round(qualityInfo.adjusted)} pts (calidad: ${qualityInfo.label})</span></div>` : ''}
       </div>
       <button class="guided-btn guided-btn-primary" onclick="openLab()" style="margin-top:16px;width:100%">🧪 Practicar mitigación en el Lab</button>
       <button onclick="generateBitacoraReport()" style="margin-top:8px;width:100%;background:#1c1c1f;border:1px solid #8b5cf6;border-radius:8px;color:#a78bfa;padding:9px;font-size:.82rem;cursor:pointer;font-weight:600">📄 Generar reporte firmado para entregar</button>
@@ -2453,10 +2454,12 @@ async function submitBitacora() {
     lecciones:           document.getElementById('bmLecciones').value.trim(),
   };
 
+  let qualityInfo = null;
   try {
     const resp = await apiFetch('/api/bitacoras', { method: 'POST', body: JSON.stringify(payload) });
     if (resp.score_penalized) {
-      notify('📋 Bitácora guardada', `Nota ajustada por calidad de texto: ${resp.score_adjusted?.toFixed(0)}/100 (calidad ${resp.quality_label})`, 'warn');
+      qualityInfo = { penalized: true, original: resp.score_original, adjusted: resp.score_adjusted, label: resp.quality_label };
+      notify('⚠️ Calidad de texto', `Nota reducida por texto no válido: ${resp.score_adjusted?.toFixed(0)}/100 (calidad: ${resp.quality_label})`, 'warn');
     } else {
       notify('📋 Bitácora guardada', 'Tu análisis quedó registrado correctamente.', 'ok');
     }
@@ -2467,7 +2470,7 @@ async function submitBitacora() {
   // Detener timer del modal y cerrar
   _stopBitacoraInactivityWatch();
   document.getElementById('bitacoraOverlay').classList.remove('open');
-  _showGuidedResultsPanel();
+  _showGuidedResultsPanel(qualityInfo);
   // Iniciar temporizador de inactividad en el panel de resultados
   _startGuidedAutoClose();
 }
