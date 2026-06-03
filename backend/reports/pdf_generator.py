@@ -81,7 +81,9 @@ def generate_pdf_report(report_type: str, title: str,
             story.extend(_build_ssl_section(data))
         elif report_type == "sst":
             story.extend(_build_sst_section(data))
-        elif report_type in ("student_shift", "full_summary"):
+        elif report_type == "student_shift":
+            story.extend(_build_student_section(data))
+        elif report_type == "full_summary":
             story.extend(_build_full_summary_section(data))
         else:
             story.extend(_build_generic_section(data))
@@ -341,6 +343,14 @@ def _build_full_summary_section(data: List[Dict]) -> list:
     story = []
     bold9  = ParagraphStyle("fs_bold",   fontSize=9, leading=13, textColor=COLOR_DARK, fontName="Helvetica-Bold")
     normal = ParagraphStyle("fs_normal", fontSize=8, leading=12, textColor=COLOR_DARK)
+
+    # Verificar que los datos tienen el formato nuevo (con "section")
+    has_sections = any(d.get("section") for d in data)
+    if not has_sections:
+        story.append(_section_title("Sin datos disponibles"))
+        style = getSampleStyleSheet()["Normal"]
+        story.append(Paragraph("No se encontraron actividades registradas para este aprendiz. Completa al menos un diagnostico guiado y una bitacora para generar el informe completo.", style))
+        return story
 
     # 1. Perfil del aprendiz
     hdr = [d for d in data if d.get("section") == "student_header"]

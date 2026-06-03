@@ -71,36 +71,29 @@ input:focus,select:focus{border-color:var(--accent)}
   <div class="page-sub">Selecciona el tipo de reporte y genera un informe PDF/TXT del estado del datacenter</div>
 
   <!-- REPORT TYPE SELECTOR -->
+  <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:.7rem 1rem;margin-bottom:1rem;font-size:.8rem;color:#f59e0b">
+    ⭐ <strong>Informe Completo del Aprendiz</strong> incluye todas las secciones. Los demás son reportes técnicos del datacenter para el instructor.
+  </div>
   <div class="report-types">
-    <div class="rtype-card health" onclick="selectType('health',this)">
-      <div class="rtype-icon">🏥</div>
-      <div class="rtype-name">Health Check</div>
-      <div class="rtype-desc">Estado general de todos los nodos, CPU, RAM, red y disponibilidad del sistema</div>
+    <div class="rtype-card full_summary" onclick="selectType('full_summary',this)" style="border-color:rgba(245,158,11,.4)">
+      <div class="rtype-icon">🎓</div>
+      <div class="rtype-name" style="color:#f59e0b">Informe Completo del Aprendiz</div>
+      <div class="rtype-desc">Perfil · Diagnósticos guiados · Protocolos SST · Labs · Bitácoras completas · Incidentes · Salud del DC · SSL/TLS</div>
     </div>
     <div class="rtype-card incident" onclick="selectType('incident',this)">
       <div class="rtype-icon">🚨</div>
-      <div class="rtype-name">Informe de Incidentes</div>
-      <div class="rtype-desc">Registro de ataques detectados, tiempo de respuesta MTTD/MTTR y acciones tomadas</div>
+      <div class="rtype-name">Incidentes del Datacenter</div>
+      <div class="rtype-desc">Historial de ataques detectados con MTTD, MTTR y estado de resolución</div>
+    </div>
+    <div class="rtype-card health" onclick="selectType('health',this)">
+      <div class="rtype-icon">📊</div>
+      <div class="rtype-name">Salud del Datacenter</div>
+      <div class="rtype-desc">Estado en tiempo real de todos los nodos: CPU, RAM, red y disponibilidad</div>
     </div>
     <div class="rtype-card ssl" onclick="selectType('ssl',this)">
-      <div class="rtype-icon">🔒</div>
+      <div class="rtype-icon">🔐</div>
       <div class="rtype-name">Certificados SSL/TLS</div>
-      <div class="rtype-desc">Estado de todos los certificados, fechas de vencimiento y algoritmos de cifrado</div>
-    </div>
-    <div class="rtype-card sst" onclick="selectType('sst',this)">
-      <div class="rtype-icon">🌡️</div>
-      <div class="rtype-name">Reporte SST</div>
-      <div class="rtype-desc">Lecturas de sensores de temperatura, humedad, humo, UPS y control de acceso</div>
-    </div>
-    <div class="rtype-card student_shift" onclick="selectType('student_shift',this)">
-      <div class="rtype-icon">👨‍🎓</div>
-      <div class="rtype-name">Turno del Estudiante</div>
-      <div class="rtype-desc">Resumen de la sesión: incidentes detectados, mitigaciones realizadas y puntuación</div>
-    </div>
-    <div class="rtype-card full_summary" onclick="selectType('full_summary',this)">
-      <div class="rtype-icon">📋</div>
-      <div class="rtype-name">Resumen Completo</div>
-      <div class="rtype-desc">Informe ejecutivo con todos los componentes: salud, seguridad, SST y métricas de estudiantes</div>
+      <div class="rtype-desc">Estado de certificados, días para vencer, versión TLS y alertas de seguridad</div>
     </div>
   </div>
 
@@ -159,6 +152,7 @@ if (!TOKEN) { location.href = '/login'; }
 let selectedType = '';
 
 const TYPE_LABELS = {
+  full_summary:'Informe Completo del Aprendiz',
   health:'Health Check', incident:'Incidentes', ssl:'SSL/TLS',
   sst:'SST', student_shift:'Turno Estudiante', full_summary:'Resumen Completo'
 };
@@ -315,3 +309,4 @@ setInterval(loadMyReports, 20000);
 </script>
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
