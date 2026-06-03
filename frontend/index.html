@@ -7,11 +7,11 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='7' fill='%232563eb'/><rect x='4' y='6' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='14' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='22' width='24' height='6' rx='1.5' fill='white' opacity='0.6'/><circle cx='24.5' cy='9' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='17' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='25' r='1.8' fill='%23facc15'/><rect x='6' y='7.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='15.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='23.5' width='10' height='3' rx='1' fill='%23bfdbfe' opacity='0.6'/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d45;--accent:#3b82f6;--accent2:#06b6d4;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--text:#e2e8f0;--muted:#64748b;--font:'Segoe UI',sans-serif}
+:root{--bg:#18181b;--card:#27272a;--card2:#2d2d30;--border:#3f3f46;--accent:#f59e0b;--accent2:#f97316;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a78bfa;--text:#fafafa;--muted:#a1a1aa;--font:'Segoe UI',sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
 /* HEADER */
-header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
 .logo{display:flex;align-items:center;gap:.7rem;font-size:1.1rem;font-weight:700;color:#fff}
 .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
 .header-right{display:flex;align-items:center;gap:1rem}
@@ -21,11 +21,11 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .user-info{font-size:.82rem;color:var(--muted)}
 .btn{padding:.4rem .9rem;border-radius:6px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#d97706}
 .btn-sm{padding:.25rem .6rem;font-size:.75rem}
 .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#dc2626}
 .btn-session{background:#1e3a8a;border:none;border-radius:6px;padding:6px 13px;color:#93c5fd;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s}
-.btn-session:hover{background:#1d4ed8;color:#fff}
+.btn-session:hover{background:#b45309;color:#fff}
 .btn-practice{border:none;border-radius:6px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
 /* LAYOUT */
@@ -147,13 +147,13 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 /* RESPONSIVE */
 @media(max-width:900px){.main-grid{grid-template-columns:1fr}.detail-grid{grid-template-columns:repeat(2,1fr)}}
 /* ── NETWORK MAP ────────────────────────────────────────────── */
-.nm-link{stroke:#1e3a5f;stroke-width:1.5;transition:stroke .5s,stroke-width .5s}
+.nm-link{stroke:#3f3f46;stroke-width:1.5;transition:stroke .5s,stroke-width .5s}
 .nm-link.attack{stroke:#ef4444;stroke-width:2.5;stroke-dasharray:8,4;animation:dashFlow .5s linear infinite}
 @keyframes dashFlow{to{stroke-dashoffset:-12}}
 .nm-node{cursor:pointer}.nm-node:hover circle{filter:brightness(1.3)}
 @keyframes nmPulse{0%,100%{r:24}50%{r:30}}
 /* ── GUIDED DIAGNOSIS ──────────────────────────────────────── */
-.guided-panel{position:fixed;right:-420px;top:60px;width:380px;max-height:calc(100vh - 72px);background:#111827;border-left:2px solid #7c3aed;border-bottom:2px solid #7c3aed;border-bottom-left-radius:12px;z-index:200;transition:right .35s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-4px 4px 24px rgba(124,58,237,.18)}
+.guided-panel{position:fixed;right:-420px;top:60px;width:380px;max-height:calc(100vh - 72px);background:#111827;border-left:2px solid #8b5cf6;border-bottom:2px solid #8b5cf6;border-bottom-left-radius:12px;z-index:200;transition:right .35s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-4px 4px 24px rgba(124,58,237,.18)}
 .guided-panel.open{right:0}
 /* Estado RECOGIDO: pestaña vertical de 36px en el borde derecho */
 .guided-panel.minimized{right:0;width:36px}
@@ -162,61 +162,61 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 .guided-panel.minimized .guided-body,
 .guided-panel.minimized .guided-footer{display:none}
 /* Pestaña lateral — siempre presente pero oculta hasta minimizar */
-.guided-minimize-tab{display:none;position:absolute;inset:0;width:36px;background:linear-gradient(180deg,#1a1040,#0f0a2e);border-right:2px solid #7c3aed;cursor:pointer;align-items:center;justify-content:flex-start;flex-direction:column;padding-top:16px;gap:8px;z-index:5}
+.guided-minimize-tab{display:none;position:absolute;inset:0;width:36px;background:linear-gradient(180deg,#1a1040,#0f0a2e);border-right:2px solid #8b5cf6;cursor:pointer;align-items:center;justify-content:flex-start;flex-direction:column;padding-top:16px;gap:8px;z-index:5}
 .guided-panel.minimized .guided-minimize-tab{display:flex}
 .guided-minimize-tab:hover{background:linear-gradient(180deg,#2d1f5e,#1a1040)}
 .guided-mini-label{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-size:.65rem;font-weight:700;color:#a78bfa;letter-spacing:.08em;margin-top:8px;white-space:nowrap}
-.guided-mini-phase{font-size:.6rem;color:#6d28d9;writing-mode:vertical-rl;transform:rotate(180deg)}
-.guided-min-btn{background:none;border:none;color:#7c3aed;font-size:.85rem;cursor:pointer;padding:4px;border-radius:4px;line-height:1}
+.guided-mini-phase{font-size:.6rem;color:#7c3aed;writing-mode:vertical-rl;transform:rotate(180deg)}
+.guided-min-btn{background:none;border:none;color:#8b5cf6;font-size:.85rem;cursor:pointer;padding:4px;border-radius:4px;line-height:1}
 .guided-min-btn:hover{background:#2d1f5e;color:#a78bfa}
 .guided-header{background:#1a1040;padding:14px 16px 12px;border-bottom:1px solid #2d1f5e;position:relative}
 .guided-title{font-size:.9rem;font-weight:700;color:#a78bfa}
-.guided-subtitle{font-size:.72rem;color:#64748b;margin-top:2px}
-.guided-stages{display:flex;border-bottom:1px solid #1e2d45}
-.guided-stage-tab{flex:1;padding:8px 4px;text-align:center;font-size:.65rem;font-weight:700;color:#64748b;background:transparent;border:none;cursor:default;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.04em}
-.guided-stage-tab.active{color:#a78bfa;border-bottom-color:#7c3aed}
+.guided-subtitle{font-size:.72rem;color:#71717a;margin-top:2px}
+.guided-stages{display:flex;border-bottom:1px solid #3f3f46}
+.guided-stage-tab{flex:1;padding:8px 4px;text-align:center;font-size:.65rem;font-weight:700;color:#71717a;background:transparent;border:none;cursor:default;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.04em}
+.guided-stage-tab.active{color:#a78bfa;border-bottom-color:#8b5cf6}
 .guided-stage-tab.done{color:#22c55e;border-bottom-color:#22c55e}
 .guided-body{flex:1;overflow-y:auto;padding:16px}
-.guided-question{font-size:.85rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;line-height:1.5}
-.guided-context{background:#0f172a;border:1px solid #1e2d45;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#94a3b8;line-height:1.7}
+.guided-question{font-size:.85rem;font-weight:600;color:#fafafa;margin-bottom:12px;line-height:1.5}
+.guided-context{background:#1c1c1f;border:1px solid #3f3f46;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#a1a1aa;line-height:1.7}
 .guided-options{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.guided-option{background:#1e2d45;border:1px solid #2d3d55;border-radius:8px;padding:10px 14px;font-size:.82rem;cursor:pointer;transition:all .2s;color:#cbd5e1;text-align:left}
-.guided-option:hover:not(:disabled){border-color:#7c3aed;color:#e2e8f0;background:#1a1040}
-.guided-option.correct{border-color:#22c55e!important;background:#14532d!important;color:#86efac!important}
+.guided-option{background:#3f3f46;border:1px solid #52525b;border-radius:8px;padding:10px 14px;font-size:.82rem;cursor:pointer;transition:all .2s;color:#e4e4e7;text-align:left}
+.guided-option:hover:not(:disabled){border-color:#8b5cf6;color:#fafafa;background:#1a1040}
+.guided-option.correct{border-color:#22c55e!important;background:#14532d!important;color:#6ee7b7!important}
 .guided-option.wrong{border-color:#ef4444!important;background:#450a0a!important;color:#fca5a5!important}
 .guided-feedback{border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.78rem;line-height:1.5;display:none}
-.guided-feedback.ok{background:#14532d;border:1px solid #22c55e;color:#86efac;display:block}
+.guided-feedback.ok{background:#14532d;border:1px solid #22c55e;color:#6ee7b7;display:block}
 .guided-feedback.err{background:#450a0a;border:1px solid #ef4444;color:#fca5a5;display:block}
 .guided-hint{background:#1a1040;border:1px solid #4c1d95;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.78rem;color:#c4b5fd;display:none}
 .guided-hint.show{display:block}
-.guided-footer{padding:12px 16px;border-top:1px solid #1e2d45;display:flex;gap:8px;flex-shrink:0}
+.guided-footer{padding:12px 16px;border-top:1px solid #3f3f46;display:flex;gap:8px;flex-shrink:0}
 .guided-btn{flex:1;padding:10px;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer}
-.guided-btn-primary{background:#7c3aed;color:white}.guided-btn-primary:hover{background:#6d28d9}
-.guided-btn-hint{background:#1e2d45;color:#94a3b8}.guided-btn-hint:hover{background:#2d3d55;color:#e2e8f0}
-.guided-close-btn{position:absolute;top:10px;right:12px;background:none;border:none;color:#64748b;cursor:pointer;font-size:1.1rem}
+.guided-btn-primary{background:#8b5cf6;color:white}.guided-btn-primary:hover{background:#7c3aed}
+.guided-btn-hint{background:#3f3f46;color:#a1a1aa}.guided-btn-hint:hover{background:#52525b;color:#fafafa}
+.guided-close-btn{position:absolute;top:10px;right:12px;background:none;border:none;color:#71717a;cursor:pointer;font-size:1.1rem}
 
 /* ── MODAL BITÁCORA ── */
 #bitacoraOverlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:none;align-items:center;justify-content:center;padding:1rem}
 #bitacoraOverlay.open{display:flex}
-#bitacoraModal{background:#111827;border:2px solid #7c3aed;border-radius:16px;width:100%;max-width:600px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(124,58,237,.35)}
+#bitacoraModal{background:#111827;border:2px solid #8b5cf6;border-radius:16px;width:100%;max-width:600px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(124,58,237,.35)}
 .bm-header{background:linear-gradient(135deg,#1a1040,#1e1b4b);padding:16px 20px;border-bottom:1px solid #2d1f5e}
 .bm-title{font-size:1rem;font-weight:800;color:#a78bfa;margin-bottom:2px}
-.bm-subtitle{font-size:.74rem;color:#64748b}
+.bm-subtitle{font-size:.74rem;color:#71717a}
 .bm-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
-.bm-info-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#0f172a;border:1px solid #1e2d45;border-radius:10px;padding:10px 12px}
+.bm-info-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#1c1c1f;border:1px solid #3f3f46;border-radius:10px;padding:10px 12px}
 .bm-info-item .bm-lbl{font-size:.63rem;color:#475569;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-.bm-info-item .bm-val{font-size:.84rem;font-weight:700;color:#e2e8f0;margin-top:1px}
+.bm-info-item .bm-val{font-size:.84rem;font-weight:700;color:#fafafa;margin-top:1px}
 .bm-field{display:flex;flex-direction:column;gap:4px}
-.bm-field label{font-size:.74rem;font-weight:700;color:#94a3b8}
+.bm-field label{font-size:.74rem;font-weight:700;color:#a1a1aa}
 .bm-field label span{color:#ef4444;margin-left:2px}
-.bm-field textarea{background:#0f172a;border:1px solid #1e2d45;border-radius:8px;color:#e2e8f0;font-size:.82rem;padding:10px 12px;resize:vertical;min-height:70px;font-family:inherit;line-height:1.55;transition:border-color .15s;outline:none}
-.bm-field textarea:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+.bm-field textarea{background:#1c1c1f;border:1px solid #3f3f46;border-radius:8px;color:#fafafa;font-size:.82rem;padding:10px 12px;resize:vertical;min-height:70px;font-family:inherit;line-height:1.55;transition:border-color .15s;outline:none}
+.bm-field textarea:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
 .bm-field textarea.error{border-color:#ef4444}
-.bm-char{font-size:.63rem;color:#334155;text-align:right;transition:color .2s}
+.bm-char{font-size:.63rem;color:#52525b;text-align:right;transition:color .2s}
 .bm-char.ok{color:#4ade80}
-.bm-footer{padding:12px 20px;border-top:1px solid #1e2d45;display:flex;gap:8px;flex-shrink:0;background:#0f172a}
-.bm-btn-submit{flex:1;padding:11px;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;transition:background .15s}
-.bm-btn-submit:hover{background:#6d28d9}
+.bm-footer{padding:12px 20px;border-top:1px solid #3f3f46;display:flex;gap:8px;flex-shrink:0;background:#1c1c1f}
+.bm-btn-submit{flex:1;padding:11px;background:#8b5cf6;border:none;border-radius:8px;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;transition:background .15s}
+.bm-btn-submit:hover{background:#7c3aed}
 .bm-btn-submit:disabled{opacity:.5;cursor:not-allowed}
 .bm-err{background:#450a0a;border:1px solid #dc2626;color:#fca5a5;padding:8px 12px;border-radius:8px;font-size:.78rem;display:none}
 .bm-err.show{display:block}
@@ -236,51 +236,51 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 .sst-badge{font-size:.65rem;font-weight:800;color:#fb923c;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
 .sst-title{font-size:.9rem;font-weight:700;color:#fed7aa}
 .sst-subtitle{font-size:.72rem;color:#92400e;margin-top:2px}
-.sst-stages{display:flex;border-bottom:1px solid #1e2d45}
-.sst-stage-tab{flex:1;padding:8px 4px;text-align:center;font-size:.65rem;font-weight:700;color:#64748b;background:transparent;border:none;cursor:default;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.04em}
+.sst-stages{display:flex;border-bottom:1px solid #3f3f46}
+.sst-stage-tab{flex:1;padding:8px 4px;text-align:center;font-size:.65rem;font-weight:700;color:#71717a;background:transparent;border:none;cursor:default;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.04em}
 .sst-stage-tab.active{color:#fb923c;border-bottom-color:#f97316}
 .sst-stage-tab.done{color:#22c55e;border-bottom-color:#22c55e}
 .sst-body{flex:1;overflow-y:auto;padding:16px}
-.sst-q{font-size:.85rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;line-height:1.5}
+.sst-q{font-size:.85rem;font-weight:600;color:#fafafa;margin-bottom:12px;line-height:1.5}
 .sst-options{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.sst-option{background:#1e2433;border:1px solid #2d3d55;border-radius:8px;padding:10px 14px;font-size:.82rem;cursor:pointer;transition:all .2s;color:#cbd5e1;text-align:left}
+.sst-option{background:#2d2d30;border:1px solid #52525b;border-radius:8px;padding:10px 14px;font-size:.82rem;cursor:pointer;transition:all .2s;color:#e4e4e7;text-align:left}
 .sst-option:hover{border-color:#f97316;color:#fed7aa;background:#1a1000}
-.sst-option.correct{border-color:#22c55e!important;background:#14532d!important;color:#86efac!important}
+.sst-option.correct{border-color:#22c55e!important;background:#14532d!important;color:#6ee7b7!important}
 .sst-option.wrong{border-color:#ef4444!important;background:#450a0a!important;color:#fca5a5!important}
 .sst-hint{background:#1a0e00;border:1px solid #7c2d12;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.78rem;color:#fdba74;display:none;line-height:1.55}
 .sst-hint.show{display:block}
-.sst-footer{padding:12px 16px;border-top:1px solid #1e2d45;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.sst-footer{padding:12px 16px;border-top:1px solid #3f3f46;display:flex;gap:8px;align-items:center;flex-shrink:0}
 .sst-escalation{flex:1;font-size:.68rem;color:#fb923c;font-weight:600;line-height:1.3}
-.sst-close-btn{position:absolute;top:10px;right:12px;background:none;border:none;color:#64748b;cursor:pointer;font-size:1.1rem}
-.sst-action-item{display:flex;align-items:center;gap:10px;background:#1e2433;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.82rem;transition:all .2s}
+.sst-close-btn{position:absolute;top:10px;right:12px;background:none;border:none;color:#71717a;cursor:pointer;font-size:1.1rem}
+.sst-action-item{display:flex;align-items:center;gap:10px;background:#2d2d30;border:1px solid #52525b;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.82rem;transition:all .2s}
 .sst-action-item.active{border-color:#f97316;background:#1a0e00}
 .sst-action-item.done{border-color:#22c55e;background:#0f2318;opacity:.85}
 .sst-action-item.pending{opacity:.45}
 .sst-action-check{font-size:1.05rem;flex-shrink:0}
-.sst-action-typing{display:flex;align-items:center;gap:8px;background:#070b10;border:1px solid #431407;border-radius:8px;padding:8px 14px;margin:10px 0}
-.sst-report-input{width:100%;background:#0f1117;border:1px solid #431407;border-radius:8px;color:#e2e8f0;font-size:.8rem;padding:10px 12px;resize:vertical;box-sizing:border-box;line-height:1.6}
+.sst-action-typing{display:flex;align-items:center;gap:8px;background:#111113;border:1px solid #431407;border-radius:8px;padding:8px 14px;margin:10px 0}
+.sst-report-input{width:100%;background:#18181b;border:1px solid #431407;border-radius:8px;color:#fafafa;font-size:.8rem;padding:10px 12px;resize:vertical;box-sizing:border-box;line-height:1.6}
 .sst-report-input:focus{outline:none;border-color:#f97316}
 .sst-report-btn{width:100%;background:#ea580c;border:none;border-radius:8px;color:white;font-size:.82rem;font-weight:700;padding:10px;cursor:pointer;margin-top:8px}
 .sst-report-btn:hover{background:#c2410c}
 /* ── LAB TYPING MODE ──────────────────────────────────────── */
-.lab-typing-area{background:#070b10;border:1px solid #1e3050;border-radius:8px;margin-bottom:12px;overflow:hidden}
-.lab-typing-hdr{background:#131825;border-bottom:1px solid #1e3050;padding:6px 14px;font-size:.72rem;color:#64748b;display:flex;align-items:center;gap:8px}
+.lab-typing-area{background:#111113;border:1px solid #3f3f46;border-radius:8px;margin-bottom:12px;overflow:hidden}
+.lab-typing-hdr{background:#232326;border-bottom:1px solid #3f3f46;padding:6px 14px;font-size:.72rem;color:#71717a;display:flex;align-items:center;gap:8px}
 .lab-typing-row{display:flex;align-items:center;gap:8px;padding:8px 14px}
-.lab-typing-prompt{color:#60a5fa;font-family:'Courier New',monospace;font-size:.83rem;white-space:nowrap;flex-shrink:0}
-.lab-typing-input{flex:1;background:transparent;border:none;outline:none;color:#86efac;font-family:'Courier New',monospace;font-size:.83rem;caret-color:#60a5fa;min-width:0}
-.lab-typing-submit{background:#7c3aed;border:none;border-radius:4px;color:white;font-size:.72rem;padding:4px 10px;cursor:pointer;flex-shrink:0}
-.lab-typing-submit:hover{background:#6d28d9}
+.lab-typing-prompt{color:#fbbf24;font-family:'Courier New',monospace;font-size:.83rem;white-space:nowrap;flex-shrink:0}
+.lab-typing-input{flex:1;background:transparent;border:none;outline:none;color:#6ee7b7;font-family:'Courier New',monospace;font-size:.83rem;caret-color:#fbbf24;min-width:0}
+.lab-typing-submit{background:#8b5cf6;border:none;border-radius:4px;color:white;font-size:.72rem;padding:4px 10px;cursor:pointer;flex-shrink:0}
+.lab-typing-submit:hover{background:#7c3aed}
 .lab-typing-fb{padding:4px 14px 8px;font-size:.76rem;min-height:20px;font-family:'Courier New',monospace;transition:color .2s}
 .lab-typing-fb.ok{color:#22c55e}.lab-typing-fb.err{color:#f87171}
-.step-expl{background:#071a07;border-top:1px solid #1a3d1a;padding:10px 14px;font-size:.78rem;color:#86efac;display:none;line-height:1.6}
+.step-expl{background:#071a07;border-top:1px solid #1a3d1a;padding:10px 14px;font-size:.78rem;color:#6ee7b7;display:none;line-height:1.6}
 .step-expl.show{display:block}
 .step-expl strong{color:#4ade80}
-.cmd-sum-item{background:#1e2433;border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid #7c3aed}
-.cmd-sum-title{font-size:.8rem;font-weight:700;color:#e2e8f0;margin-bottom:3px}
-.cmd-sum-code{font-family:'Courier New',monospace;font-size:.72rem;color:#60a5fa;margin-bottom:5px}
-.cmd-sum-exp{font-size:.75rem;color:#94a3b8;line-height:1.5}
+.cmd-sum-item{background:#2d2d30;border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid #8b5cf6}
+.cmd-sum-title{font-size:.8rem;font-weight:700;color:#fafafa;margin-bottom:3px}
+.cmd-sum-code{font-family:'Courier New',monospace;font-size:.72rem;color:#fbbf24;margin-bottom:5px}
+.cmd-sum-exp{font-size:.75rem;color:#a1a1aa;line-height:1.5}
 /* ── LAB DE MITIGACIÓN ─────────────────────────────────────── */
-.lab-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}.lab-container{background:#0f1117;border:1px solid #334155;border-radius:16px;width:min(96vw,980px);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}.lab-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #1e2d45;background:#131825}.lab-header h2{font-size:1.1rem;font-weight:800;color:#a78bfa;margin:0}.lab-meta{font-size:.75rem;color:#64748b}.lab-close{background:none;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:1rem;cursor:pointer;padding:4px 10px}.lab-body{flex:1;overflow-y:auto;padding:20px 24px}.scenario-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px}.scenario-card{background:#1e2433;border:1px solid #334155;border-radius:10px;padding:14px;cursor:pointer;transition:all .15s}.scenario-card:hover{border-color:#7c3aed;background:#1a1f35;transform:translateY(-2px)}.scenario-card .sc-name{font-weight:700;font-size:.85rem;margin-bottom:4px}.scenario-card .sc-meta{font-size:.7rem;color:#64748b}.sc-sev-high{color:#f87171}.sc-sev-critical{color:#ef4444}.sc-sev-medium{color:#fbbf24}.sc-sev-low{color:#34d399}.lab-info-bar{display:flex;gap:20px;align-items:center;background:#131825;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#94a3b8}.lab-info-bar strong{color:#e2e8f0}.lab-steps-area{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}.lab-step{display:flex;align-items:center;gap:12px;background:#1e2433;border:1px solid #334155;border-radius:10px;padding:12px 16px;transition:all .2s}.lab-step.active{border-color:#7c3aed;background:#1a1535}.lab-step.done{border-color:#22c55e;background:#0f2318;opacity:.85}.lab-step.done .step-exec-btn{display:none}.lab-step.pending{opacity:.5}.step-num{width:28px;height:28px;border-radius:50%;background:#1e3050;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}.lab-step.done .step-num{background:#16a34a;color:white}.lab-step.active .step-num{background:#7c3aed;color:white}.step-info{flex:1}.step-desc{font-size:.82rem;font-weight:600}.step-cmd{font-size:.7rem;color:#64748b;font-family:monospace;margin-top:2px}.step-exec-btn{background:#7c3aed;border:none;border-radius:6px;color:white;font-size:.75rem;font-weight:700;padding:6px 14px;cursor:pointer;white-space:nowrap}.step-exec-btn:hover{background:#6d28d9}.step-exec-btn:disabled{opacity:.4;cursor:not-allowed}.step-check{color:#22c55e;font-size:1.1rem;display:none}.lab-step.done .step-check{display:block}.lab-terminal{background:#070b10;border:1px solid #1e3050;border-radius:8px;font-family:'Courier New',monospace;font-size:.75rem;min-height:140px;max-height:200px;overflow-y:auto}.term-hdr{background:#131825;border-bottom:1px solid #1e3050;padding:6px 14px;color:#64748b;font-size:.7rem;display:flex;align-items:center;gap:6px}.term-dot{width:10px;height:10px;border-radius:50%}.term-body{padding:12px 14px;color:#86efac;line-height:1.7}.term-line{white-space:pre-wrap;margin:0}.term-line.cmd{color:#60a5fa}.term-line.ok{color:#22c55e}.term-line.err{color:#ef4444}.term-cursor{display:inline-block;width:8px;height:14px;background:#60a5fa;animation:blink .7s infinite;vertical-align:text-bottom}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}.lab-score-wrap{text-align:center;padding:20px 0}.score-num{font-size:4rem;font-weight:900;line-height:1}.score-grade{font-size:1.3rem;font-weight:700;margin:8px 0}.score-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;text-align:center}.score-stat{background:#1e2433;border-radius:8px;padding:12px}.score-stat .sv{font-size:1.4rem;font-weight:800}.score-stat .sl{font-size:.7rem;color:#64748b;margin-top:2px}.lab-report-btn{background:#1d4ed8;border:none;border-radius:8px;color:white;font-size:.9rem;font-weight:700;padding:12px 28px;cursor:pointer;margin:8px;transition:all .15s}.lab-report-btn:hover{background:#2563eb;transform:translateY(-1px)}.lab-report-btn.secondary{background:#1e2433;border:1px solid #334155;color:#94a3b8}
+.lab-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}.lab-container{background:#18181b;border:1px solid #52525b;border-radius:16px;width:min(96vw,980px);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}.lab-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #3f3f46;background:#232326}.lab-header h2{font-size:1.1rem;font-weight:800;color:#a78bfa;margin:0}.lab-meta{font-size:.75rem;color:#71717a}.lab-close{background:none;border:1px solid #52525b;border-radius:6px;color:#a1a1aa;font-size:1rem;cursor:pointer;padding:4px 10px}.lab-body{flex:1;overflow-y:auto;padding:20px 24px}.scenario-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px}.scenario-card{background:#2d2d30;border:1px solid #52525b;border-radius:10px;padding:14px;cursor:pointer;transition:all .15s}.scenario-card:hover{border-color:#8b5cf6;background:#2d2d30;transform:translateY(-2px)}.scenario-card .sc-name{font-weight:700;font-size:.85rem;margin-bottom:4px}.scenario-card .sc-meta{font-size:.7rem;color:#71717a}.sc-sev-high{color:#f87171}.sc-sev-critical{color:#ef4444}.sc-sev-medium{color:#fbbf24}.sc-sev-low{color:#34d399}.lab-info-bar{display:flex;gap:20px;align-items:center;background:#232326;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#a1a1aa}.lab-info-bar strong{color:#fafafa}.lab-steps-area{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}.lab-step{display:flex;align-items:center;gap:12px;background:#2d2d30;border:1px solid #52525b;border-radius:10px;padding:12px 16px;transition:all .2s}.lab-step.active{border-color:#8b5cf6;background:#2a2030}.lab-step.done{border-color:#22c55e;background:#0f2318;opacity:.85}.lab-step.done .step-exec-btn{display:none}.lab-step.pending{opacity:.5}.step-num{width:28px;height:28px;border-radius:50%;background:#3f3f46;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}.lab-step.done .step-num{background:#16a34a;color:white}.lab-step.active .step-num{background:#8b5cf6;color:white}.step-info{flex:1}.step-desc{font-size:.82rem;font-weight:600}.step-cmd{font-size:.7rem;color:#71717a;font-family:monospace;margin-top:2px}.step-exec-btn{background:#8b5cf6;border:none;border-radius:6px;color:white;font-size:.75rem;font-weight:700;padding:6px 14px;cursor:pointer;white-space:nowrap}.step-exec-btn:hover{background:#7c3aed}.step-exec-btn:disabled{opacity:.4;cursor:not-allowed}.step-check{color:#22c55e;font-size:1.1rem;display:none}.lab-step.done .step-check{display:block}.lab-terminal{background:#111113;border:1px solid #3f3f46;border-radius:8px;font-family:'Courier New',monospace;font-size:.75rem;min-height:140px;max-height:200px;overflow-y:auto}.term-hdr{background:#232326;border-bottom:1px solid #3f3f46;padding:6px 14px;color:#71717a;font-size:.7rem;display:flex;align-items:center;gap:6px}.term-dot{width:10px;height:10px;border-radius:50%}.term-body{padding:12px 14px;color:#6ee7b7;line-height:1.7}.term-line{white-space:pre-wrap;margin:0}.term-line.cmd{color:#fbbf24}.term-line.ok{color:#22c55e}.term-line.err{color:#ef4444}.term-cursor{display:inline-block;width:8px;height:14px;background:#fbbf24;animation:blink .7s infinite;vertical-align:text-bottom}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}.lab-score-wrap{text-align:center;padding:20px 0}.score-num{font-size:4rem;font-weight:900;line-height:1}.score-grade{font-size:1.3rem;font-weight:700;margin:8px 0}.score-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;text-align:center}.score-stat{background:#2d2d30;border-radius:8px;padding:12px}.score-stat .sv{font-size:1.4rem;font-weight:800}.score-stat .sl{font-size:.7rem;color:#71717a;margin-top:2px}.lab-report-btn{background:#b45309;border:none;border-radius:8px;color:white;font-size:.9rem;font-weight:700;padding:12px 28px;cursor:pointer;margin:8px;transition:all .15s}.lab-report-btn:hover{background:#d97706;transform:translateY(-1px)}.lab-report-btn.secondary{background:#2d2d30;border:1px solid #52525b;color:#a1a1aa}
 </style>
 </head>
 <body>
@@ -296,7 +296,7 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
     <a href="/instructor" class="btn btn-outline btn-sm" id="instLink" style="display:none">Panel Instructor</a>
     <a href="/analytics-page" class="btn btn-outline btn-sm">Analytics</a>
     <a href="/reports-page" class="btn btn-outline btn-sm">Reportes</a>
-    <button id="labNavBtn" onclick="openLab()" style="background:#7c3aed;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F9EA; Lab</button>
+    <button id="labNavBtn" onclick="openLab()" style="background:#8b5cf6;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F9EA; Lab</button>
     <button id="sessionReportBtn" class="btn-session" onclick="generateSessionReport()" title="Reporte PDF completo de la sesión">📄 Sesión</button>
     <span id="evalNavBadge" style="display:none;align-items:center;gap:5px;background:rgba(34,197,94,.15);border:1px solid #16a34a;border-radius:20px;padding:3px 10px;font-size:.72rem;font-weight:700;color:#4ade80;white-space:nowrap">
       <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;display:inline-block;animation:pulse 1.2s infinite"></span>
@@ -370,7 +370,7 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
     <div class="card full-width">
       <div class="card-header">
         <span class="card-title">🗺️ Mapa de Red — Tiempo Real</span>
-        <span style="font-size:.72rem;color:#64748b">Haz clic en un nodo para ver sus métricas · Rojo = ataque activo</span>
+        <span style="font-size:.72rem;color:#71717a">Haz clic en un nodo para ver sus métricas · Rojo = ataque activo</span>
       </div>
       <div class="card-body" style="padding:.5rem 1rem 1rem">
         <svg id="networkMapSVG" style="width:100%;height:auto;display:block" viewBox="0 0 1100 430" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -447,10 +447,10 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
 <!-- GUIDED DIAGNOSIS PANEL -->
 <div class="guided-panel" id="guidedPanel">
   <!-- Header siempre visible -->
-  <div class="guided-header" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .9rem;border-bottom:1px solid #1e2d45;background:#0f1117;flex-shrink:0">
+  <div class="guided-header" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .9rem;border-bottom:1px solid #3f3f46;background:#18181b;flex-shrink:0">
     <div style="display:flex;align-items:center;gap:.6rem;min-width:0">
       <span style="font-size:.88rem;font-weight:700;color:#a78bfa;white-space:nowrap">🔍 Diagnóstico Guiado</span>
-      <span class="guided-subtitle" id="guidedSubtitle" style="font-size:.68rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Iniciando...</span>
+      <span class="guided-subtitle" id="guidedSubtitle" style="font-size:.68rem;color:#71717a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Iniciando...</span>
     </div>
     <div style="display:flex;gap:4px;flex-shrink:0;margin-left:.5rem">
       <!-- Botón recoger / expandir -->
@@ -458,28 +458,28 @@ header{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-bottom:1px soli
         style="background:none;border:1px solid #4c1d95;border-radius:4px;color:#a78bfa;cursor:pointer;padding:2px 7px;font-size:.78rem;transition:background .15s"
         onmouseover="this.style.background='#1e1035'" onmouseout="this.style.background='none'">▲ Recoger</button>
       <button class="guided-close-btn" onclick="closeGuided()" title="Cerrar"
-        style="background:none;border:1px solid #334155;border-radius:4px;color:#64748b;cursor:pointer;padding:2px 7px;font-size:.78rem"
-        onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">✕</button>
+        style="background:none;border:1px solid #52525b;border-radius:4px;color:#71717a;cursor:pointer;padding:2px 7px;font-size:.78rem"
+        onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#71717a'">✕</button>
     </div>
   </div>
   <!-- Tabs de etapas siempre visibles -->
-  <div class="guided-stages" style="display:flex;border-bottom:1px solid #1e2d45;flex-shrink:0">
-    <div class="guided-stage-tab active" id="gtab-0" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#a78bfa;border-bottom:2px solid #7c3aed;cursor:default">1.DETECTAR</div>
-    <div class="guided-stage-tab" id="gtab-1" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#64748b;cursor:default">2.ANALIZAR</div>
-    <div class="guided-stage-tab" id="gtab-2" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#64748b;cursor:default">3.CLASIFICAR</div>
-    <div class="guided-stage-tab" id="gtab-3" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#64748b;cursor:default">4.MITIGAR</div>
+  <div class="guided-stages" style="display:flex;border-bottom:1px solid #3f3f46;flex-shrink:0">
+    <div class="guided-stage-tab active" id="gtab-0" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#a78bfa;border-bottom:2px solid #8b5cf6;cursor:default">1.DETECTAR</div>
+    <div class="guided-stage-tab" id="gtab-1" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#71717a;cursor:default">2.ANALIZAR</div>
+    <div class="guided-stage-tab" id="gtab-2" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#71717a;cursor:default">3.CLASIFICAR</div>
+    <div class="guided-stage-tab" id="gtab-3" style="flex:1;text-align:center;padding:.35rem .2rem;font-size:.63rem;color:#71717a;cursor:default">4.MITIGAR</div>
   </div>
   <!-- Minimize tab lateral (legacy) -->
   <div class="guided-minimize-tab" onclick="expandGuided()" style="flex-direction:column;align-items:center;justify-content:center;height:100%;cursor:pointer;gap:6px">
     <span style="writing-mode:vertical-lr;transform:rotate(180deg);font-size:.7rem;color:#a78bfa;font-weight:700;letter-spacing:.05em">DIAGNÓSTICO</span>
-    <span id="guidedMiniPhase" style="font-size:.65rem;color:#64748b">F1/4</span>
+    <span id="guidedMiniPhase" style="font-size:.65rem;color:#71717a">F1/4</span>
   </div>
   <!-- Cuerpo (se oculta al recoger) -->
   <div class="guided-body" id="guidedBody" style="overflow-y:auto;padding:.75rem;max-height:calc(100vh - 230px)"></div>
   <!-- Pie (se oculta al recoger) -->
-  <div class="guided-footer" style="padding:.5rem .9rem;border-top:1px solid #1e2d45;display:flex;gap:.5rem;justify-content:flex-end;align-items:center;background:#0f1117;flex-shrink:0">
-    <button id="guidedHintBtn" onclick="showGuidedHint()" style="background:#1e2d45;border:1px solid #334155;border-radius:6px;color:#fbbf24;padding:.35rem .75rem;font-size:.76rem;cursor:pointer">💡 Pista (−10 pts)</button>
-    <button id="guidedNextBtn" onclick="guidedNext()" style="display:none;background:#7c3aed;border:none;border-radius:6px;color:white;padding:.35rem .75rem;font-size:.76rem;cursor:pointer;font-weight:700">Siguiente →</button>
+  <div class="guided-footer" style="padding:.5rem .9rem;border-top:1px solid #3f3f46;display:flex;gap:.5rem;justify-content:flex-end;align-items:center;background:#18181b;flex-shrink:0">
+    <button id="guidedHintBtn" onclick="showGuidedHint()" style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#fbbf24;padding:.35rem .75rem;font-size:.76rem;cursor:pointer">💡 Pista (−10 pts)</button>
+    <button id="guidedNextBtn" onclick="guidedNext()" style="display:none;background:#8b5cf6;border:none;border-radius:6px;color:white;padding:.35rem .75rem;font-size:.76rem;cursor:pointer;font-weight:700">Siguiente →</button>
   </div>
 </div>
 
@@ -621,9 +621,9 @@ function handleEvalSession(data) {
     // Mostrar badge en el navbar
     if (badge) {
       badge.style.display = 'flex';
-      badge.style.borderColor = isGroup ? '#3b82f6' : '#16a34a';
+      badge.style.borderColor = isGroup ? '#f59e0b' : '#16a34a';
       badge.style.background  = isGroup ? 'rgba(59,130,246,.15)' : 'rgba(34,197,94,.15)';
-      badge.querySelector('span').style.background = isGroup ? '#60a5fa' : '#4ade80';
+      badge.querySelector('span').style.background = isGroup ? '#fbbf24' : '#4ade80';
       if (badgeText) badgeText.textContent = isGroup
         ? `GRUPAL${groupName ? ': '+groupName : ''}`
         : 'EN EVALUACIÓN';
@@ -778,7 +778,7 @@ function initMainChart() {
   mainChart = new Chart(ctx, {
     type: 'line',
     data: { labels: [], datasets: [
-      { label: 'CPU %', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+      { label: 'CPU %', data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
       { label: 'RAM %', data: [], borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
       { label: 'Latencia ms', data: [], borderColor: '#f97316', backgroundColor: 'transparent', fill: false, tension: .4, pointRadius: 0, borderWidth: 1.5, yAxisID: 'y2' },
     ]},
@@ -786,11 +786,11 @@ function initMainChart() {
       responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
       interaction: { mode: 'index', intersect: false },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 6, font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
-        y: { min: 0, max: 100, ticks: { color: '#64748b', font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+        x: { ticks: { color: '#71717a', maxTicksLimit: 6, font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+        y: { min: 0, max: 100, ticks: { color: '#71717a', font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
         y2: { position: 'right', min: 0, ticks: { color: '#f97316', font:{size:10} }, grid: { display: false } },
       },
-      plugins: { legend: { labels: { color: '#e2e8f0', font:{size:11}, boxWidth:10 } } }
+      plugins: { legend: { labels: { color: '#fafafa', font:{size:11}, boxWidth:10 } } }
     }
   });
 }
@@ -826,16 +826,16 @@ function initNetChart() {
     type: 'line',
     data: { labels: [], datasets: [
       { label: 'Net IN', data: [], borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
-      { label: 'Net OUT', data: [], borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,.05)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
+      { label: 'Net OUT', data: [], borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,.05)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2 },
     ]},
     options: {
       responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
       interaction: { mode: 'index', intersect: false },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 6, font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
-        y: { min: 0, ticks: { color: '#64748b', font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+        x: { ticks: { color: '#71717a', maxTicksLimit: 6, font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
+        y: { min: 0, ticks: { color: '#71717a', font:{size:10} }, grid: { color: 'rgba(30,45,69,.5)' } },
       },
-      plugins: { legend: { labels: { color: '#e2e8f0', font:{size:11}, boxWidth:10 } } }
+      plugins: { legend: { labels: { color: '#fafafa', font:{size:11}, boxWidth:10 } } }
     }
   });
 }
@@ -1100,7 +1100,7 @@ function openNodeModal(nodeId) {
     data: {
       labels: h ? [...h.labels] : [],
       datasets: [
-        { label:'CPU %', data: h ? [...h.cpu] : [], borderColor:'#3b82f6', fill:false, tension:.4, pointRadius:0, borderWidth:2 },
+        { label:'CPU %', data: h ? [...h.cpu] : [], borderColor:'#f59e0b', fill:false, tension:.4, pointRadius:0, borderWidth:2 },
         { label:'RAM %', data: h ? [...h.ram] : [], borderColor:'#a855f7', fill:false, tension:.4, pointRadius:0, borderWidth:2 },
         { label:'Net IN', data: h ? [...h.net_in] : [], borderColor:'#22c55e', fill:false, tension:.4, pointRadius:0, borderWidth:1.5 },
       ]
@@ -1108,10 +1108,10 @@ function openNodeModal(nodeId) {
     options: {
       responsive:true, maintainAspectRatio:false, animation:{duration:0},
       scales: {
-        x:{ticks:{color:'#64748b',maxTicksLimit:5,font:{size:9}},grid:{color:'rgba(30,45,69,.5)'}},
-        y:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'rgba(30,45,69,.5)'}}
+        x:{ticks:{color:'#71717a',maxTicksLimit:5,font:{size:9}},grid:{color:'rgba(30,45,69,.5)'}},
+        y:{ticks:{color:'#71717a',font:{size:9}},grid:{color:'rgba(30,45,69,.5)'}}
       },
-      plugins:{legend:{labels:{color:'#e2e8f0',font:{size:10},boxWidth:8}}}
+      plugins:{legend:{labels:{color:'#fafafa',font:{size:10},boxWidth:8}}}
     }
   });
 
@@ -1320,7 +1320,7 @@ let nmMitigated = new Set(); // nodos que completaron mitigación (verde brillan
 function renderNetworkMap() {
   const svg = document.getElementById('networkMapSVG');
   if (!svg || !Object.keys(allNodes).length) return;
-  const fc = {ok:'#166534',warn:'#713f12',crit:'#7f1d1d',offline:'#1e293b'};
+  const fc = {ok:'#166534',warn:'#713f12',crit:'#7f1d1d',offline:'#3f3f46'};
   const sc = {ok:'#22c55e',warn:'#eab308',crit:'#ef4444',offline:'#475569'};
   const links = NM_LINKS.map(([a,b]) => {
     const pa=NM_POS[a], pb=NM_POS[b];
@@ -1352,27 +1352,27 @@ function renderNetworkMap() {
     return `<g class="nm-node" onclick="openNodeModal('${id}')">
       <circle cx="${pos.x}" cy="${pos.y}" r="24" fill="${fillC}" stroke="${strkC}" stroke-width="${strkW}"${atkAnim}/>
       <text x="${pos.x}" y="${pos.y+5}" text-anchor="middle" dominant-baseline="middle" font-size="13">${icon}</text>
-      <text x="${pos.x}" y="${pos.y+38}" text-anchor="middle" font-size="9" fill="#e2e8f0" font-weight="700">${id}</text>
-      <text x="${pos.x}" y="${pos.y+49}" text-anchor="middle" font-size="8" fill="#64748b">${metric}</text>
+      <text x="${pos.x}" y="${pos.y+38}" text-anchor="middle" font-size="9" fill="#fafafa" font-weight="700">${id}</text>
+      <text x="${pos.x}" y="${pos.y+49}" text-anchor="middle" font-size="8" fill="#71717a">${metric}</text>
     </g>`;
   }).join('');
   svg.innerHTML=`
-    <rect width="1100" height="430" fill="#0a0e1a" rx="8"/>
-    <text x="22" y="50" fill="#1e3050" font-size="9" font-weight="700">PERIMETER</text>
-    <text x="22" y="126" fill="#1e3050" font-size="9" font-weight="700">ROUTING</text>
-    <text x="22" y="212" fill="#1e3050" font-size="9" font-weight="700">CORE</text>
-    <text x="22" y="296" fill="#1e3050" font-size="9" font-weight="700">DISTRIBUTION</text>
-    <text x="22" y="386" fill="#1e3050" font-size="9" font-weight="700">ACCESS</text>
-    <line x1="120" y1="76" x2="1080" y2="76" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
-    <line x1="120" y1="154" x2="1080" y2="154" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
-    <line x1="120" y1="248" x2="1080" y2="248" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
-    <line x1="120" y1="332" x2="1080" y2="332" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,8"/>
+    <rect width="1100" height="430" fill="#18181b" rx="8"/>
+    <text x="22" y="50" fill="#3f3f46" font-size="9" font-weight="700">PERIMETER</text>
+    <text x="22" y="126" fill="#3f3f46" font-size="9" font-weight="700">ROUTING</text>
+    <text x="22" y="212" fill="#3f3f46" font-size="9" font-weight="700">CORE</text>
+    <text x="22" y="296" fill="#3f3f46" font-size="9" font-weight="700">DISTRIBUTION</text>
+    <text x="22" y="386" fill="#3f3f46" font-size="9" font-weight="700">ACCESS</text>
+    <line x1="120" y1="76" x2="1080" y2="76" stroke="#3f3f46" stroke-width="1" stroke-dasharray="4,8"/>
+    <line x1="120" y1="154" x2="1080" y2="154" stroke="#3f3f46" stroke-width="1" stroke-dasharray="4,8"/>
+    <line x1="120" y1="248" x2="1080" y2="248" stroke="#3f3f46" stroke-width="1" stroke-dasharray="4,8"/>
+    <line x1="120" y1="332" x2="1080" y2="332" stroke="#3f3f46" stroke-width="1" stroke-dasharray="4,8"/>
     ${links}${nodes}
     <g transform="translate(22,416)">
-      <circle cx="8" cy="0" r="5" fill="#166534" stroke="#22c55e" stroke-width="1"/><text x="18" y="4" fill="#64748b" font-size="8">OK</text>
-      <circle cx="52" cy="0" r="5" fill="#713f12" stroke="#eab308" stroke-width="1"/><text x="62" y="4" fill="#64748b" font-size="8">Warning</text>
-      <circle cx="112" cy="0" r="5" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/><text x="122" y="4" fill="#64748b" font-size="8">Crítico/Ataque</text>
-      <circle cx="210" cy="0" r="5" fill="#1e293b" stroke="#475569" stroke-width="1"/><text x="220" y="4" fill="#64748b" font-size="8">Offline</text>
+      <circle cx="8" cy="0" r="5" fill="#166534" stroke="#22c55e" stroke-width="1"/><text x="18" y="4" fill="#71717a" font-size="8">OK</text>
+      <circle cx="52" cy="0" r="5" fill="#713f12" stroke="#eab308" stroke-width="1"/><text x="62" y="4" fill="#71717a" font-size="8">Warning</text>
+      <circle cx="112" cy="0" r="5" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/><text x="122" y="4" fill="#71717a" font-size="8">Crítico/Ataque</text>
+      <circle cx="210" cy="0" r="5" fill="#3f3f46" stroke="#475569" stroke-width="1"/><text x="220" y="4" fill="#71717a" font-size="8">Offline</text>
     </g>`;
 }
 
@@ -1500,7 +1500,7 @@ function _gBuildAnalyzeStage(inc){
     const issuer= ssl.issuer||'Let\'s Encrypt';
     const expDate = ssl.expires_at ? new Date(ssl.expires_at).toLocaleDateString('es-CO') : '—';
     return {
-      q:`🔐 Nodo: <strong style="color:#60a5fa">${id}</strong>. Revisa el estado del certificado SSL/TLS. ¿Cuál es el indicador que confirma el problema?`,
+      q:`🔐 Nodo: <strong style="color:#fbbf24">${id}</strong>. Revisa el estado del certificado SSL/TLS. ¿Cuál es el indicador que confirma el problema?`,
       ctx:`Estado SSL/TLS del nodo <strong>${id}</strong>:<br>
         &bull; Versión TLS: <strong style="${proto==='TLS 1.0'||proto==='TLS 1.1'?'color:#ef4444':'color:#22c55e'}">${proto}</strong><br>
         &bull; Días para vencer: <strong style="${days<30?'color:#ef4444':days<60?'color:#eab308':'color:#22c55e'}">${days} días</strong><br>
@@ -1530,7 +1530,7 @@ function _gBuildAnalyzeStage(inc){
     const accessTxt = isUnauth ? '⚠️ ALERTA — evento no autorizado' : 'Normal';
     const accessCol = isUnauth ? 'color:#ef4444' : 'color:#22c55e';
     return {
-      q:`🏭 Nodo: <strong style="color:#60a5fa">${id}</strong>. Revisa los sensores físicos del datacenter. ¿Qué indicador SST está fuera de rango?`,
+      q:`🏭 Nodo: <strong style="color:#fbbf24">${id}</strong>. Revisa los sensores físicos del datacenter. ¿Qué indicador SST está fuera de rango?`,
       ctx:`Lectura de sensores físicos — Zona de ${id}:<br>
         &bull; Temperatura rack: <strong style="${+temp>35?'color:#ef4444':+temp>30?'color:#eab308':'color:#22c55e'}">${temp}°C</strong> (normal &lt; 27°C)<br>
         &bull; Nivel de humo: <strong style="${smoke>0?'color:#ef4444':'color:#22c55e'}">${smoke>0?'⚠️ DETECTADO':'Normal'}</strong><br>
@@ -1561,7 +1561,7 @@ function _gBuildAnalyzeStage(inc){
     if(isDisk && disk < 160){ disk = Math.floor(160 + Math.random()*200); } // I/O siempre anómalo
     if(isDisk && smart === 0) smart = Math.floor(5 + Math.random()*15);      // SMART errors visibles
     return {
-      q:`💾 Nodo: <strong style="color:#60a5fa">${id}</strong>. Hay una anomalía de hardware. ¿Qué indicador de rendimiento está fallando?`,
+      q:`💾 Nodo: <strong style="color:#fbbf24">${id}</strong>. Hay una anomalía de hardware. ¿Qué indicador de rendimiento está fallando?`,
       ctx:`Métricas de hardware en tiempo real — ${id}:<br>
         &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> (normal &lt; 70%)<br>
         &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%) — ¿tendencia creciente?<br>
@@ -1586,7 +1586,7 @@ function _gBuildAnalyzeStage(inc){
   const conn = m.connections||0;
   const lat  = +(m.latency_ms||0).toFixed(0);
   return {
-    q:`📊 Nodo: <strong style="color:#60a5fa">${id}</strong>. Analiza sus métricas de red. ¿Cuál indicador confirma el ataque?`,
+    q:`📊 Nodo: <strong style="color:#fbbf24">${id}</strong>. Analiza sus métricas de red. ¿Cuál indicador confirma el ataque?`,
     ctx:`Métricas en tiempo real de ${id}:<br>
       &bull; CPU: <strong style="${col(cpu,70)}">${cpu}%</strong> (normal &lt; 70%)<br>
       &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%)<br>
@@ -1612,7 +1612,7 @@ function _gBuildClassifyStage(inc){
   if(cat === 'ssl'){
     return {
       q:'🔐 Identifica exactamente el tipo de falla SSL/TLS. ¿Cuál describe mejor lo que está pasando?',
-      ctx:`Falla SSL/TLS en el nodo <strong style="color:#60a5fa">${id}</strong>. En producción, un certificado mal gestionado puede causar downtime total del servicio HTTPS.`,
+      ctx:`Falla SSL/TLS en el nodo <strong style="color:#fbbf24">${id}</strong>. En producción, un certificado mal gestionado puede causar downtime total del servicio HTTPS.`,
       opts:[
         {label:'⌛ Certificado SSL próximo a vencer (< 30 días)',value:'ssl_expiring'},
         {label:'❌ Certificado SSL ya expirado — HTTPS caído',value:'ssl_expired'},
@@ -1627,7 +1627,7 @@ function _gBuildClassifyStage(inc){
   if(cat === 'sst'){
     return {
       q:'🏭 Clasifica el tipo de emergencia física. ¿Cuál describe mejor el incidente SST?',
-      ctx:`Emergencia física en la zona de <strong style="color:#60a5fa">${id}</strong>. Los incidentes SST requieren protocolo diferente a los ciberataques: implican respuesta física inmediata.`,
+      ctx:`Emergencia física en la zona de <strong style="color:#fbbf24">${id}</strong>. Los incidentes SST requieren protocolo diferente a los ciberataques: implican respuesta física inmediata.`,
       opts:[
         {label:'🌡️ Sobrecalentamiento — falla CRAC / refrigeración',value:'thermal'},
         {label:'💨 Alarma de humo — posible incendio en el rack',value:'smoke'},
@@ -1642,7 +1642,7 @@ function _gBuildClassifyStage(inc){
   if(cat === 'hardware'){
     return {
       q:'💾 Clasifica la falla de hardware. ¿Cuál describe mejor lo que está fallando?',
-      ctx:`Falla de hardware en <strong style="color:#60a5fa">${id}</strong>. Las fallas de hardware pueden causar pérdida de datos si no se actúa rápidamente.`,
+      ctx:`Falla de hardware en <strong style="color:#fbbf24">${id}</strong>. Las fallas de hardware pueden causar pérdida de datos si no se actúa rápidamente.`,
       opts:[
         {label:'🧠 Memory Leak — proceso acumula RAM sin liberarla',value:'mem_leak'},
         {label:'💿 Falla de Disco RAID — errores SMART detectados',value:'disk_fail'},
@@ -1657,7 +1657,7 @@ function _gBuildClassifyStage(inc){
   // Categoría 'red'
   return {
     q:'🌐 Clasifica el tipo de ataque de red. ¿Cuál describe mejor el vector de ataque?',
-    ctx:`Ataque de red en <strong style="color:#60a5fa">${id}</strong>. Cada tipo de ataque tiene una firma diferente en las métricas y requiere una mitigación específica.`,
+    ctx:`Ataque de red en <strong style="color:#fbbf24">${id}</strong>. Cada tipo de ataque tiene una firma diferente en las métricas y requiere una mitigación específica.`,
     opts:[
       {label:'💥 DDoS / SYN Flood — saturación masiva de red',value:'ddos'},
       {label:'🔑 Brute Force SSH — intentos de autenticación repetidos',value:'brute'},
@@ -1685,7 +1685,7 @@ function _gBuildMitigateOpts(inc){
 
   if(cat === 'ssl'){
     return {
-      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es la acción de mitigación correcta?`,
+      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es la acción de mitigación correcta?`,
       ctx:'En certificados SSL/TLS, la velocidad de respuesta es crítica. Un certificado expirado genera errores inmediatos para todos los usuarios.',
       opts:[
         {label:'🔐 Renovar el certificado con certbot/Let\'s Encrypt',value:'renew_cert'},
@@ -1700,7 +1700,7 @@ function _gBuildMitigateOpts(inc){
 
   if(cat === 'sst'){
     return {
-      q:`🛡️ Emergencia confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es el primer paso del protocolo SST?`,
+      q:`🛡️ Emergencia confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es el primer paso del protocolo SST?`,
       ctx:'Los incidentes SST activan protocolos físicos de seguridad. La prioridad es proteger el equipo y el personal, no solo los datos.',
       opts:[
         {label:'❄️ Reiniciar unidad CRAC y aumentar extracción de aire',value:'cool_crac'},
@@ -1715,7 +1715,7 @@ function _gBuildMitigateOpts(inc){
 
   if(cat === 'hardware'){
     return {
-      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es la primera acción de mitigación?`,
+      q:`🛡️ Falla confirmada: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es la primera acción de mitigación?`,
       ctx:'Las fallas de hardware tienen ventanas de tiempo críticas. Actuar rápido puede prevenir pérdida de datos y downtime prolongado.',
       opts:[
         {label:'🔄 Reiniciar el proceso con fuga y ajustar límites de memoria',value:'restart_proc'},
@@ -1730,7 +1730,7 @@ function _gBuildMitigateOpts(inc){
 
   // Categoría 'red'
   return {
-    q:`🛡️ Ataque confirmado: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#60a5fa">${id}</strong>. ¿Cuál es la primera línea de defensa?`,
+    q:`🛡️ Ataque confirmado: <strong style="color:#f97316">${attackLabel}</strong> en <strong style="color:#fbbf24">${id}</strong>. ¿Cuál es la primera línea de defensa?`,
     ctx:'En ataques de red, la velocidad de respuesta define si el incidente se contiene o se expande. Cada tipo de ataque tiene una contramedida primaria diferente.',
     opts:[
       {label:'🚧 Activar rate limiting y null-route en el firewall',value:'rate_limit'},
@@ -1922,7 +1922,7 @@ function _showGuidedResultsPanel() {
   XSESSION.saveGuided({type:guidedState.incident?.attack?.attack_type||'desconocido',node:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur});
   apiFetch('/api/analytics/guided/complete',{method:'POST',body:JSON.stringify({attack_type:guidedState.incident?.attack?.attack_type||'unknown',node_id:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur})}).catch(()=>{});
   XSESSION.lock(15); // 15 min cooldown al completar
-  const col=sc>=90?'#22c55e':sc>=75?'#60a5fa':sc>=60?'#eab308':'#ef4444';
+  const col=sc>=90?'#22c55e':sc>=75?'#fbbf24':sc>=60?'#eab308':'#ef4444';
   const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Regular':'⚠️ Practica más';
   const msg=sc>=90?'Diagnóstico rápido y preciso. ¡Dominas el protocolo de respuesta!'
     :sc>=75?'Buen diagnóstico. Practica más para mejorar la velocidad de respuesta.'
@@ -1930,16 +1930,16 @@ function _showGuidedResultsPanel() {
   document.getElementById('guidedBody').innerHTML=`
     <div style="text-align:center;padding:20px 0">
       <div style="font-size:3.5rem;font-weight:900;color:${col}">${sc}</div>
-      <div style="font-size:.8rem;color:#64748b">/100 puntos</div>
+      <div style="font-size:.8rem;color:#71717a">/100 puntos</div>
       <div style="font-size:1rem;font-weight:700;color:${col};margin-top:8px">${grade}</div>
-      <div style="font-size:.78rem;color:#94a3b8;margin:8px 0 16px;line-height:1.5">${msg}</div>
-      <div style="background:#0f172a;border-radius:8px;padding:12px;text-align:left">
-        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#64748b">Respuestas correctas</span><span style="color:#22c55e;font-weight:700">${ok}/4</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#64748b">Pistas usadas</span><span style="color:${guidedState.hintsUsed?'#eab308':'#22c55e'};font-weight:700">${guidedState.hintsUsed}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:.78rem"><span style="color:#64748b">Tiempo de diagnóstico</span><span style="color:#60a5fa;font-weight:700">${dur}s</span></div>
+      <div style="font-size:.78rem;color:#a1a1aa;margin:8px 0 16px;line-height:1.5">${msg}</div>
+      <div style="background:#1c1c1f;border-radius:8px;padding:12px;text-align:left">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#71717a">Respuestas correctas</span><span style="color:#22c55e;font-weight:700">${ok}/4</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#71717a">Pistas usadas</span><span style="color:${guidedState.hintsUsed?'#eab308':'#22c55e'};font-weight:700">${guidedState.hintsUsed}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem"><span style="color:#71717a">Tiempo de diagnóstico</span><span style="color:#fbbf24;font-weight:700">${dur}s</span></div>
       </div>
       <button class="guided-btn guided-btn-primary" onclick="openLab()" style="margin-top:16px;width:100%">🧪 Practicar mitigación en el Lab</button>
-      <button onclick="generateBitacoraReport()" style="margin-top:8px;width:100%;background:#0f172a;border:1px solid #7c3aed;border-radius:8px;color:#a78bfa;padding:9px;font-size:.82rem;cursor:pointer;font-weight:600">📄 Generar reporte firmado para entregar</button>
+      <button onclick="generateBitacoraReport()" style="margin-top:8px;width:100%;background:#1c1c1f;border:1px solid #8b5cf6;border-radius:8px;color:#a78bfa;padding:9px;font-size:.82rem;cursor:pointer;font-weight:600">📄 Generar reporte firmado para entregar</button>
     </div>`;
   const nb=document.getElementById('guidedNextBtn'), hb=document.getElementById('guidedHintBtn');
   if(nb) nb.style.display='none';
@@ -1959,12 +1959,12 @@ async function generateBitacoraReport() {
       cryptomining:'Cryptomining', lateral_movement:'Movimiento Lateral', unknown:'Desconocido' };
     const rows = bs.map((b,i) => {
       const sc = parseFloat(b.score||0).toFixed(1);
-      const col = sc>=80?'#16a34a':sc>=50?'#2563eb':'#dc2626';
+      const col = sc>=80?'#16a34a':sc>=50?'#d97706':'#dc2626';
       const date = new Date(b.created_at).toLocaleDateString('es-CO');
-      return `<div style="page-break-inside:avoid;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #e2e8f0;padding-bottom:8px">
+      return `<div style="page-break-inside:avoid;border:1px solid #fafafa;border-radius:8px;padding:16px 20px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #fafafa;padding-bottom:8px">
           <div><strong style="color:#1e3a8a">Bitácora #${b.id}</strong> &nbsp;·&nbsp; ${ALBL[b.attack_type]||b.attack_type} &nbsp;·&nbsp; Nodo: ${b.node_id}</div>
-          <div style="display:flex;gap:12px;font-size:.82rem;color:#64748b">
+          <div style="display:flex;gap:12px;font-size:.82rem;color:#71717a">
             <span>Puntaje: <strong style="color:${col}">${sc}/100</strong></span>
             <span>Resp: ${b.correct_answers}/${b.total_questions}</span>
             <span>Pistas: ${b.hints_used}</span>
@@ -1972,22 +1972,22 @@ async function generateBitacoraReport() {
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.83rem">
-          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🔍 Síntomas observados</div><div style="color:#334155;line-height:1.5">${b.sintomas_observados}</div></div>
-          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🧩 Causa raíz</div><div style="color:#334155;line-height:1.5">${b.causa_raiz}</div></div>
-          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🛡️ Acciones tomadas</div><div style="color:#334155;line-height:1.5">${b.acciones_tomadas}</div></div>
-          <div><div style="color:#7c3aed;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">📚 Lecciones aprendidas</div><div style="color:#334155;line-height:1.5">${b.lecciones}</div></div>
+          <div><div style="color:#8b5cf6;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🔍 Síntomas observados</div><div style="color:#52525b;line-height:1.5">${b.sintomas_observados}</div></div>
+          <div><div style="color:#8b5cf6;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🧩 Causa raíz</div><div style="color:#52525b;line-height:1.5">${b.causa_raiz}</div></div>
+          <div><div style="color:#8b5cf6;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">🛡️ Acciones tomadas</div><div style="color:#52525b;line-height:1.5">${b.acciones_tomadas}</div></div>
+          <div><div style="color:#8b5cf6;font-weight:700;font-size:.72rem;text-transform:uppercase;margin-bottom:3px">📚 Lecciones aprendidas</div><div style="color:#52525b;line-height:1.5">${b.lecciones}</div></div>
         </div>
       </div>`;
     }).join('');
     const avg = (bs.reduce((s,b)=>s+parseFloat(b.score||0),0)/bs.length).toFixed(1);
     const win = window.open('','_blank');
     win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Bitácoras — ${student.name||student.email}</title>
-    <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0;font-size:14px}
-    .cover{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:white;padding:32px 48px}
+    <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#3f3f46;margin:0;font-size:14px}
+    .cover{background:linear-gradient(135deg,#1e3a8a,#8b5cf6);color:white;padding:32px 48px}
     .cover h1{margin:0 0 4px;font-size:1.6rem}.section{padding:16px 48px}
-    .firma-box{border:2px dashed #cbd5e1;border-radius:8px;padding:20px 24px;margin:24px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px}
-    .firma-line{border-top:1px solid #64748b;margin-top:40px;padding-top:6px;font-size:.75rem;color:#64748b;text-align:center}
-    .footer{padding:12px 48px;background:#f1f5f9;font-size:.72rem;color:#64748b;display:flex;justify-content:space-between}
+    .firma-box{border:2px dashed #e4e4e7;border-radius:8px;padding:20px 24px;margin:24px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .firma-line{border-top:1px solid #71717a;margin-top:40px;padding-top:6px;font-size:.75rem;color:#71717a;text-align:center}
+    .footer{padding:12px 48px;background:#f1f5f9;font-size:.72rem;color:#71717a;display:flex;justify-content:space-between}
     .no-print{background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem}
     @media print{.no-print{display:none}}</style></head><body>
     <div class="no-print"><strong>Reporte listo</strong> — Ctrl+P para imprimir o guardar como PDF
@@ -2008,18 +2008,18 @@ async function generateBitacoraReport() {
           <div style="font-size:1.4rem;font-weight:900;color:#14532d">${avg}/100</div>
         </div>
         <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;padding:10px 16px">
-          <div style="color:#7c3aed;font-size:.72rem;font-weight:700">PROGRAMA</div>
+          <div style="color:#8b5cf6;font-size:.72rem;font-weight:700">PROGRAMA</div>
           <div style="font-size:.9rem;font-weight:700;color:#4c1d95">Gestión de Redes de Datos</div>
         </div>
       </div>
       ${rows}
       <div class="firma-box">
         <div>
-          <div style="font-size:.78rem;color:#64748b;margin-bottom:4px">Firma del aprendiz</div>
+          <div style="font-size:.78rem;color:#71717a;margin-bottom:4px">Firma del aprendiz</div>
           <div class="firma-line">${student.name||student.email}</div>
         </div>
         <div>
-          <div style="font-size:.78rem;color:#64748b;margin-bottom:4px">Firma del instructor</div>
+          <div style="font-size:.78rem;color:#71717a;margin-bottom:4px">Firma del instructor</div>
           <div class="firma-line">Ing. Luis Alberto Vásquez Campos</div>
         </div>
       </div>
@@ -2101,9 +2101,9 @@ let labState={phase:0,scenarios:{},current:null,steps:[],currentStep:0,startTime
 async function openLab(){document.getElementById('labOverlay').style.display='flex';labState.phase=1;showLabPhase(1);if(!Object.keys(labState.scenarios).length)await loadScenarios();}
 function closeLab(){document.getElementById('labOverlay').style.display='none';clearInterval(labState.timerInterval);}
 async function loadScenarios(){try{const data=await apiFetch('/api/analytics/mitigation/rules');labState.scenarios=data;const grid=document.getElementById('scenarioGrid');const sc={high:'sc-sev-high',critical:'sc-sev-critical',medium:'sc-sev-medium',low:'sc-sev-low'};grid.innerHTML=Object.entries(data).map(([t,i])=>`<div class="scenario-card" onclick="startScenario('${t}')"><div class="sc-name">${i.name}</div><div class="sc-meta"><span class="${sc[i.severity_impact]||'sc-sev-medium'}">&#x25CF; ${i.severity_impact||'medium'}</span> &nbsp;&middot;&nbsp; ${i.steps_count} pasos &nbsp;&middot;&nbsp; ~${i.expected_recovery_sec}s</div></div>`).join('');}catch(e){document.getElementById('scenarioGrid').innerHTML='<p style="color:#ef4444">Error cargando escenarios</p>';}}
-async function startScenario(type){try{const plan=await apiFetch(`/api/analytics/mitigation/plan/${type}`);labState.current={type,plan};labState.steps=plan.steps||[];labState.currentStep=0;labState.startTime=Date.now();labState.executingStep=false;document.getElementById('labScenName').textContent=plan.mitigation_name||type;document.getElementById('labMeta').textContent=`Escenario: ${plan.mitigation_name}`;document.getElementById('labStepProg').textContent=`0 / ${labState.steps.length}`;const area=document.getElementById('labStepsArea');area.innerHTML=labState.steps.map((s,i)=>`<div class="lab-step ${i===0?'active':'pending'}" id="lstep-${i}"><div class="step-num">${i+1}</div><div class="step-info"><div class="step-desc">${s.desc||s.action}</div><div class="step-cmd">$ ${s.command||s.action}</div></div><span class="step-check">&#x2705;</span></div>`).join('');document.getElementById('labTermBody').innerHTML='<div class="term-line" style="color:#64748b"># Lab iniciado &mdash; escribe el primer comando en el panel de abajo</div><span class="term-cursor"></span>';document.getElementById('labTypingArea').style.display='';document.getElementById('labCmdSummary').innerHTML='';updateTypingPrompt(0);clearInterval(labState.timerInterval);labState.timerInterval=setInterval(()=>{const e=Math.floor((Date.now()-labState.startTime)/1000);document.getElementById('labTimer').textContent=`${String(Math.floor(e/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;},1000);showLabPhase(2);}catch(e){alert('Error: '+e.message);}}
+async function startScenario(type){try{const plan=await apiFetch(`/api/analytics/mitigation/plan/${type}`);labState.current={type,plan};labState.steps=plan.steps||[];labState.currentStep=0;labState.startTime=Date.now();labState.executingStep=false;document.getElementById('labScenName').textContent=plan.mitigation_name||type;document.getElementById('labMeta').textContent=`Escenario: ${plan.mitigation_name}`;document.getElementById('labStepProg').textContent=`0 / ${labState.steps.length}`;const area=document.getElementById('labStepsArea');area.innerHTML=labState.steps.map((s,i)=>`<div class="lab-step ${i===0?'active':'pending'}" id="lstep-${i}"><div class="step-num">${i+1}</div><div class="step-info"><div class="step-desc">${s.desc||s.action}</div><div class="step-cmd">$ ${s.command||s.action}</div></div><span class="step-check">&#x2705;</span></div>`).join('');document.getElementById('labTermBody').innerHTML='<div class="term-line" style="color:#71717a"># Lab iniciado &mdash; escribe el primer comando en el panel de abajo</div><span class="term-cursor"></span>';document.getElementById('labTypingArea').style.display='';document.getElementById('labCmdSummary').innerHTML='';updateTypingPrompt(0);clearInterval(labState.timerInterval);labState.timerInterval=setInterval(()=>{const e=Math.floor((Date.now()-labState.startTime)/1000);document.getElementById('labTimer').textContent=`${String(Math.floor(e/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;},1000);showLabPhase(2);}catch(e){alert('Error: '+e.message);}}
 async function execStep(idx){if(labState.executingStep||idx!==labState.currentStep)return;labState.executingStep=true;const step=labState.steps[idx];const outputs=LAB_TERM[step.action]||[`$ ${step.command||step.action}`,`Executing ${step.action}...`,`[OK] ${step.desc||step.action} completed`];const tb=document.getElementById('labTermBody');tb.innerHTML=tb.innerHTML.replace('<span class="term-cursor"></span>','');for(let i=0;i<outputs.length;i++){await new Promise(r=>setTimeout(r,280+Math.random()*220));const l=outputs[i];const cls=l.startsWith('$')?'cmd':l.startsWith('[OK]')?'ok':l.startsWith('[ERR]')?'err':'';tb.innerHTML+=`<div class="term-line ${cls}">${l}</div>`;tb.parentElement.scrollTop=tb.parentElement.scrollHeight;}tb.innerHTML+='<span class="term-cursor"></span>';document.getElementById(`lstep-${idx}`).classList.remove('active');document.getElementById(`lstep-${idx}`).classList.add('done');labState.currentStep++;labState.executingStep=false;const total=labState.steps.length;document.getElementById('labStepProg').textContent=`${labState.currentStep} / ${total}`;if(labState.currentStep<total){document.getElementById(`lstep-${labState.currentStep}`).classList.remove('pending');document.getElementById(`lstep-${labState.currentStep}`).classList.add('active');updateTypingPrompt(labState.currentStep);}else{document.getElementById('labTypingArea').style.display='none';clearInterval(labState.timerInterval);showLabResults((Date.now()-labState.startTime)/1000,total);}}
-async function showLabResults(duration,stepsCompleted){const plan=labState.current.plan;const expected=plan.expected_recovery_sec||120;let score=100;if(duration>expected)score-=Math.min(30,((duration-expected)/expected)*30);if(duration<expected*0.6)score=Math.min(100,score+10);score=Math.max(30,Math.round(score));const grade=score>=90?'🏆 Excelente':score>=75?'✅ Bueno':score>=60?'📈 Aceptable':'⚠️ Necesita práctica';const msg=score>=90?'Dominas este protocolo.':score>=75?'Buen manejo. Puedes mejorar velocidad.':score>=60?'Completaste el procedimiento.':'Repasa el catálogo y vuelve a intentar.';document.getElementById('labScoreNum').textContent=score;document.getElementById('labScoreNum').style.color=score>=90?'#22c55e':score>=75?'#60a5fa':score>=60?'#fbbf24':'#ef4444';document.getElementById('labScoreGrade').textContent=grade;document.getElementById('labScoreMsg').textContent=msg;const m=String(Math.floor(duration/60)).padStart(2,'0'),s=String(Math.floor(duration%60)).padStart(2,'0');document.getElementById('labStatTime').textContent=`${m}:${s}`;document.getElementById('labStatSteps').textContent=`${stepsCompleted}/${labState.steps.length}`;document.getElementById('labStatScen').textContent=labState.current.type.replace(/_/g,' ').toUpperCase();try{await apiFetch('/api/analytics/practice/complete',{method:'POST',body:JSON.stringify({scenario_type:labState.current.type,scenario_name:plan.mitigation_name||labState.current.type,score,duration_sec:duration,steps_completed:stepsCompleted,total_steps:labState.steps.length})});}catch(e){}
+async function showLabResults(duration,stepsCompleted){const plan=labState.current.plan;const expected=plan.expected_recovery_sec||120;let score=100;if(duration>expected)score-=Math.min(30,((duration-expected)/expected)*30);if(duration<expected*0.6)score=Math.min(100,score+10);score=Math.max(30,Math.round(score));const grade=score>=90?'🏆 Excelente':score>=75?'✅ Bueno':score>=60?'📈 Aceptable':'⚠️ Necesita práctica';const msg=score>=90?'Dominas este protocolo.':score>=75?'Buen manejo. Puedes mejorar velocidad.':score>=60?'Completaste el procedimiento.':'Repasa el catálogo y vuelve a intentar.';document.getElementById('labScoreNum').textContent=score;document.getElementById('labScoreNum').style.color=score>=90?'#22c55e':score>=75?'#fbbf24':score>=60?'#fbbf24':'#ef4444';document.getElementById('labScoreGrade').textContent=grade;document.getElementById('labScoreMsg').textContent=msg;const m=String(Math.floor(duration/60)).padStart(2,'0'),s=String(Math.floor(duration%60)).padStart(2,'0');document.getElementById('labStatTime').textContent=`${m}:${s}`;document.getElementById('labStatSteps').textContent=`${stepsCompleted}/${labState.steps.length}`;document.getElementById('labStatScen').textContent=labState.current.type.replace(/_/g,' ').toUpperCase();try{await apiFetch('/api/analytics/practice/complete',{method:'POST',body:JSON.stringify({scenario_type:labState.current.type,scenario_name:plan.mitigation_name||labState.current.type,score,duration_sec:duration,steps_completed:stepsCompleted,total_steps:labState.steps.length})});}catch(e){}
   XSESSION.saveLab({scenario:labState.current.type,scenarioName:plan.mitigation_name||labState.current.type,score,duration,steps:labState.steps.map(s=>({cmd:s.command||s.action,desc:s.desc||s.action,action:s.action}))});const sumEl=document.getElementById('labCmdSummary');if(sumEl){const sumHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div class="cmd-sum-item"><div class="cmd-sum-title">Paso ${i+1}: ${s.desc||s.action}</div><div class="cmd-sum-code">$ ${s.command||s.action}</div><div class="cmd-sum-exp">${expl}</div></div>`;}).join('');sumEl.innerHTML=`<div style="color:#a78bfa;font-size:.88rem;font-weight:700;margin:16px 0 8px;letter-spacing:.04em">📖 ¿Qué hizo cada comando?</div>${sumHtml}`;}showLabPhase(3);}
 function showLabPhase(n){[1,2,3].forEach(i=>{const el=document.getElementById(`labPhase${i}`);if(el)el.style.display=i===n?'':'none';});labState.phase=n;}
 function resetLab(){clearInterval(labState.timerInterval);document.getElementById('labMeta').textContent='Selecciona un escenario para practicar';showLabPhase(1);}
@@ -2116,14 +2116,14 @@ function generateSessionReport() {
     const all = [...XSESSION.log.guided.map(x=>x.score), ...XSESSION.log.sst.map(x=>x.score), ...XSESSION.log.lab.map(x=>x.score)];
     return all.length ? Math.round(all.reduce((a,b)=>a+b,0)/all.length) : 0;
   })();
-  const scCol = s => s>=90?'#16a34a':s>=75?'#2563eb':s>=60?'#d97706':'#dc2626';
+  const scCol = s => s>=90?'#16a34a':s>=75?'#d97706':s>=60?'#d97706':'#dc2626';
 
   // Sección Diagnóstico Guiado
   const guidedHtml = XSESSION.log.guided.length ? XSESSION.log.guided.map((g,i) => `
     <div class="incident-card">
       <div class="ic-header"><span class="ic-num">#${i+1}</span><span class="ic-type">${(g.type||'').replace(/_/g,' ').toUpperCase()}</span><span class="ic-node">Nodo: ${g.node}</span><span class="ic-score" style="color:${scCol(g.score)}">${g.score}/100</span></div>
       <div class="ic-meta">Respuestas correctas: <strong>${g.correct}/4</strong> &nbsp;·&nbsp; Pistas usadas: <strong>${g.hints}</strong> &nbsp;·&nbsp; Tiempo: <strong>${g.duration}s</strong> &nbsp;·&nbsp; ${g.ts}</div>
-    </div>`).join('') : '<p style="color:#94a3b8;font-style:italic">Sin diagnósticos completados en esta sesión.</p>';
+    </div>`).join('') : '<p style="color:#a1a1aa;font-style:italic">Sin diagnósticos completados en esta sesión.</p>';
 
   // Sección Protocolos SST
   const sstHtml = XSESSION.log.sst.length ? XSESSION.log.sst.map((s,i) => `
@@ -2131,46 +2131,46 @@ function generateSessionReport() {
       <div class="ic-header"><span class="ic-num">#${i+1}</span><span class="ic-type" style="color:#f97316">${s.name}</span><span class="ic-node">Sensor: ${s.sensor} · ${s.value}</span><span class="ic-score" style="color:${scCol(s.score)}">${s.score}/100</span></div>
       <div class="ic-meta">Etapas correctas: <strong>${s.correct}/${s.total}</strong> &nbsp;·&nbsp; Tiempo: <strong>${s.duration}s</strong> &nbsp;·&nbsp; ${s.ts}</div>
       <div class="ic-bitacora"><strong>📋 Registro en bitácora:</strong><br>${s.bitacora||'(no registrada)'}</div>
-    </div>`).join('') : '<p style="color:#94a3b8;font-style:italic">Sin protocolos SST completados en esta sesión.</p>';
+    </div>`).join('') : '<p style="color:#a1a1aa;font-style:italic">Sin protocolos SST completados en esta sesión.</p>';
 
   // Sección Lab de Mitigación
   const labHtml = XSESSION.log.lab.length ? XSESSION.log.lab.map((l,i) => `
-    <div class="incident-card" style="border-left-color:#7c3aed">
+    <div class="incident-card" style="border-left-color:#8b5cf6">
       <div class="ic-header"><span class="ic-num">#${i+1}</span><span class="ic-type" style="color:#a78bfa">${(l.scenarioName||l.scenario||'').toUpperCase()}</span><span class="ic-score" style="color:${scCol(l.score)}">${l.score}/100</span></div>
       <div class="ic-meta">Duración: <strong>${String(Math.floor(l.duration/60)).padStart(2,'0')}:${String(Math.floor(l.duration%60)).padStart(2,'0')}</strong> &nbsp;·&nbsp; ${l.ts}</div>
       <table class="cmd-table"><thead><tr><th>#</th><th>Descripción</th><th>Comando ejecutado</th><th>Estado</th></tr></thead><tbody>${(l.steps||[]).map((s,j)=>`<tr><td>${j+1}</td><td>${s.desc}</td><td style="font-family:monospace;font-size:.8em">$ ${s.cmd}</td><td style="color:green">✅</td></tr>`).join('')}</tbody></table>
       ${(l.steps||[]).length ? `<div class="cmd-explainer"><strong>¿Qué hizo cada comando?</strong><br>${(l.steps||[]).map((s,j)=>`<div class="exp-item"><span class="exp-num">${j+1}</span><span class="exp-code">$ ${s.cmd}</span><span class="exp-txt">${LAB_EXPLAIN[s.action]||'Comando de mitigación del escenario.'}</span></div>`).join('')}</div>` : ''}
-    </div>`).join('') : '<p style="color:#94a3b8;font-style:italic">Sin labs completados en esta sesión.</p>';
+    </div>`).join('') : '<p style="color:#a1a1aa;font-style:italic">Sin labs completados en esta sesión.</p>';
 
   const css = `
-    body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0;background:#fff}
-    .cover{background:linear-gradient(135deg,#0f172a,#1e3a8a,#4c1d95);color:white;padding:40px 48px}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#3f3f46;margin:0;background:#fff}
+    .cover{background:linear-gradient(135deg,#1c1c1f,#1e3a8a,#4c1d95);color:white;padding:40px 48px}
     .cover h1{margin:0 0 4px;font-size:2rem;font-weight:900}
     .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
-    .sum-card{background:#f8fafc;border-radius:10px;padding:14px;text-align:center;border:1px solid #e2e8f0}
+    .sum-card{background:#f8fafc;border-radius:10px;padding:14px;text-align:center;border:1px solid #fafafa}
     .sum-val{font-size:2.2rem;font-weight:900;line-height:1}
-    .sum-lbl{font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+    .sum-lbl{font-size:.7rem;color:#71717a;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
     .section{padding:0 48px 28px}
-    h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-top:28px;font-size:1.1rem}
-    .incident-card{background:#f8fafc;border-left:4px solid #3b82f6;border-radius:8px;padding:14px 18px;margin-bottom:14px}
+    h2{color:#3f3f46;border-bottom:2px solid #fafafa;padding-bottom:8px;margin-top:28px;font-size:1.1rem}
+    .incident-card{background:#f8fafc;border-left:4px solid #f59e0b;border-radius:8px;padding:14px 18px;margin-bottom:14px}
     .ic-header{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
     .ic-num{background:#1e3a8a;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
     .ic-type{font-weight:800;font-size:.9rem}
-    .ic-node{font-size:.8rem;color:#64748b}
+    .ic-node{font-size:.8rem;color:#71717a}
     .ic-score{font-size:1.2rem;font-weight:900;margin-left:auto}
-    .ic-meta{font-size:.78rem;color:#64748b;margin-bottom:8px}
-    .ic-bitacora{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;font-size:.8rem;color:#374151;line-height:1.6;margin-top:8px}
+    .ic-meta{font-size:.78rem;color:#71717a;margin-bottom:8px}
+    .ic-bitacora{background:#fff;border:1px solid #fafafa;border-radius:6px;padding:10px 12px;font-size:.8rem;color:#374151;line-height:1.6;margin-top:8px}
     .cmd-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:10px}
     .cmd-table th{background:#1e3a8a;color:white;padding:6px 10px;text-align:left}
-    .cmd-table td{padding:6px 10px;border-bottom:1px solid #e2e8f0}
+    .cmd-table td{padding:6px 10px;border-bottom:1px solid #fafafa}
     .cmd-table tr:nth-child(even) td{background:#f1f5f9}
-    .cmd-explainer{margin-top:12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:12px}
+    .cmd-explainer{margin-top:12px;background:#fff;border:1px solid #fafafa;border-radius:6px;padding:12px}
     .cmd-explainer strong{font-size:.8rem;color:#4c1d95;display:block;margin-bottom:8px}
     .exp-item{display:grid;grid-template-columns:28px 1fr;gap:6px;margin-bottom:8px;align-items:start}
-    .exp-num{background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700}
+    .exp-num{background:#8b5cf6;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700}
     .exp-code{font-family:monospace;font-size:.75rem;color:#1e40af;background:#eff6ff;border-radius:3px;padding:1px 5px;display:block;margin-bottom:2px}
     .exp-txt{font-size:.75rem;color:#475569;line-height:1.5;grid-column:2}
-    .footer{margin-top:32px;padding:14px 48px;background:#f1f5f9;font-size:.72rem;color:#64748b;display:flex;justify-content:space-between}
+    .footer{margin-top:32px;padding:14px 48px;background:#f1f5f9;font-size:.72rem;color:#71717a;display:flex;justify-content:space-between}
     @media print{.no-print{display:none}}`;
 
   const win = window.open('', '_blank');
@@ -2258,9 +2258,9 @@ function sstNext(){if(sstState.stage<3){sstState.stage++;renderSSTStage(sstState
 function completeSSTProtocol(){const ok=sstState.answers.filter(a=>a.correct).length;const sc=Math.max(20,sstState.score);
   XSESSION.saveSST({protocol:sstState.ptype,name:sstState.protocol?.name||'—',sensor:sstState.alert?.name||'—',value:(sstState.alert?.value||'')+(sstState.alert?.unit||''),score:sc,correct:ok,total:sstState.answers.length,bitacora:sstState.bitacoraText||'(no registrada)',duration:Math.round((Date.now()-sstState.startTime)/1000)});
   apiFetch('/api/analytics/sst/complete',{method:'POST',body:JSON.stringify({protocol:sstState.ptype,name:sstState.protocol?.name||'—',sensor:sstState.alert?.name||'—',value:(sstState.alert?.value||'')+(sstState.alert?.unit||''),score:sc,correct:ok,total:sstState.answers.length,bitacora:sstState.bitacoraText||'',duration:Math.round((Date.now()-sstState.startTime)/1000)})}).catch(()=>{});
-  XSESSION.lock(15);const dur=Math.round((Date.now()-sstState.startTime)/1000);const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Aceptable':'⚠️ Repasar protocolo';const col=sc>=90?'#22c55e':sc>=75?'#f97316':sc>=60?'#fbbf24':'#ef4444';for(let i=0;i<4;i++){const t=document.getElementById('sstab-'+i);if(t)t.className='sst-stage-tab done';}document.getElementById('sstNextBtn').style.display='none';document.getElementById('sstBody').innerHTML=`<div style="text-align:center;padding:12px 0 16px"><div style="font-size:3rem;font-weight:900;color:${col}">${sc}<span style="font-size:1.5rem">/100</span></div><div style="font-size:1.1rem;font-weight:700;margin:4px 0;color:#fed7aa">${grade}</div><div style="font-size:.76rem;color:#92400e;margin-bottom:14px">${ok}/${sstState.answers.length} etapas correctas · ${dur}s</div></div><div style="background:#1a0e00;border:1px solid #f97316;border-radius:8px;padding:12px 14px;font-size:.78rem;line-height:1.8"><div style="color:#fb923c;font-weight:700;margin-bottom:6px">📋 Protocolo: ${sstState.protocol.name}</div><div style="color:#94a3b8">Sensor: <strong style="color:#e2e8f0">${sstState.alert.name}${sstState.alert.zone?' · '+sstState.alert.zone:''}</strong></div><div style="color:#94a3b8">Valor detectado: <strong style="color:#fbbf24">${sstState.alert.value}${sstState.alert.unit||''}</strong></div><div style="color:#94a3b8;margin-top:4px">📞 Notificar: ${sstState.protocol.contact}</div></div><div style="text-align:center;margin-top:14px"><button style="background:#ea580c;border:none;border-radius:8px;color:white;font-size:.85rem;font-weight:700;padding:10px 28px;cursor:pointer" onclick="closeSSTPanel()">✓ Cerrar protocolo</button></div>`;}
+  XSESSION.lock(15);const dur=Math.round((Date.now()-sstState.startTime)/1000);const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Aceptable':'⚠️ Repasar protocolo';const col=sc>=90?'#22c55e':sc>=75?'#f97316':sc>=60?'#fbbf24':'#ef4444';for(let i=0;i<4;i++){const t=document.getElementById('sstab-'+i);if(t)t.className='sst-stage-tab done';}document.getElementById('sstNextBtn').style.display='none';document.getElementById('sstBody').innerHTML=`<div style="text-align:center;padding:12px 0 16px"><div style="font-size:3rem;font-weight:900;color:${col}">${sc}<span style="font-size:1.5rem">/100</span></div><div style="font-size:1.1rem;font-weight:700;margin:4px 0;color:#fed7aa">${grade}</div><div style="font-size:.76rem;color:#92400e;margin-bottom:14px">${ok}/${sstState.answers.length} etapas correctas · ${dur}s</div></div><div style="background:#1a0e00;border:1px solid #f97316;border-radius:8px;padding:12px 14px;font-size:.78rem;line-height:1.8"><div style="color:#fb923c;font-weight:700;margin-bottom:6px">📋 Protocolo: ${sstState.protocol.name}</div><div style="color:#a1a1aa">Sensor: <strong style="color:#fafafa">${sstState.alert.name}${sstState.alert.zone?' · '+sstState.alert.zone:''}</strong></div><div style="color:#a1a1aa">Valor detectado: <strong style="color:#fbbf24">${sstState.alert.value}${sstState.alert.unit||''}</strong></div><div style="color:#a1a1aa;margin-top:4px">📞 Notificar: ${sstState.protocol.contact}</div></div><div style="text-align:center;margin-top:14px"><button style="background:#ea580c;border:none;border-radius:8px;color:white;font-size:.85rem;font-weight:700;padding:10px 28px;cursor:pointer" onclick="closeSSTPanel()">✓ Cerrar protocolo</button></div>`;}
 function submitTypedCmd(){const inp=document.getElementById('labTypingInput');const fb=document.getElementById('labTypingFb');const typed=(inp.value||'').trim();if(!typed||labState.executingStep)return;const step=labState.steps[labState.currentStep];const correct=step.command||step.action||'';if(cmdMatch(typed,correct)){fb.className='lab-typing-fb ok';fb.textContent='✅ ¡Correcto! Ejecutando...';inp.disabled=true;setTimeout(()=>execStep(labState.currentStep),700);}else{fb.className='lab-typing-fb err';const norm=s=>s.toLowerCase().replace(/^\$\s*/,'').replace(/\s+/g,' ').trim();const hint=norm(correct).split(' ').slice(0,3).join(' ');fb.textContent=`❌ Incorrecto. Pista: el comando comienza con "${hint}"`;inp.select();}}
-function generateLabReport(){const plan=labState.current.plan,type=labState.current.type,score=document.getElementById('labScoreNum').textContent,grade=document.getElementById('labScoreGrade').textContent,ttime=document.getElementById('labStatTime').textContent,sname=STUDENT.name||STUDENT.email||'Estudiante',now=new Date().toLocaleString('es-CO');const sc=parseInt(score)>=90?'#16a34a':parseInt(score)>=75?'#2563eb':parseInt(score)>=60?'#d97706':'#dc2626';const stepsHtml=labState.steps.map((s,i)=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${i+1}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${s.desc||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-family:monospace;font-size:.85em">${s.command||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:green;text-align:center">✅ Completado</td></tr>`).join('');const explHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div style="background:#f8fafc;border-left:4px solid #7c3aed;border-radius:4px;padding:10px 14px;margin-bottom:8px"><div style="font-weight:700;font-size:.82rem;margin-bottom:2px">Paso ${i+1}: ${s.desc||s.action}</div><div style="font-family:monospace;font-size:.78rem;color:#1e40af;margin-bottom:4px">$ ${s.command||s.action}</div><div style="font-size:.8rem;color:#475569;line-height:1.5">${expl}</div></div>`;}).join('');const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Lab</title><style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;margin:0}.cover{background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:white;padding:40px 48px}.cover h1{margin:0 0 4px;font-size:1.8rem}.section{padding:0 48px 24px}h2{color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.meta-item{background:#f8fafc;border-radius:6px;padding:10px 14px}.meta-item .label{font-size:.72rem;color:#64748b;text-transform:uppercase}.meta-item .value{font-size:1rem;font-weight:700;margin-top:2px}.score-box{text-align:center;padding:20px;background:#f0fdf4;border:2px solid #86efac;border-radius:12px;margin-bottom:20px}.score-big{font-size:4rem;font-weight:900;color:${sc};line-height:1}table{width:100%;border-collapse:collapse;font-size:.88rem}thead th{background:#1e3a8a;color:white;padding:10px 12px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.footer{margin-top:32px;padding:16px 48px;background:#f1f5f9;font-size:.75rem;color:#64748b;display:flex;justify-content:space-between}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem"><strong>Reporte listo</strong> — Ctrl+P → Guardar como PDF<button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir</button></div><div class="cover"><div style="font-size:.8rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div><h1>Reporte de Práctica</h1><div style="opacity:.8">${plan.mitigation_name||type} · ${now}</div></div><div class="section"><h2>Información</h2><div class="meta-grid"><div class="meta-item"><div class="label">Estudiante</div><div class="value">${sname}</div></div><div class="meta-item"><div class="label">Escenario</div><div class="value">${plan.mitigation_name||type}</div></div><div class="meta-item"><div class="label">Tiempo empleado</div><div class="value">${ttime} min:seg</div></div><div class="meta-item"><div class="label">Fecha</div><div class="value">${now}</div></div></div><h2>Calificación</h2><div class="score-box"><div class="score-big">${score}<span style="font-size:2rem">/100</span></div><div style="font-size:1.2rem;font-weight:700;margin-top:4px">${grade}</div></div><h2>Pasos Ejecutados</h2><table><thead><tr><th>#</th><th>Descripción</th><th>Comando</th><th>Estado</th></tr></thead><tbody>${stepsHtml}</tbody></table><h2 style="margin-top:24px">📖 ¿Qué hizo cada comando?</h2>${explHtml}</div><div class="footer"><span>DC Monitoring Simulator · Diseñado por Ing. Luis Alberto Vasquez Campos</span><span>${now}</span></div></body></html>`);win.document.close();}
+function generateLabReport(){const plan=labState.current.plan,type=labState.current.type,score=document.getElementById('labScoreNum').textContent,grade=document.getElementById('labScoreGrade').textContent,ttime=document.getElementById('labStatTime').textContent,sname=STUDENT.name||STUDENT.email||'Estudiante',now=new Date().toLocaleString('es-CO');const sc=parseInt(score)>=90?'#16a34a':parseInt(score)>=75?'#d97706':parseInt(score)>=60?'#d97706':'#dc2626';const stepsHtml=labState.steps.map((s,i)=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #fafafa;text-align:center">${i+1}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa">${s.desc||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa;font-family:monospace;font-size:.85em">${s.command||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa;color:green;text-align:center">✅ Completado</td></tr>`).join('');const explHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div style="background:#f8fafc;border-left:4px solid #8b5cf6;border-radius:4px;padding:10px 14px;margin-bottom:8px"><div style="font-weight:700;font-size:.82rem;margin-bottom:2px">Paso ${i+1}: ${s.desc||s.action}</div><div style="font-family:monospace;font-size:.78rem;color:#1e40af;margin-bottom:4px">$ ${s.command||s.action}</div><div style="font-size:.8rem;color:#475569;line-height:1.5">${expl}</div></div>`;}).join('');const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Lab</title><style>body{font-family:'Segoe UI',Arial,sans-serif;color:#3f3f46;margin:0}.cover{background:linear-gradient(135deg,#1e3a8a,#8b5cf6);color:white;padding:40px 48px}.cover h1{margin:0 0 4px;font-size:1.8rem}.section{padding:0 48px 24px}h2{color:#1e3a8a;border-bottom:2px solid #fafafa;padding-bottom:6px}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.meta-item{background:#f8fafc;border-radius:6px;padding:10px 14px}.meta-item .label{font-size:.72rem;color:#71717a;text-transform:uppercase}.meta-item .value{font-size:1rem;font-weight:700;margin-top:2px}.score-box{text-align:center;padding:20px;background:#f0fdf4;border:2px solid #6ee7b7;border-radius:12px;margin-bottom:20px}.score-big{font-size:4rem;font-weight:900;color:${sc};line-height:1}table{width:100%;border-collapse:collapse;font-size:.88rem}thead th{background:#1e3a8a;color:white;padding:10px 12px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.footer{margin-top:32px;padding:16px 48px;background:#f1f5f9;font-size:.75rem;color:#71717a;display:flex;justify-content:space-between}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem"><strong>Reporte listo</strong> — Ctrl+P → Guardar como PDF<button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir</button></div><div class="cover"><div style="font-size:.8rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div><h1>Reporte de Práctica</h1><div style="opacity:.8">${plan.mitigation_name||type} · ${now}</div></div><div class="section"><h2>Información</h2><div class="meta-grid"><div class="meta-item"><div class="label">Estudiante</div><div class="value">${sname}</div></div><div class="meta-item"><div class="label">Escenario</div><div class="value">${plan.mitigation_name||type}</div></div><div class="meta-item"><div class="label">Tiempo empleado</div><div class="value">${ttime} min:seg</div></div><div class="meta-item"><div class="label">Fecha</div><div class="value">${now}</div></div></div><h2>Calificación</h2><div class="score-box"><div class="score-big">${score}<span style="font-size:2rem">/100</span></div><div style="font-size:1.2rem;font-weight:700;margin-top:4px">${grade}</div></div><h2>Pasos Ejecutados</h2><table><thead><tr><th>#</th><th>Descripción</th><th>Comando</th><th>Estado</th></tr></thead><tbody>${stepsHtml}</tbody></table><h2 style="margin-top:24px">📖 ¿Qué hizo cada comando?</h2>${explHtml}</div><div class="footer"><span>DC Monitoring Simulator · Diseñado por Ing. Luis Alberto Vasquez Campos</span><span>${now}</span></div></body></html>`);win.document.close();}
 // ══════════════════════════════════════════════════════════════
 // BITÁCORA DE INCIDENTE
 // ══════════════════════════════════════════════════════════════
@@ -2512,8 +2512,8 @@ function _bmShowCountdownBar() {
   cdEl.innerHTML = `
     <span id="bmCdTxt">⏱ Se cerrará en ${_bmCountSecs}s por inactividad…</span>
     <button onclick="_cancelBmAutoClose()"
-      style="background:#1e2d45;border:1px solid #475569;border-radius:6px;
-             color:#e2e8f0;cursor:pointer;font-size:.7rem;padding:4px 10px;white-space:nowrap">
+      style="background:#3f3f46;border:1px solid #475569;border-radius:6px;
+             color:#fafafa;cursor:pointer;font-size:.7rem;padding:4px 10px;white-space:nowrap">
       Seguir escribiendo
     </button>`;
   footer.before(cdEl);
@@ -2603,8 +2603,8 @@ function _gpShowCountdownBar() {
   cdEl.innerHTML = `
     <span id="guidedCdTxt">⏱ Cerrando en ${_gpCountSecs}s por inactividad…</span>
     <button onclick="_cancelGuidedAutoClose()"
-      style="background:#1e2d45;border:1px solid #475569;border-radius:6px;
-             color:#e2e8f0;cursor:pointer;font-size:.7rem;padding:3px 9px;white-space:nowrap">
+      style="background:#3f3f46;border:1px solid #475569;border-radius:6px;
+             color:#fafafa;cursor:pointer;font-size:.7rem;padding:3px 9px;white-space:nowrap">
       Seguir revisando
     </button>`;
   footer.prepend(cdEl);
@@ -2653,7 +2653,7 @@ function _cancelGuidedAutoClose() {
     </div>
     <div class="lab-body">
       <div id="labPhase1">
-        <p style="color:#94a3b8;font-size:.82rem;margin-bottom:12px">Elige un escenario del catálogo. Practicarás cada paso como en un incidente real.</p>
+        <p style="color:#a1a1aa;font-size:.82rem;margin-bottom:12px">Elige un escenario del catálogo. Practicarás cada paso como en un incidente real.</p>
         <div class="scenario-grid" id="scenarioGrid"></div>
       </div>
       <div id="labPhase2" style="display:none">
@@ -2666,7 +2666,7 @@ function _cancelGuidedAutoClose() {
         <div class="lab-typing-area" id="labTypingArea" style="display:none">
           <div class="lab-typing-hdr">
             <span>💬 Tu turno — escribe el comando:</span>
-            <span id="typingStepLabel" style="color:#94a3b8;font-size:.78rem"></span>
+            <span id="typingStepLabel" style="color:#a1a1aa;font-size:.78rem"></span>
           </div>
           <div class="lab-typing-row">
             <span class="lab-typing-prompt">root@dc-lab:~$</span>
@@ -2689,7 +2689,7 @@ function _cancelGuidedAutoClose() {
         <div class="lab-score-wrap">
           <div class="score-num" id="labScoreNum"></div>
           <div class="score-grade" id="labScoreGrade"></div>
-          <div style="color:#64748b;font-size:.8rem" id="labScoreMsg"></div>
+          <div style="color:#71717a;font-size:.8rem" id="labScoreMsg"></div>
           <div class="score-stats">
             <div class="score-stat"><div class="sv" id="labStatTime"></div><div class="sl">Tiempo total</div></div>
             <div class="score-stat"><div class="sv" id="labStatSteps"></div><div class="sl">Pasos completados</div></div>
@@ -2763,22 +2763,4 @@ function _cancelGuidedAutoClose() {
   <div class="sst-minimize-tab" onclick="expandSSTPanel()" title="Expandir protocolo SST">
     <span style="font-size:1rem">▶</span>
     <span class="sst-mini-label">PROTOCOLO SST</span>
-    <span class="sst-mini-phase" id="sstMiniPhase">F1/4</span>
-  </div>
-  <div class="sst-header">
-    <button class="sst-min-btn" onclick="minimizeSSTPanel()" title="Minimizar — conserva tu progreso">⟫</button>
-    <button class="sst-close-btn" onclick="closeSSTPanel()">✕</button>
-    <div class="sst-badge" id="sstBadge">🏭 PROTOCOLO SST</div>
-    <div class="sst-title" id="sstTitle">Incidente Físico</div>
-    <div class="sst-subtitle" id="sstSubtitle">Sensor detectado en estado crítico</div>
-  </div>
-  <div class="sst-stages">
-    <div class="sst-stage-tab" id="sstab-0">1. Identificar</div>
-    <div class="sst-stage-tab" id="sstab-1">2. Evaluar</div>
-    <div class="sst-stage-tab" id="sstab-2">3. Actuar</div>
-    <div class="sst-stage-tab" id="sstab-3">4. Registrar</div>
-  </div>
-  <div class="sst-body" id="sstBody"></div>
-  <div class="sst-footer">
-    <div class="sst-escalation" id="sstEscalation">📞 Notificar contacto de emergencia</div>
-    <button class="guided-btn guided-btn-hint" onclick="showSSTHint()">💡
+  

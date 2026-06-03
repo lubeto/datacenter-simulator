@@ -47,6 +47,34 @@ Simulador de monitoreo de datacenter con panel de instructor. Backend FastAPI + 
 
 ---
 
+## Plan mejoras Dashboard Aprendiz (iniciar aquí si se cortan tokens)
+
+### Orden de implementación:
+- [ ] **Paso 1**: Tema C — Graphite Cálido en `frontend/index.html`
+- [ ] **Paso 2**: Panel diagnóstico guiado responsive (ancho adaptable, no fijo 380px)
+- [ ] **Paso 3**: Nodo afectado resalta con pulso/animación visible en el mapa
+- [ ] **Paso 4**: Tooltip explicativo del Score (qué acciones lo suben/bajan)
+- [ ] **Paso 5**: Botón "Detectar ahora" más visible + texto explicativo
+- [ ] **Paso 6**: Timer de tiempo transcurrido en el panel de diagnóstico guiado
+
+### Tema C — Graphite Cálido (variables CSS a aplicar):
+```
+--bg: #18181b
+--bg2: #1f1f23
+--card: #27272a
+--card2: #2d2d30  
+--border: #3f3f46
+--accent: #f59e0b   (ámbar)
+--accent2: #f97316  (naranja)
+--green: #22c55e
+--red: #ef4444
+--yellow: #eab308
+--muted: #a1a1aa
+--text: #fafafa
+```
+
+---
+
 ## Estado pendiente (para próxima sesión)
 
 - [ ] Verificar en producción que los bugs de instructor.html quedan resueltos
