@@ -31,6 +31,22 @@ Simulador de monitoreo de datacenter con panel de instructor. Backend FastAPI + 
 
 ---
 
+## Cambios sesión 2026-06-02 (tercera parte — emergencia disco)
+
+### Problema: disco SQLite lleno en Render (4.8M filas en tabla metrics)
+- **Causa**: métricas se guardaban cada 2s para 12 nodos = ~500MB/día
+- **Solución aplicada**:
+  - `scheduler.py`: guardar en DB cada 30s (15 ciclos) en vez de cada 2s
+  - `crud.py`: tabla `metrics` limitada a 60 filas por nodo (cap automático en cada INSERT)
+  - `main.py`: limpieza al arrancar + cada hora (retención 6h)
+  - `routes_attacks.py`: `from ..database.models import Incident` (faltaba import)
+  - `main.py`: filtrar `sensor_name` y `alert_level` al guardar SST readings
+  - `main.py`: restaurado `/health` y `/api/status` endpoints (estaban truncados)
+- **Recuperación manual**: DB corrupta → backup a /tmp → rm DB → reinicio → restore
+  - Restaurados: 20 estudiantes, 284 bitácoras, 304 sesiones
+
+---
+
 ## Estado pendiente (para próxima sesión)
 
 - [ ] Verificar en producción que los bugs de instructor.html quedan resueltos
