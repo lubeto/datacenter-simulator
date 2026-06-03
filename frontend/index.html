@@ -985,10 +985,15 @@ async function loadIncidents() {
     if (!r.length) {
       list.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin incidentes activos ✅</div>';
       checkAlertCorrelation([]);
+      // Limpiar propagación cuando no hay ataques activos
+      nmAttacked.clear();
+      nmPropagated.clear();
+      renderNetworkMap();
       return;
     }
     checkAlertCorrelation(r);
-    // Propagación: marcar nodos bajo ataque para que updatePropagation los difunda
+    // Reconstruir nmAttacked solo con los incidentes activos actuales
+    nmAttacked.clear();
     r.forEach(i => { if(i.node_affected) nmAttacked.add(i.node_affected); });
     updatePropagation();
     list.innerHTML = r.map(i => {
