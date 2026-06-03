@@ -2503,10 +2503,11 @@ setInterval(() => { loadIncidents(); loadAlerts(); loadSSL(); }, 15000);
 
 // ── PROPAGACIÓN DE ATAQUES EN TOPOLOGÍA ───────────────────────
 // Nodos aguas abajo de cada nodo infraestructura
+// Solo vecinos inmediatos — propagación de 1 salto
 const TOPOLOGY_DOWNSTREAM = {
-  'FW-01':     ['RTR-EDGE','SW-CORE','LB-01','SW-ACC-01','WEB-01','WEB-02','APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
-  'RTR-EDGE':  ['SW-CORE','LB-01','SW-ACC-01','WEB-01','WEB-02','APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
-  'SW-CORE':   ['LB-01','SW-ACC-01','WEB-01','WEB-02','APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
+  'FW-01':     ['RTR-EDGE'],
+  'RTR-EDGE':  ['SW-CORE'],
+  'SW-CORE':   ['LB-01','SW-ACC-01'],
   'LB-01':     ['WEB-01','WEB-02'],
   'SW-ACC-01': ['APP-01','APP-02','DB-01','DB-02','STORAGE-01'],
 };
