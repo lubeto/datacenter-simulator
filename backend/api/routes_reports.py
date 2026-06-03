@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database.db import get_db
 from ..database import crud
+from ..database.models import Report
 from ..api.routes_students import get_current_student, require_instructor
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -103,13 +104,35 @@ async def download_report(
     )
 
 
+def _serialize_report(r) -> dict:
+    """Convierte un objeto Report ORM a dict compatible con el frontend."""
+    return {
+        "id":           r.id,
+        "title":        r.title or "—",
+        "report_type":  r.report_type,
+        "format":       r.file_format or "pdf",   # alias para el frontend
+        "file_format":  r.file_format or "pdf",
+        "generated_at": r.generated_at.isoformat() if r.generated_at else None,
+        "student_id":   r.student_id,
+        "student_name": r.student.name if r.student else None,
+        "download_url": f"/api/reports/download/{r.id}",
+    }
+
+
 @router.get("/my-reports")
 async def my_reports(
     db: AsyncSession = Depends(get_db),
     current=Depends(get_current_student)
 ):
     """Reportes del estudiante actual."""
-    return await crud.get_reports_by_student(db, current.id)
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select as sa_select
+    result = await db.execute(
+        sa_select(Report).options(selectinload(Report.student))
+        .where(Report.student_id == current.id)
+        .order_by(Report.generated_at.desc())
+    )
+    return [_serialize_report(r) for r in result.scalars().all()]
 
 
 @router.get("/all")
@@ -118,7 +141,13 @@ async def all_reports(
     _=Depends(require_instructor)
 ):
     """Todos los reportes (solo instructor)."""
-    return await crud.get_all_reports(db)
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select as sa_select
+    result = await db.execute(
+        sa_select(Report).options(selectinload(Report.student))
+        .order_by(Report.generated_at.desc()).limit(100)
+    )
+    return [_serialize_report(r) for r in result.scalars().all()]
 
 
 async def _collect_report_data(db: AsyncSession, report_type: str,
@@ -190,5 +219,37 @@ async def _collect_report_data(db: AsyncSession, report_type: str,
             "avg_score": student.avg_score if student else 0,
             "incidents_total": len(incidents),
         }]
+
+    elif report_type == "full_summary":
+        # Reporte completo: salud + incidentes + SSL + resumen del aprendiz
+        from ..simulation.engine import generate_full_snapshot
+        snapshot = generate_full_snapshot()
+        incidents = await crud.get_incidents_history(db, limit=20)
+        student   = await crud.get_student_by_id(db, student_id)
+        certs     = await crud.get_all_ssl_certs(db)
+
+        nodes_data = [
+            {"section": "health", "node": nid, "type": ndata["type"],
+             "cpu_pct": ndata["metrics"]["cpu_pct"], "ram_pct": ndata["metrics"]["ram_pct"],
+             "latency_ms": ndata["metrics"]["latency_ms"], "online": ndata["metrics"]["is_online"]}
+            for nid, ndata in snapshot["nodes"].items()
+        ]
+        incidents_data = [
+            {"section": "incident", "id": i.id, "type": i.incident_type,
+             "severity": i.severity, "node": i.node_affected,
+             "started": str(i.started_at), "status": i.status}
+            for i in incidents
+        ]
+        ssl_data = [
+            {"section": "ssl", "node": c.node_id, "days_to_expire": c.days_to_expire,
+             "tls_version": c.tls_version, "alert_level": c.alert_level}
+            for c in certs
+        ]
+        student_data = [{
+            "section": "student", "student": student.name if student else "—",
+            "sessions": student.total_sessions if student else 0,
+            "avg_score": student.avg_score if student else 0,
+        }]
+        return student_data + nodes_data + incidents_data + ssl_data
 
     return []
