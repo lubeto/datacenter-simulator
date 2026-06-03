@@ -252,4 +252,126 @@ async def _collect_report_data(db: AsyncSession, report_type: str,
         }]
         return student_data + nodes_data + incidents_data + ssl_data
 
+    elif report_type == "full_summary":
+        from ..simulation.engine import generate_full_snapshot
+        from sqlalchemy import select as _sel
+        from ..database.models import Bitacora, GuidedSession, SSTProtocolSession, PracticeSession
+
+        snapshot  = generate_full_snapshot()
+        incidents = await crud.get_incidents_history(db, limit=50)
+        student   = await crud.get_student_by_id(db, student_id)
+        certs     = await crud.get_all_ssl_certs(db)
+
+        bq = await db.execute(
+            _sel(Bitacora).where(Bitacora.student_id == student_id)
+            .order_by(Bitacora.created_at.desc()).limit(30)
+        )
+        bitacoras = bq.scalars().all()
+
+        gq = await db.execute(
+            _sel(GuidedSession).where(GuidedSession.student_id == student_id)
+            .order_by(GuidedSession.completed_at.desc()).limit(30)
+        )
+        guided = gq.scalars().all()
+
+        sq = await db.execute(
+            _sel(SSTProtocolSession).where(SSTProtocolSession.student_id == student_id)
+            .order_by(SSTProtocolSession.completed_at.desc()).limit(20)
+        )
+        sst_sessions = sq.scalars().all()
+
+        lq = await db.execute(
+            _sel(PracticeSession).where(PracticeSession.student_id == student_id)
+            .order_by(PracticeSession.completed_at.desc()).limit(20)
+        )
+        labs = lq.scalars().all()
+
+        student_data = [{"section": "student_header",
+            "name": student.name if student else "—",
+            "email": student.email if student else "—",
+            "sessions": student.total_sessions if student else 0,
+            "avg_mttd": round(student.avg_mttd_seconds or 0, 1) if student else 0,
+            "avg_mttr": round(student.avg_mttr_seconds or 0, 1) if student else 0,
+            "avg_score": round(student.avg_score or 0, 1) if student else 0,
+            "incidents": student.total_incidents if student else 0,
+            "guided_count": len(guided),
+            "sst_count": len(sst_sessions),
+            "lab_count": len(labs),
+            "bitacora_count": len(bitacoras),
+        }]
+
+        sessions_data = [{"section": "eval_session",
+            "id": s.id, "started": str(s.completed_at)[:19],
+            "score": round(s.score or 0, 1),
+            "correct": s.correct_answers or 0,
+            "total": s.total_questions or 4,
+            "hints": s.hints_used or 0,
+            "attack": s.attack_type or "—",
+            "node": s.node_id or "—",
+            "duration": int(s.duration_sec or 0),
+        } for s in guided]
+
+        sst_data = [{"section": "sst_session",
+            "id": s.id, "date": str(s.completed_at)[:19],
+            "protocol": s.protocol_name or "—",
+            "sensor": s.sensor_name or "—",
+            "value": s.sensor_value or "—",
+            "score": round(s.score or 0, 1),
+            "correct": s.correct_answers or 0,
+            "total": s.total_questions or 4,
+            "bitacora": s.bitacora or "",
+            "duration": int(s.duration_sec or 0),
+        } for s in sst_sessions]
+
+        lab_data = [{"section": "lab_session",
+            "id": s.id, "date": str(s.completed_at)[:19],
+            "scenario": s.scenario_name or s.scenario_type or "—",
+            "score": round(s.score or 0, 1),
+            "duration": int(s.duration_sec or 0),
+            "steps": s.steps_completed or 0,
+            "total_steps": s.total_steps or 0,
+        } for s in labs]
+
+        bitacoras_data = [{"section": "bitacora",
+            "id": b.id,
+            "date": str(b.created_at)[:19],
+            "attack": b.attack_type or "—",
+            "node": b.node_id or "—",
+            "score": round(b.score or 0, 1),
+            "correct": b.correct_answers or 0,
+            "hints": b.hints_used or 0,
+            "sintomas": b.sintomas_observados or "",
+            "causa": b.causa_raiz or "",
+            "acciones": b.acciones_tomadas or "",
+            "lecciones": b.lecciones or "",
+            "duration": int(b.duration_sec or 0),
+        } for b in bitacoras]
+
+        incidents_data = [{"section": "incident",
+            "id": i.id, "type": i.incident_type, "severity": i.severity,
+            "node": i.node_affected, "started": str(i.started_at)[:19],
+            "resolved": str(i.resolved_at)[:19] if i.resolved_at else "Activo",
+            "mttd": round(i.mttd_seconds or 0, 1),
+            "mttr": round(i.mttr_seconds or 0, 1),
+            "status": i.status,
+        } for i in incidents]
+
+        nodes_data = [{"section": "health",
+            "node": nid, "type": ndata["type"],
+            "cpu_pct": ndata["metrics"]["cpu_pct"],
+            "ram_pct": ndata["metrics"]["ram_pct"],
+            "latency_ms": ndata["metrics"]["latency_ms"],
+            "online": ndata["metrics"]["is_online"],
+        } for nid, ndata in snapshot["nodes"].items()]
+
+        ssl_data = [{"section": "ssl",
+            "node": c.node_id, "domain": c.domain,
+            "days_to_expire": c.days_to_expire,
+            "tls_version": c.tls_version,
+            "alert_level": c.alert_level or "ok",
+        } for c in certs]
+
+        return (student_data + sessions_data + sst_data + lab_data +
+                bitacoras_data + incidents_data + nodes_data + ssl_data)
+
     return []

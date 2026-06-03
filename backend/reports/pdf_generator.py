@@ -32,6 +32,13 @@ COLOR_BG        = colors.HexColor("#f8fafc")
 COLOR_WHITE     = colors.white
 
 
+ATTACK_LABELS = {
+    "ddos":"DDoS","dos":"DoS","brute_force":"Fuerza Bruta","port_scan":"Escaneo de Puertos",
+    "memory_leak":"Memory Leak","disk_failure":"Disk Failure","thermal":"Falla Termica",
+    "unauthorized_access":"Acceso No Autorizado","ssl_expiring":"SSL por Vencer",
+    "ssl_expired":"SSL Expirado","ssl_tls_downgrade":"TLS Downgrade",
+}
+
 def generate_pdf_report(report_type: str, title: str,
                          data: List[Dict[str, Any]],
                          output_path: str) -> bool:
@@ -74,8 +81,8 @@ def generate_pdf_report(report_type: str, title: str,
             story.extend(_build_ssl_section(data))
         elif report_type == "sst":
             story.extend(_build_sst_section(data))
-        elif report_type == "student_shift":
-            story.extend(_build_student_section(data))
+        elif report_type in ("student_shift", "full_summary"):
+            story.extend(_build_full_summary_section(data))
         else:
             story.extend(_build_generic_section(data))
 
@@ -327,6 +334,149 @@ def _build_generic_section(data: List[Dict]) -> list:
         story.append(Spacer(1, 0.2*cm))
     return story
 
+
+
+def _build_full_summary_section(data: List[Dict]) -> list:
+    """Reporte completo del aprendiz."""
+    story = []
+    bold9  = ParagraphStyle("fs_bold",   fontSize=9, leading=13, textColor=COLOR_DARK, fontName="Helvetica-Bold")
+    normal = ParagraphStyle("fs_normal", fontSize=8, leading=12, textColor=COLOR_DARK)
+
+    # 1. Perfil del aprendiz
+    hdr = [d for d in data if d.get("section") == "student_header"]
+    if hdr:
+        s = hdr[0]
+        story.append(_section_title("Perfil del Aprendiz"))
+        story.append(_info_table([
+            ["Nombre",                  s.get("name","—")],
+            ["Correo",                  s.get("email","—")],
+            ["Total sesiones",          str(s.get("sessions",0))],
+            ["Diagnosticos guiados",    str(s.get("guided_count",0))],
+            ["Protocolos SST",          str(s.get("sst_count",0))],
+            ["Labs completados",        str(s.get("lab_count",0))],
+            ["Bitacoras redactadas",    str(s.get("bitacora_count",0))],
+            ["Incidentes gestionados",  str(s.get("incidents",0))],
+            ["MTTD promedio",           f"{s.get('avg_mttd',0)} s"],
+            ["Score promedio",          f"{s.get('avg_score',0)} / 100"],
+        ]))
+        story.append(Spacer(1, 0.4*cm))
+
+    # 2. Diagnosticos guiados
+    guided = [d for d in data if d.get("section") == "eval_session"]
+    if guided:
+        story.append(PageBreak())
+        story.append(_section_title(f"Diagnosticos Guiados ({len(guided)} registros)"))
+        rows = [["Fecha", "Ataque", "Nodo", "Score", "Correctas", "Pistas", "Duracion"]]
+        for g in guided:
+            atk = ATTACK_LABELS.get(g.get("attack",""), g.get("attack","—"))
+            rows.append([
+                g.get("started","—")[:16], atk, g.get("node","—"),
+                f"{g.get('score',0)}/100", f"{g.get('correct',0)}/{g.get('total',4)}",
+                str(g.get("hints",0)), f"{g.get('duration',0)}s",
+            ])
+        tbl = Table(rows, repeatRows=1, colWidths=["18%","22%","10%","11%","12%","9%","10%"])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(-1,0),COLOR_PRIMARY),("TEXTCOLOR",(0,0),(-1,0),COLOR_WHITE),
+            ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),8),
+            ("GRID",(0,0),(-1,-1),0.5,colors.HexColor("#e2e8f0")),
+            ("ROWBACKGROUNDS",(0,1),(-1,-1),[COLOR_WHITE,COLOR_BG]),
+            ("LEFTPADDING",(0,0),(-1,-1),4),("TOPPADDING",(0,0),(-1,-1),4),
+        ]))
+        story.append(tbl)
+        story.append(Spacer(1, 0.4*cm))
+
+    # 3. Protocolos SST
+    sst = [d for d in data if d.get("section") == "sst_session"]
+    if sst:
+        story.append(_section_title(f"Protocolos SST ({len(sst)} registros)"))
+        rows = [["Fecha","Protocolo","Sensor","Valor","Score","Correctas"]]
+        for s in sst:
+            rows.append([
+                s.get("date","—")[:16], s.get("protocol","—")[:30],
+                s.get("sensor","—"), s.get("value","—"),
+                f"{s.get('score',0)}/100", f"{s.get('correct',0)}/{s.get('total',4)}",
+            ])
+        tbl = Table(rows, repeatRows=1, colWidths=["15%","28%","17%","12%","14%","14%"])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#ea580c")),("TEXTCOLOR",(0,0),(-1,0),COLOR_WHITE),
+            ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),8),
+            ("GRID",(0,0),(-1,-1),0.5,colors.HexColor("#e2e8f0")),
+            ("ROWBACKGROUNDS",(0,1),(-1,-1),[COLOR_WHITE,COLOR_BG]),
+            ("LEFTPADDING",(0,0),(-1,-1),4),("TOPPADDING",(0,0),(-1,-1),4),
+        ]))
+        story.append(tbl)
+        story.append(Spacer(1, 0.4*cm))
+
+    # 4. Labs
+    labs = [d for d in data if d.get("section") == "lab_session"]
+    if labs:
+        story.append(_section_title(f"Labs de Mitigacion ({len(labs)} registros)"))
+        rows = [["Fecha","Escenario","Score","Pasos","Duracion"]]
+        for l in labs:
+            rows.append([
+                l.get("date","—")[:16], l.get("scenario","—")[:35],
+                f"{l.get('score',0)}/100", f"{l.get('steps',0)}/{l.get('total_steps',0)}",
+                f"{l.get('duration',0)}s",
+            ])
+        tbl = Table(rows, repeatRows=1, colWidths=["18%","40%","14%","14%","14%"])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#7c3aed")),("TEXTCOLOR",(0,0),(-1,0),COLOR_WHITE),
+            ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),8),
+            ("GRID",(0,0),(-1,-1),0.5,colors.HexColor("#e2e8f0")),
+            ("ROWBACKGROUNDS",(0,1),(-1,-1),[COLOR_WHITE,COLOR_BG]),
+            ("LEFTPADDING",(0,0),(-1,-1),4),("TOPPADDING",(0,0),(-1,-1),4),
+        ]))
+        story.append(tbl)
+        story.append(Spacer(1, 0.4*cm))
+
+    # 5. Bitacoras con texto completo
+    bms = [d for d in data if d.get("section") == "bitacora"]
+    if bms:
+        story.append(PageBreak())
+        story.append(_section_title(f"Bitacoras de Incidentes ({len(bms)} registros)"))
+        for i, b in enumerate(bms, 1):
+            atk = ATTACK_LABELS.get(b.get("attack",""), b.get("attack","—"))
+            story.append(Paragraph(
+                f"<b>#{i} — {atk} | Nodo: {b.get('node','—')} | {b.get('date','—')[:16]} | "
+                f"Score: {b.get('score',0)}/100 | {b.get('correct',0)}/4 | {b.get('hints',0)} pistas | {b.get('duration',0)}s</b>",
+                bold9
+            ))
+            story.append(Spacer(1, 0.1*cm))
+            for label, key in [
+                ("Sintomas observados:", "sintomas"),
+                ("Analisis de causa raiz:", "causa"),
+                ("Acciones tomadas:", "acciones"),
+                ("Lecciones aprendidas:", "lecciones"),
+            ]:
+                txt = b.get(key,"")
+                if txt:
+                    story.append(Paragraph(f"<b>{label}</b>", bold9))
+                    story.append(Paragraph(txt, normal))
+                    story.append(Spacer(1, 0.08*cm))
+            if i < len(bms):
+                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#e2e8f0")))
+            story.append(Spacer(1, 0.25*cm))
+
+    # 6. Incidentes del DC
+    incidents = [d for d in data if d.get("section") == "incident"]
+    if incidents:
+        story.append(PageBreak())
+        story.append(_section_title(f"Incidentes del Datacenter ({len(incidents)})"))
+        story.extend(_build_incident_section(incidents))
+
+    # 7. Salud del DC
+    health = [d for d in data if d.get("section") == "health"]
+    if health:
+        story.append(_section_title("Estado Actual del Datacenter"))
+        story.extend(_build_health_section(health))
+
+    # 8. SSL
+    ssl_certs = [d for d in data if d.get("section") == "ssl"]
+    if ssl_certs:
+        story.append(_section_title("Certificados SSL/TLS"))
+        story.extend(_build_ssl_section(ssl_certs))
+
+    return story
 
 def _generate_txt_fallback(title: str, data: List[Dict], path: str) -> bool:
     """Genera un archivo TXT si ReportLab no está disponible."""
