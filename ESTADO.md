@@ -50,12 +50,12 @@ Simulador de monitoreo de datacenter con panel de instructor. Backend FastAPI + 
 ## Plan mejoras Dashboard Aprendiz (iniciar aquí si se cortan tokens)
 
 ### Orden de implementación:
-- [ ] **Paso 1**: Tema C — Graphite Cálido en `frontend/index.html`
-- [ ] **Paso 2**: Panel diagnóstico guiado responsive (ancho adaptable, no fijo 380px)
-- [ ] **Paso 3**: Nodo afectado resalta con pulso/animación visible en el mapa
-- [ ] **Paso 4**: Tooltip explicativo del Score (qué acciones lo suben/bajan)
-- [ ] **Paso 5**: Botón "Detectar ahora" más visible + texto explicativo
-- [ ] **Paso 6**: Timer de tiempo transcurrido en el panel de diagnóstico guiado
+- [x] **Paso 1**: Tema C — Graphite Cálido aplicado (`#18181b` + ámbar/naranja)
+- [x] **Paso 2**: Panel diagnóstico responsive (`min(420px,96vw)`, móvil=100vw)
+- [x] **Paso 3**: Nodo bajo diagnóstico → aro pulsante ámbar + etiqueta "🎯 ANALIZAR"
+- [x] **Paso 4**: Score en tiempo real (⭐) + timer (⏱) en header del diagnóstico
+- [x] **Paso 5**: Botón "Detectar ahora" en ámbar pulsante, más descriptivo
+- [x] **Paso 6**: Timer implementado con `_startGuidedTimer()` / `_stopGuidedTimer()`
 
 ### Tema C — Graphite Cálido (variables CSS a aplicar):
 ```
@@ -75,12 +75,33 @@ Simulador de monitoreo de datacenter con panel de instructor. Backend FastAPI + 
 
 ---
 
+## Cambios sesión 2026-06-02 (cuarta parte — mejoras dashboard aprendiz)
+
+### `frontend/index.html`
+- **Tema Graphite Cálido**: variables CSS `--bg:#18181b`, `--accent:#f59e0b`, `--accent2:#f97316`, reemplazos masivos de colores hardcodeados azulados
+- **Panel guiado responsive**: `width:min(420px,96vw)`, media query móvil
+- **Nodo bajo diagnóstico**: aro SVG pulsante ámbar + texto "🎯 ANALIZAR" en el mapa de red
+- **HUD en panel guiado**: `guidedScoreDisplay` (score en tiempo real) + `guidedTimer` (cronómetro)
+- **Botón Detectar**: estilo ámbar pulsante, texto más descriptivo
+- **Modal bitácora**: `height:90vh` + `min-height:0` en bm-body → footer siempre visible; HTML del modal restaurado (estaba truncado — faltaban 4to campo y botón guardar)
+- **Penalización calidad**: se muestra en panel de resultados como línea roja con score original → ajustado
+
+### Bugs corregidos en esta sesión
+- `routes_attacks.py`: faltaba `from ..database.models import Incident`
+- `main.py`: `sensor_name` no filtrado al guardar SST → error DB
+- `scheduler.py`: métricas guardadas cada 30s en vez de 2s (15x menos disco)
+- `crud.py`: tabla metrics limitada a 60 filas/nodo (auto-limpieza en INSERT)
+- `main.py`: limpieza al arrancar + /health endpoint restaurado
+- DB corrupta por disco lleno: recuperación manual via Shell Render (20 estudiantes, 284 bitácoras, 304 sesiones restaurados)
+- Diagnóstico guiado: SST muestra solo sensor relevante al ataque; hardware muestra métricas coherentes con ataque
+
 ## Estado pendiente (para próxima sesión)
 
-- [ ] Verificar en producción que los bugs de instructor.html quedan resueltos
-- [ ] Investigar por qué `/api/attacks/incidents` retorna error (ver logs de Render)
-- [ ] Revisar si `loadEvalReports()` (Reportes Evaluativos) carga correctamente los nombres
-- [ ] Confirmar que el disco persistente de Render conserva la DB entre deploys
+- [ ] Verificar en producción que instructor.html bugs están resueltos (incidentes, eval filter)
+- [ ] Bug diagnóstico BRUTE_FORCE: métricas no se elevan suficiente (conexiones: 48, umbral: 400) — `engine.py` línea `elif atype == "brute_force": connections += 200*ramp` debe ser más agresivo
+- [ ] Revisar si `loadEvalReports()` carga nombres correctamente en tab Reportes
+- [ ] Probar bitácora completa (4 campos + guardar) en producción
+- [ ] Confirmar que penalización de calidad aparece en panel resultados
 
 ## Cambios sesión 2026-06-02 (segunda parte)
 
