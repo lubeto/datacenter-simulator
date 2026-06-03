@@ -2764,26 +2764,34 @@ function _cancelGuidedAutoClose() {
         <div class="bm-info-item"><div class="bm-lbl">Pistas usadas</div><div class="bm-val" id="bmHints">—</div></div>
         <div class="bm-info-item"><div class="bm-lbl">Duración</div><div class="bm-val" id="bmDur">—</div></div>
       </div>
-      <div class="bm-err" id="bmErr">⚠️ Completa todos los campos con al menos 30 caracteres.</div>
-      <!-- Campo 1 -->
+      <!-- Campos de análisis -->
       <div class="bm-field">
         <label>🔍 Síntomas observados <span>*</span></label>
-        <textarea id="bmSintomas" placeholder="¿Qué indicadores te alertaron? ¿Qué métricas estaban anómalas? ¿Cómo lo detectaste?" oninput="bmCount(this,'bmC1',30)"></textarea>
+        <textarea id="bmSintomas" rows="3" placeholder="¿Qué indicadores te alertaron? ¿Qué métricas estaban anómalas? ¿Cómo lo detectaste?" oninput="bmCount(this,'bmC1',30)"></textarea>
         <div class="bm-char" id="bmC1">0 / mín. 30 caracteres</div>
       </div>
-      <!-- Campo 2 -->
       <div class="bm-field">
         <label>🧩 Análisis de causa raíz <span>*</span></label>
-        <textarea id="bmCausa" placeholder="¿Por qué ocurrió el incidente? ¿Qué condición o vulnerabilidad lo permitió?" oninput="bmCount(this,'bmC2',30)"></textarea>
+        <textarea id="bmCausa" rows="3" placeholder="¿Por qué ocurrió el incidente? ¿Qué condición o vulnerabilidad lo permitió?" oninput="bmCount(this,'bmC2',30)"></textarea>
         <div class="bm-char" id="bmC2">0 / mín. 30 caracteres</div>
       </div>
-      <!-- Campo 3 -->
       <div class="bm-field">
-        <label>🛠️ Acciones tomadas y resultado <span>*</span></label>
-        <textarea id="bmAcciones" placeholder="¿Qué hiciste para mitigar el ataque? ¿Qué comandos o pasos aplicaste? ¿Funcionó?" oninput="bmCount(this,'bmC3',30)"></textarea>
+        <label>🔧 Acciones tomadas y resultado <span>*</span></label>
+        <textarea id="bmAcciones" rows="3" placeholder="¿Qué hiciste para mitigar el ataque? ¿Qué comandos o pasos aplicaste? ¿Funcionó?" oninput="bmCount(this,'bmC3',30)"></textarea>
         <div class="bm-char" id="bmC3">0 / mín. 30 caracteres</div>
       </div>
-      <!-- Campo 4 -->
       <div class="bm-field">
         <label>💡 Lecciones aprendidas y recomendaciones <span>*</span></label>
-        <textarea id="bmLecciones" placeholder="¿Qué aprendiste de este incid
+        <textarea id="bmLecciones" rows="3" placeholder="¿Qué aprendiste? ¿Qué harías diferente? ¿Cómo prevenir este incidente en el futuro?" oninput="bmCount(this,'bmC4',30)"></textarea>
+        <div class="bm-char" id="bmC4">0 / mín. 30 caracteres</div>
+      </div>
+      <div class="bm-err" id="bmErr">⚠️ Completa todos los campos con al menos 30 caracteres.</div>
+    </div>
+    <div class="bm-footer">
+      <button class="bm-btn-submit" id="bmSubmitBtn" onclick="submitBitacora()">✅ Guardar bitácora y ver resultado</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
