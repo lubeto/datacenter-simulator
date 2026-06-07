@@ -132,7 +132,7 @@ def generate_node_metrics(node: Node) -> Dict[str, Any]:
 
         elif atype == "brute_force":
             cpu      = _clamp(cpu + 15 * intensity, 0, 100)
-            connections = int(_clamp(connections + 200 * ramp, 0, 65535))
+            connections = int(_clamp(connections + 2000 * ramp, 0, 65535))
 
         elif atype == "port_scan":
             net_in   = _clamp(net_in + 50 * ramp, 0, node.bandwidth_mbps)
