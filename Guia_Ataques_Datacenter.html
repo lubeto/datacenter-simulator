@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guia de Ataques en Datacenter — SENA</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg2: #111827;
+    --card: #1e293b;
+    --border: #334155;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --ok: #22c55e;
+    --info: #3b82f6;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* HEADER */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15,23,42,0.95); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+  }
+  .header-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; padding: 0.75rem 0; }
+  .header-logo { font-size: 1.25rem; font-weight: 800; color: var(--warning); white-space: nowrap; }
+  .header-logo span { color: var(--muted); font-weight: 400; font-size: 0.9rem; margin-left: 0.5rem; }
+  nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  nav a {
+    color: var(--muted); text-decoration: none; font-size: 0.85rem; padding: 0.35rem 0.75rem;
+    border-radius: 6px; border: 1px solid transparent; transition: all 0.2s;
+  }
+  nav a:hover, nav a.active { color: var(--text); border-color: var(--border); background: var(--card); }
+  .search-wrap { margin-left: auto; }
+  #search {
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    padding: 0.4rem 0.9rem; border-radius: 8px; font-size: 0.9rem; width: 220px;
+    outline: none; transition: border-color 0.2s;
+  }
+  #search:focus { border-color: var(--info); }
+  #search::placeholder { color: var(--muted); }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #0d1b2a 0%, #111827 60%, #0d2136 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 4rem 1.5rem 3rem;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(59,130,246,0.08) 0%, transparent 70%);
+  }
+  .hero-badge { display: inline-block; background: rgba(239,68,68,0.15); border: 1px solid var(--danger); color: var(--danger); padding: 0.3rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1.2rem; }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; margin-bottom: 0.75rem; line-height: 1.1; }
+  .hero h1 em { color: var(--warning); font-style: normal; }
+  .hero p { color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem; }
+  .hero-stats { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 2rem; font-weight: 800; color: var(--warning); }
+  .stat-label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* MAIN LAYOUT */
+  main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* SECTION HEADERS */
+  .section-header {
+    display: flex; align-items: center; gap: 1rem;
+    margin: 3rem 0 1.5rem; padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-icon { font-size: 1.8rem; }
+  .section-title { font-size: 1.5rem; font-weight: 800; }
+  .section-count { background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 20px; }
+
+  /* CARDS GRID */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 1.5rem; }
+
+  /* ATTACK CARD */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .card.hidden { display: none; }
+  .card-accent { height: 3px; }
+  .card-header { padding: 1.25rem 1.5rem 1rem; display: flex; align-items: flex-start; gap: 1rem; }
+  .card-icon { font-size: 2rem; flex-shrink: 0; }
+  .card-title-wrap { flex: 1; }
+  .card-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.4rem; }
+  .badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem;
+    border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .badge-red    { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+  .badge-amber  { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-green  { background: rgba(34,197,94,0.15); color: var(--ok); border: 1px solid rgba(34,197,94,0.3); }
+  .badge-blue   { background: rgba(59,130,246,0.15); color: var(--info); border: 1px solid rgba(59,130,246,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+  .card-body { padding: 0 1.5rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+  .card-section-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.35rem; }
+  .card-body p, .card-body li { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; }
+  .card-body ul, .card-body ol { padding-left: 1.2rem; }
+  .card-body li { margin-bottom: 0.2rem; }
+  .metrics-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .metric-badge {
+    display: flex; align-items: center; gap: 0.3rem;
+    font-size: 0.78rem; font-weight: 600; padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+  }
+  .metric-crit  { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.25); }
+  .metric-high  { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
+  .metric-mod   { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+  .metric-norm  { background: rgba(34,197,94,0.1); color: var(--ok); border: 1px solid rgba(34,197,94,0.2); }
+  .metric-drop  { background: rgba(59,130,246,0.12); color: var(--info); border: 1px solid rgba(59,130,246,0.25); }
+  .detect-box {
+    background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 8px; padding: 0.75rem 1rem;
+  }
+  .detect-box p { color: #bfdbfe; font-size: 0.88rem; }
+  .detect-step { display: flex; gap: 0.6rem; margin-bottom: 0.3rem; align-items: flex-start; }
+  .detect-num { background: var(--info); color: #fff; font-size: 0.7rem; font-weight: 800; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.15rem; }
+  .mitigation-box {
+    background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px; padding: 0.75rem 1rem;
+  }
+  .mit-step { display: flex; gap: 0.7rem; margin-bottom: 0.35rem; align-items: flex-start; }
+  .mit-num { background: var(--ok); color: #0f172a; font-size: 0.7rem; font-weight: 800; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem; }
+  .mit-step span { font-size: 0.88rem; color: #bbf7d0; line-height: 1.5; }
+
+  /* SIMULATOR SECTION */
+  .sim-section {
+    background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(17,24,39,0.9));
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 2.5rem; margin: 3rem 0;
+  }
+  .sim-section h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.5rem; }
+  .sim-section p.lead { color: var(--muted); margin-bottom: 2rem; }
+  .sim-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+  .sim-step {
+    background: var(--bg); border-radius: 12px; padding: 1.5rem;
+    border: 1px solid var(--border); position: relative;
+  }
+  .sim-step-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 900; margin-bottom: 1rem;
+  }
+  .sim-step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .sim-step p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+  /* METRICS TABLE */
+  .table-section { margin: 3rem 0; }
+  .table-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th { background: #1e3a5f; color: var(--text); padding: 0.85rem 1rem; text-align: center; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  td { padding: 0.75rem 1rem; text-align: center; border-top: 1px solid var(--border); color: var(--muted); }
+  td:first-child { text-align: left; color: var(--text); font-weight: 600; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+  .val-crit  { color: var(--danger); font-weight: 800; }
+  .val-high  { color: var(--warning); font-weight: 700; }
+  .val-mod   { color: #fbbf24; font-weight: 600; }
+  .val-norm  { color: #475569; }
+  .val-drop  { color: var(--info); font-weight: 700; }
+  .action-cell { font-size: 0.82rem; color: #94a3b8; text-align: left; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* NO RESULTS */
+  #no-results { display: none; text-align: center; padding: 3rem; color: var(--muted); }
+  #no-results.visible { display: block; }
+
+  /* FOOTER */
+  footer { background: var(--card); border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; }
+  footer p { color: var(--muted); font-size: 0.88rem; }
+  footer strong { color: var(--text); }
+
+  @media (max-width: 768px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.8rem; }
+    .sim-steps { grid-template-columns: 1fr 1fr; }
+    #search { width: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-logo">DC Monitor <span>Guia de Ataques</span></div>
+    <nav>
+      <a href="#red" class="nav-link">Red</a>
+      <a href="#hardware" class="nav-link">Hardware</a>
+      <a href="#sst" class="nav-link">SST</a>
+      <a href="#ssl" class="nav-link">SSL/TLS</a>
+      <a href="#tabla" class="nav-link">Tabla</a>
+      <a href="#simulador" class="nav-link">Simulador</a>
+    </nav>
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Buscar ataque..." autocomplete="off">
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-badge">SENA — Tecnologia en Redes y Sistemas de Informacion</div>
+  <h1>Ataques en <em>Datacenter</em></h1>
+  <p>Guia completa de deteccion, analisis y mitigacion usando el DC Monitoring Simulator</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">10</div><div class="stat-label">Tipos de Ataque</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">Categorias</div></div>
+    <div class="stat"><div class="stat-num">5</div><div class="stat-label">Metricas Clave</div></div>
+  </div>
+</div>
+
+<main>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- ATAQUES DE RED                                              -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="section-header" id="red">
+  <span class="section-icon">🌐</span>
+  <h2 class="section-title">Ataques de Red</h2>
+  <span class="section-count">5 ataques</span>
+</div>
+<div class="cards-grid">
+
+  <!-- DDoS / SYN Flood -->
+  <div class="card" data-name="ddos syn flood distribuido denial of service">
+    <div class="card-accent" style="background: var(--danger)"></div>
+    <div class="card-header">
+      <div class="card-icon">🌊</div>
+      <div class="card-title-wrap">
+        <div class="card-title">DDoS / SYN Flood</div>
+        <span class="badge badge-red">Critico</span>
+        <span class="badge badge-blue" style="margin-left:0.3rem">Red</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>Inunda el servidor con millones de paquetes SYN (inicio de handshake TCP) sin completar la conexion, agotando los recursos de red y CPU. El servidor queda esperando respuestas que nunca llegan (half-open connections), bloqueando trafico legitimo.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>El atacante (o botnet) envia masivamente paquetes SYN. El servidor responde SYN-ACK y espera el ACK final que nunca llega. Miles de conexiones half-open llenan la tabla de conexiones hasta saturation completa.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-crit">Net IN ↑↑↑</span>
+          <span class="metric-badge metric-crit">Conexiones ↑↑↑</span>
+          <span class="metric-badge metric-high">CPU ↑↑</span>
+          <span class="metric-badge metric-high">Latencia ↑↑</span>
+          <span class="metric-badge metric-mod">RAM ↑</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Net IN supera 800 MB/s en el dashboard principal</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Conexiones activas >5000 provenientes de multiples IPs</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Rate limiting: limitar paquetes SYN por IP/segundo con iptables o nftables</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>SYN Cookies: habilitar con <code style="color:#86efac">sysctl -w net.ipv4.tcp_syncookies=1</code></span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>CDN / Scrubbing Center: absorber trafico malicioso antes del servidor</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Null-route temporal a rangos IP de origen del ataque</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brute Force -->
+  <div class="card" data-name="brute force fuerza bruta credenciales contrasena">
+    <div class="card-accent" style="background: var(--warning)"></div>
+    <div class="card-header">
+      <div class="card-icon">🔑</div>
+      <div class="card-title-wrap">
+        <div class="card-title">Brute Force Attack</div>
+        <span class="badge badge-amber">Alto</span>
+        <span class="badge badge-blue" style="margin-left:0.3rem">Red</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>Ataque que intenta adivinar credenciales probando combinaciones de usuario y contrasena de forma automatizada y repetitiva contra servicios de autenticacion (SSH, RDP, HTTP, FTP).</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>Herramientas como Hydra o Medusa envian cientos de intentos de login por segundo usando diccionarios de contrasenas comunes, credenciales de brechas previas (credential stuffing) o patrones generados automaticamente.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-high">Conexiones ↑↑</span>
+          <span class="metric-badge metric-mod">CPU ↑</span>
+          <span class="metric-badge metric-mod">Net IN ↑</span>
+          <span class="metric-badge metric-norm">RAM —</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Conexiones elevadas desde pocas IPs con patron repetitivo</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Logs de autenticacion con cientos de intentos fallidos por minuto</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>fail2ban: bloqueo automatico tras N intentos fallidos configurables</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>MFA: segundo factor de autenticacion obligatorio en todos los servicios</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>Bloqueo por IP: ban temporal o permanente segun umbral</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Contrasenas largas (>16 caracteres) gestionadas con un password manager</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Port Scan -->
+  <div class="card" data-name="port scan reconocimiento puertos nmap">
+    <div class="card-accent" style="background: var(--info)"></div>
+    <div class="card-header">
+      <div class="card-icon">🔍</div>
+      <div class="card-title-wrap">
+        <div class="card-title">Port Scan</div>
+        <span class="badge badge-blue">Reconocimiento</span>
+        <span class="badge badge-blue" style="margin-left:0.3rem">Red</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>Tecnica de reconocimiento que mapea puertos abiertos y servicios disponibles en un host. Permite al atacante identificar la superficie de ataque antes de lanzar un exploit especifico.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>Herramientas como nmap envian sondas a rangos de puertos (1-65535). El SYN Scan (-sS) es sigiloso porque no completa el handshake. El Version Scan (-sV) identifica versiones exactas de servicios para buscar CVEs conocidos.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-high">Conexiones ↑↑</span>
+          <span class="metric-badge metric-mod">Net IN ↑</span>
+          <span class="metric-badge metric-norm">CPU —</span>
+          <span class="metric-badge metric-norm">RAM —</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Conexiones elevadas desde pocas IPs hacia muchos puertos distintos</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Patron de trafico de sondeo sin transferencia de datos real</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>IDS/IPS: Snort o Suricata con reglas de deteccion de scan activo</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>Firewall default-deny: solo puertos estrictamente necesarios expuestos</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>Port knocking: requiere secuencia de puertos como llave de acceso</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Honeypots: detectar y registrar reconocimiento activo en tiempo real</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARP Spoofing / MITM -->
+  <div class="card" data-name="arp spoofing mitm man in the middle envenenamiento">
+    <div class="card-accent" style="background: var(--danger)"></div>
+    <div class="card-header">
+      <div class="card-icon">🕵️</div>
+      <div class="card-title-wrap">
+        <div class="card-title">ARP Spoofing / MITM</div>
+        <span class="badge badge-red">Critico</span>
+        <span class="badge badge-blue" style="margin-left:0.3rem">Red</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>El atacante envia respuestas ARP falsas para asociar su direccion MAC a la IP de otro host (gateway o servidor), redirigiendo todo el trafico de la victima a traves de su maquina sin que ella lo note.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>ARP no tiene autenticacion. El atacante envia ARP Replies no solicitados con <em>IP del gateway = su MAC</em>. La victima actualiza su tabla ARP y envía todo el trafico al atacante, quien lo reenvía al destino real (transparent proxy). Herramientas: arpspoof, bettercap.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-high">Net IN/OUT ↑↑</span>
+          <span class="metric-badge metric-high">Latencia ↑↑</span>
+          <span class="metric-badge metric-mod">Conexiones ↑</span>
+          <span class="metric-badge metric-mod">CPU ↑</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Trafico de red anormalmente duplicado con latencia elevada sostenida</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Retransmisiones TCP frecuentes sin sobrecarga aparente de CPU</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Dynamic ARP Inspection (DAI) habilitado en switches capa 2</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>802.1X: autenticacion de dispositivos antes de acceder a la red</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>ARP estatico en infraestructura critica (gateway, servidores clave)</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Segmentacion con VLANs para aislar segmentos sensibles</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /cards-grid red -->
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- ATAQUES DE HARDWARE                                         -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="section-header" id="hardware">
+  <span class="section-icon">💾</span>
+  <h2 class="section-title">Ataques de Hardware</h2>
+  <span class="section-count">2 ataques</span>
+</div>
+<div class="cards-grid">
+
+  <!-- Memory Leak -->
+  <div class="card" data-name="memory leak fuga memoria ram proceso">
+    <div class="card-accent" style="background: var(--warning)"></div>
+    <div class="card-header">
+      <div class="card-icon">🧠</div>
+      <div class="card-title-wrap">
+        <div class="card-title">Memory Leak</div>
+        <span class="badge badge-amber">Alto</span>
+        <span class="badge badge-amber" style="margin-left:0.3rem">Hardware</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>Falla donde un proceso reserva memoria RAM pero nunca la libera, acumulandola progresivamente hasta agotar los recursos del sistema. Puede ser una falla de software o explotada deliberadamente para causar denegacion de servicio.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>El proceso aloca memoria (malloc, new) sin liberarla (free, delete) en ciclos repetitivos. La RAM usada crece continuamente sin estabilizarse. Cuando la RAM se agota, el sistema activa swap en disco y eventualmente el kernel mata el proceso (OOM Killer).</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-crit">RAM ↑↑↑</span>
+          <span class="metric-badge metric-mod">CPU ↑</span>
+          <span class="metric-badge metric-norm">Net IN —</span>
+          <span class="metric-badge metric-norm">Disk I/O —</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">RAM crece de forma continua y sostenida sin estabilizarse nunca</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">CPU se mantiene relativamente normal mientras RAM escala</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Monitorear tendencia de RAM con alertas proactivas al superar 85%</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>Reiniciar el proceso afectado como workaround temporal inmediato</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>Aplicar patch del software o actualizar a version corregida</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Limitar memoria maxima del proceso con cgroups (memory.limit_in_bytes)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disk Failure -->
+  <div class="card" data-name="disk failure raid fallo disco almacenamiento smart">
+    <div class="card-accent" style="background: var(--danger)"></div>
+    <div class="card-header">
+      <div class="card-icon">💿</div>
+      <div class="card-title-wrap">
+        <div class="card-title">Disk Failure / RAID Failure</div>
+        <span class="badge badge-red">Critico</span>
+        <span class="badge badge-amber" style="margin-left:0.3rem">Hardware</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>Falla fisica o logica de uno o mas discos del array de almacenamiento. En entornos RAID, la falla de un disco degrada el array y expone los datos ante una segunda falla. El Disk I/O se vuelve extremadamente alto por los reintentos del sistema.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>Los discos mecanicos (HDD) fallan por desgaste de cabezales o bad sectors. Los SSDs por ciclos de escritura agotados. Cuando el controlador RAID detecta la falla, marca el disco como degradado y activa el modo rebuild al insertar un disco nuevo, operacion costosa en I/O.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-crit">Disk I/O ↑↑↑</span>
+          <span class="metric-badge metric-high">Disk Used ↑↑</span>
+          <span class="metric-badge metric-mod">CPU ↑</span>
+          <span class="metric-badge metric-mod">RAM ↑</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Disk I/O supera 150 MB/s con errores constantes en los logs</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Disk Used creciendo anomalamente junto con alertas SMART</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Monitorear SMART con <code style="color:#86efac">smartctl -a /dev/sdX</code> y alertas automaticas</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>Reemplazar el disco fallido de inmediato para no perder redundancia</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>Rebuild RAID: <code style="color:#86efac">mdadm --manage /dev/md0 --add /dev/sdX</code></span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Backups 3-2-1: 3 copias, en 2 medios distintos, 1 offsite o nube</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /cards-grid hardware -->
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- SST — SEGURIDAD FISICA                                      -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="section-header" id="sst">
+  <span class="section-icon">🏭</span>
+  <h2 class="section-title">Seguridad Fisica — SST</h2>
+  <span class="section-count">2 eventos</span>
+</div>
+<div class="cards-grid">
+
+  <!-- Falla Termica -->
+  <div class="card" data-name="falla termica temperatura rack calor crac cooling sst">
+    <div class="card-accent" style="background: #f97316"></div>
+    <div class="card-header">
+      <div class="card-icon">🌡️</div>
+      <div class="card-title-wrap">
+        <div class="card-title">Falla Termica</div>
+        <span class="badge badge-red">Critico</span>
+        <span class="badge badge-green" style="margin-left:0.3rem">SST Fisico</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>La temperatura en el rack supera umbrales seguros (>27 C ambiente, >80 C en componentes), poniendo en riesgo hardware y disponibilidad. El hardware activa throttling o apagado de emergencia por proteccion termica del UEFI/BIOS.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>Cuando el sistema CRAC/CRAH falla o el flujo de aire se bloquea, el calor generado por los equipos se acumula. La temperatura sube progresivamente. CPUs activan throttling al llegar al TjMax. Si persiste, el firmware apaga el servidor para prevenir dano permanente.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Sensores SST activados</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-crit">🌡️ Temperatura ALERTA</span>
+          <span class="metric-badge metric-high">⚡ Energia ALERTA</span>
+          <span class="metric-badge metric-norm">💨 Humo Normal</span>
+          <span class="metric-badge metric-norm">🚪 Acceso Normal</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Panel SST muestra sensor de temperatura en estado ALERTA rojo</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">CPU throttling visible: el porcentaje cae abruptamente por proteccion</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Verificar estado de unidades CRAC/CRAH del datacenter de inmediato</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>Hot-aisle / Cold-aisle containment para separar flujos de aire</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>Blanking panels en espacios vacios del rack para guiar el aire frio</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Protocolo de apagado ordenado si la temperatura supera 30 C</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acceso No Autorizado -->
+  <div class="card" data-name="acceso no autorizado intrusion fisica tailgating rfid sst">
+    <div class="card-accent" style="background: var(--danger)"></div>
+    <div class="card-header">
+      <div class="card-icon">🚨</div>
+      <div class="card-title-wrap">
+        <div class="card-title">Acceso No Autorizado</div>
+        <span class="badge badge-red">Critico</span>
+        <span class="badge badge-green" style="margin-left:0.3rem">SST Fisico</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>Entrada fisica al datacenter por personal no autorizado, visitante sin escolta o mediante tecnicas de ingenieria social. Permite al intruso interactuar directamente con hardware critico, robar equipos o insertar dispositivos maliciosos.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>El vector mas comun es el tailgating: el atacante sigue a una persona autorizada al cruzar puertas de acceso controlado. Tambien puede usar credenciales clonadas (RFID/NFC), suplantar a un tecnico de mantenimiento o sobornear al personal de seguridad fisica.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Sensores SST activados</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-crit">🚪 Control Acceso ALERTA</span>
+          <span class="metric-badge metric-high">📹 CCTV Activo</span>
+          <span class="metric-badge metric-norm">🌡️ Temperatura Normal</span>
+          <span class="metric-badge metric-norm">💨 Humo Normal</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Panel SST muestra sensor de control de acceso en estado ALERTA</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Registro de acceso muestra entrada sin credencial valida registrada</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Bloquear inmediatamente la credencial comprometida en el sistema</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>Revisar logs de acceso en el SIEM para correlacionar el incidente</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>Doble factor fisico obligatorio: PIN + badge RFID + biometria</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Mantraps / airlocks en el acceso principal para evitar tailgating</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /cards-grid sst -->
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- SSL/TLS                                                     -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="section-header" id="ssl">
+  <span class="section-icon">🔐</span>
+  <h2 class="section-title">Ataques SSL/TLS</h2>
+  <span class="section-count">2 ataques</span>
+</div>
+<div class="cards-grid">
+
+  <!-- SSL Downgrade -->
+  <div class="card" data-name="ssl tls downgrade poodle beast negociacion cifrado">
+    <div class="card-accent" style="background: var(--danger)"></div>
+    <div class="card-header">
+      <div class="card-icon">🔓</div>
+      <div class="card-title-wrap">
+        <div class="card-title">SSL/TLS Downgrade Attack</div>
+        <span class="badge badge-red">Critico</span>
+        <span class="badge badge-purple" style="margin-left:0.3rem">SSL/TLS</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>El atacante manipula la negociacion TLS para forzar al servidor a usar una version antigua (TLS 1.0, TLS 1.1, SSL 3.0) que contiene vulnerabilidades conocidas y explotables como POODLE, BEAST o FREAK.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>El atacante actua como MITM e intercepta el Client Hello. Modifica la lista de cipher suites para incluir solo protocolos debiles. El servidor acepta el protocolo antiguo. Con TLS 1.0 o SSL 3.0 activo, el atacante puede usar POODLE/BEAST para descifrar el trafico capturado.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-crit">🔒 Alerta SSL: TLS 1.0/1.1</span>
+          <span class="metric-badge metric-high">Latencia ↑↑</span>
+          <span class="metric-badge metric-mod">Net OUT ↑</span>
+          <span class="metric-badge metric-norm">CPU —</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Panel SSL muestra alerta: version negociada = TLS 1.0 o TLS 1.1</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Latencia elevada sugiere proxy MITM insertado en la ruta</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Configurar nginx/Apache: <code style="color:#86efac">ssl_protocols TLSv1.2 TLSv1.3;</code></span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>Deshabilitar explicitamente SSL 3.0, TLS 1.0 y TLS 1.1</span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>HSTS: header <code style="color:#86efac">Strict-Transport-Security</code> con max-age largo</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Validar configuracion con SSL Labs: ssllabs.com/ssltest (objetivo: A+)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SSL Expirado -->
+  <div class="card" data-name="ssl expirado certificado vencido https caido x509 certbot">
+    <div class="card-accent" style="background: var(--warning)"></div>
+    <div class="card-header">
+      <div class="card-icon">📋</div>
+      <div class="card-title-wrap">
+        <div class="card-title">Certificado SSL Expirado</div>
+        <span class="badge badge-amber">Alto</span>
+        <span class="badge badge-purple" style="margin-left:0.3rem">SSL/TLS</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="card-section-label">Que es</div>
+        <p>Un certificado X.509 tiene fecha de vencimiento. Al expirar, navegadores y clientes API rechazan la conexion HTTPS con error de seguridad. Aunque el servicio este corriendo correctamente, es inaccesible para los usuarios.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Como funciona</div>
+        <p>El certificado incluye los campos <em>notBefore</em> y <em>notAfter</em>. Al pasar la fecha notAfter, el cliente verifica que el cert sea invalido y termina la conexion con error SSL_ERROR_EXPIRED_CERT. APIs con mutual TLS y microservicios tambien fallan en cascada.</p>
+      </div>
+      <div>
+        <div class="card-section-label">Metricas afectadas</div>
+        <div class="metrics-row">
+          <span class="metric-badge metric-crit">🔒 Cert Expirado: dias = 0</span>
+          <span class="metric-badge metric-crit">HTTPS DOWN</span>
+          <span class="metric-badge metric-drop">Net IN ↓↓</span>
+          <span class="metric-badge metric-norm">CPU —</span>
+        </div>
+      </div>
+      <div class="detect-box">
+        <div class="card-section-label">Como detectarlo en el simulador</div>
+        <div class="detect-step"><span class="detect-num">1</span><span style="font-size:0.88rem;color:#bfdbfe">Panel SSL muestra alerta: certificado expirado con 0 dias restantes</span></div>
+        <div class="detect-step"><span class="detect-num">2</span><span style="font-size:0.88rem;color:#bfdbfe">Net IN cae abruptamente: clientes rechazan la conexion inmediatamente</span></div>
+      </div>
+      <div class="mitigation-box">
+        <div class="card-section-label">Mitigacion</div>
+        <div class="mit-step"><span class="mit-num">1</span><span>Renovar inmediatamente: <code style="color:#86efac">certbot renew</code> (Let's Encrypt — gratuito)</span></div>
+        <div class="mit-step"><span class="mit-num">2</span><span>Automatizar renovacion con cron: <code style="color:#86efac">0 3 * * * certbot renew</code></span></div>
+        <div class="mit-step"><span class="mit-num">3</span><span>Alertas preventivas a 30, 14, 7 y 1 dia antes del vencimiento</span></div>
+        <div class="mit-step"><span class="mit-num">4</span><span>Certificate Manager en AWS/GCP/Azure para renovacion automatica</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /cards-grid ssl -->
+
+<div id="no-results">
+  <p style="font-size:1.1rem;margin-bottom:0.5rem">No se encontraron ataques que coincidan con la busqueda.</p>
+  <p style="font-size:0.9rem">Intenta con: DDoS, Brute Force, ARP, SSL, Termica, RAID...</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TABLA RESUMEN                                               -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="table-section" id="tabla">
+  <div class="table-title">
+    <span>📊</span> Tabla Resumen de Metricas por Ataque
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ataque</th>
+          <th>CPU</th>
+          <th>RAM</th>
+          <th>Net IN</th>
+          <th>Conexiones</th>
+          <th>Disk I/O</th>
+          <th style="text-align:left">Accion Inmediata</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>🌊 DDoS / SYN Flood</td>
+          <td class="val-high">↑↑</td>
+          <td class="val-mod">↑</td>
+          <td class="val-crit">↑↑↑</td>
+          <td class="val-crit">↑↑↑</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">Rate limit + SYN cookies</td>
+        </tr>
+        <tr>
+          <td>🔑 Brute Force</td>
+          <td class="val-mod">↑</td>
+          <td class="val-norm">—</td>
+          <td class="val-mod">↑</td>
+          <td class="val-high">↑↑</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">fail2ban + bloqueo IP</td>
+        </tr>
+        <tr>
+          <td>🔍 Port Scan</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-mod">↑</td>
+          <td class="val-high">↑↑</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">IDS/IPS + revisar firewall</td>
+        </tr>
+        <tr>
+          <td>🕵️ ARP Spoofing / MITM</td>
+          <td class="val-mod">↑</td>
+          <td class="val-norm">—</td>
+          <td class="val-high">↑↑</td>
+          <td class="val-mod">↑</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">DAI en switch + ARP estatico</td>
+        </tr>
+        <tr>
+          <td>🧠 Memory Leak</td>
+          <td class="val-mod">↑</td>
+          <td class="val-crit">↑↑↑</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">Reiniciar proceso + patch</td>
+        </tr>
+        <tr>
+          <td>💿 Disk Failure / RAID</td>
+          <td class="val-mod">↑</td>
+          <td class="val-mod">↑</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-crit">↑↑↑</td>
+          <td class="action-cell">Reemplazar disco + rebuild RAID</td>
+        </tr>
+        <tr>
+          <td>🌡️ Falla Termica (SST)</td>
+          <td class="val-high">↑↑</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">CRAC + reducir carga termica</td>
+        </tr>
+        <tr>
+          <td>🚨 Acceso No Autorizado</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">Bloquear badge + revisar CCTV</td>
+        </tr>
+        <tr>
+          <td>🔓 SSL/TLS Downgrade</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-mod">↑</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">Forzar TLS 1.3 + deshabilitar antiguo</td>
+        </tr>
+        <tr>
+          <td>📋 Cert. SSL Expirado</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="val-drop">↓↓</td>
+          <td class="val-norm">—</td>
+          <td class="val-norm">—</td>
+          <td class="action-cell">certbot renew + alerta vencimiento</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div> ↑↑↑ Critico</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div> ↑↑ Elevado</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> ↑ Moderado</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#475569"></div> — Sin cambio significativo</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--info)"></div> ↓↓ Caida brusca</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- COMO FUNCIONA EL SIMULADOR                                  -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="sim-section" id="simulador">
+  <h2>Como Funciona el DC Monitoring Simulator</h2>
+  <p class="lead">Flujo de una sesion de practica — 4 pasos del aprendiz al reporte</p>
+  <div class="sim-steps">
+    <div class="sim-step">
+      <div class="sim-step-num" style="background:rgba(239,68,68,0.15);color:var(--danger);border:2px solid var(--danger)">1</div>
+      <h3 style="color:var(--danger)">Instructor activa ataque</h3>
+      <p>El instructor selecciona el tipo de ataque desde el panel de control del simulador. El aprendiz no sabe cual es — debe identificarlo por las metricas.</p>
+    </div>
+    <div class="sim-step">
+      <div class="sim-step-num" style="background:rgba(245,158,11,0.15);color:var(--warning);border:2px solid var(--warning)">2</div>
+      <h3 style="color:var(--warning)">Aprendiz observa metricas</h3>
+      <p>Analiza en tiempo real: CPU %, RAM %, Net IN (MB/s), Disk I/O (MB/s), Conexiones activas. Identifica cual metrica esta fuera de rango normal.</p>
+    </div>
+    <div class="sim-step">
+      <div class="sim-step-num" style="background:rgba(59,130,246,0.15);color:var(--info);border:2px solid var(--info)">3</div>
+      <h3 style="color:var(--info)">Diagnostico Guiado</h3>
+      <p>Usa la herramienta de diagnostico del simulador para correlacionar las senales observadas, clasificar el tipo de ataque y validar el patron de metricas.</p>
+    </div>
+    <div class="sim-step">
+      <div class="sim-step-num" style="background:rgba(34,197,94,0.15);color:var(--ok);border:2px solid var(--ok)">4</div>
+      <h3 style="color:var(--ok)">Bitacora y Reporte</h3>
+      <p>Documenta el incidente: tipo de ataque identificado, metricas observadas con valores, acciones de mitigacion aplicadas y tiempo total de respuesta.</p>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <p><strong>DC Monitoring Simulator</strong> — SENA Tecnologia en Redes y Sistemas de Informacion</p>
+  <p style="margin-top:0.5rem">Guia de Ataques, Deteccion y Mitigacion &bull; Uso exclusivo educativo</p>
+</footer>
+
+<script>
+  // ── Search/filter ──────────────────────────────────────────────────
+  const searchInput = document.getElementById('search');
+  const cards = document.querySelectorAll('.card[data-name]');
+  const noResults = document.getElementById('no-results');
+
+  searchInput.addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    let visible = 0;
+    cards.forEach(function(card) {
+      const name = card.getAttribute('data-name').toLowerCase();
+      const title = card.querySelector('.card-title').textContent.toLowerCase();
+      const match = !q || name.includes(q) || title.includes(q);
+      card.classList.toggle('hidden', !match);
+      if (match) visible++;
+    });
+    noResults.classList.toggle('visible', visible === 0 && q !== '');
+  });
+
+  // ── Active nav on scroll ──────────────────────────────────────────
+  const sections = ['red', 'hardware', 'sst', 'ssl', 'tabla', 'simulador'];
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        const id = entry.target.getAttribute('id');
+        navLinks.forEach(function(link) {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+</script>
+</body>
+</html>
