@@ -1076,7 +1076,7 @@ function handleWS(msg) {
     case 'metrics': handleMetrics(msg.data); break;
     case 'new_incident': addTimeline('🚨', `Ataque: ${msg.data.attack?.name||''}`, `${msg.data.message||''}`, 'crit'); loadAllIncidents(); break;
     case 'incident_detected': addTimeline('🔍', `Detectado por ${msg.data.detected_by||''}`, `MTTD: ${msg.data.mttd_seconds?.toFixed(1)||'?'}s`, 'warn'); break;
-    case 'incident_resolved': addTimeline('✅', `Resuelto por ${msg.data.resolved_by||''}`, `MTTR: ${msg.data.mttr_seconds?.toFixed(1)||'?'}s`, 'ok'); loadAllIncidents(); break;
+    case 'incident_resolved': addTimeline('✅', `Resuelto por ${msg.data.resolved_by||''}`, `MTTR: ${msg.data.mttr_seconds?.toFixed(1)||'?'}s`, 'ok'); loadAllIncidents(); setTimeout(loadBitacoras, 3000); break;
     case 'sst_alert': addTimeline('🌡️', `SST: ${msg.data.sensor_id||''}`, msg.data.message||'', 'warn'); break;
     case 'connected': document.getElementById('wsClientCount').textContent = `${msg.data.ws_clients||1} conectados`; break;
     case 'practice_mode': handlePracticeModeEcho(msg.data); break;
@@ -3581,6 +3581,7 @@ setTimeout(() => {
 setInterval(() => {
   loadActiveSessions();
   loadActiveGroups();
+  loadBitacoras();
   if (currentTab === 'monitor') { loadMonitor(); loadRecentActivity(); }
 }, 30000);
 
