@@ -1,6 +1,6 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-07 (continuación — Sección 5 en progreso)
+## Última sesión: 2026-06-07 (cierre — Sección 5 completada)
 
 ---
 
@@ -45,6 +45,41 @@ docker/Dockerfile          — Imagen Docker para Render
 ---
 
 ## Historial de sesiones
+
+### Sesión 2026-06-07 (cierre — stats clase guiada + guía aprendiz + funciones JS)
+
+#### `frontend/guia_aprendiz.html` (NUEVO)
+- Guía educativa completa standalone para aprendices (misma dark theme del simulador)
+- 5 secciones: El Proceso Completo (7 pasos), Cómo leer métricas (9 métricas × tabla), Tipos de ataque (red/hw/sst/ssl), Ayudas del simulador, Cómo llenar la bitácora
+- Sidebar con scroll spy (IntersectionObserver), responsive
+- Sección bitácora: 4 guías de campo, 4 pares malo/bueno, grid de calidad (Alta/Media/Baja/Basura), lista de penalizaciones, ejemplo DDoS completo, checklist
+
+#### `backend/simulation/scheduler.py` — Clase Guiada mejorada
+- Nuevo método `_get_step_stats(incident_id, step_info)`: consulta DB para detección, MTTD y conteo de sesiones activas al finalizar cada paso
+- `_guided_session_loop` reescrito: guarda incidente con `AsyncSessionLocal` directo (obtiene `incident_id` real), emite `guided_step_stats` antes de cada nuevo paso y al completar la sesión
+- Fallback a `_db_save_cb` si falla el guardado directo
+- `guided_step_launched` ahora incluye `incident_id` y `attack_name`
+- `guided_step_countdown` ahora incluye `step_num` y `delay_before_sec`
+
+#### `frontend/instructor.html` — Funciones JS clase guiada (IMPLEMENTADAS)
+- Todas las funciones que estaban en onclick pero sin definir, ahora implementadas:
+  - `addGuidedStep()` / `removeGuidedStep(idx)` / `renderGuidedSteps()` — UI dinámica para construir la secuencia de ataques con selects de tipo+nodo+tiempo
+  - `startGuidedSession()` / `stopGuidedSession()` — llaman a `/api/attacks/guided/start|stop`
+  - `refreshGuidedStatus()` — consulta estado y actualiza `#guidedStatusPanel`
+  - `addGuidedLog(icon, text, level)` — appends entradas al `#guidedLog` monospace con timestamp
+  - `handleGuidedWsEvent(evt, data)` — router de eventos WS guiados:
+    - `guided_session_started` → muestra banner verde
+    - `guided_step_countdown` → actualiza status text
+    - `guided_step_launched` → log con ⚡ en rojo
+    - `guided_step_stats` → tarjeta resultado (verde=detectado, amarillo=sin detección) + MTTD + activos + notify toast
+    - `guided_session_completed` / `guided_session_stopped` → oculta banner
+- `guided_step_stats` agregado al switch WS en `handleWS()`
+
+#### Commits
+- `35dfa4f` — push anterior (reporte de clase + bitácoras auto-refresh + monitor individual)
+- `[nuevo]` — feat: stats de paso completado en clase guiada + funciones JS guiada + guia_aprendiz.html
+
+---
 
 ### Sesión 2026-06-07 (skills Cowork + fix brute_force + verificación producción)
 
@@ -189,9 +224,14 @@ docker/Dockerfile          — Imagen Docker para Render
 - [x] Probar "Informe Completo del Aprendiz" en producción ✅ (funciona, 2 páginas)
 - [x] Revisar `loadEvalReports()` — nombres correctos en producción ✅
 - [x] `instructor.html`: catches verificados en prod ✅
-- [ ] Verificar penalización de calidad de bitácora en panel de resultados
+- [x] Reporte de clase con análisis automático ✅
+- [x] Guía aprendiz `guia_aprendiz.html` ✅
+- [x] Stats de paso completado en clase guiada ✅
+- [x] Funciones JS clase guiada (addGuidedStep, startGuidedSession, handleGuidedWsEvent, etc.) ✅
+- [ ] Verificar penalización de calidad de bitácora en panel de resultados (estudiante)
 - [ ] Verificar sección 8 del reporte (página 2 del Informe Completo)
-- [ ] Reporte de clase con análisis automático (Sección 5 — último ítem)
+- [ ] Panel analítica de calidad de texto para instructor
+- [ ] Migrar SQLite → PostgreSQL (Sección 1, baja prioridad)
 
 ---
 
@@ -216,15 +256,22 @@ docker/Dockerfile          — Imagen Docker para Render
 - [ ] Migrar SQLite → PostgreSQL en Render
 - [ ] Motor de simulación con escenarios predefinidos y progresión temporal realista
 
-### 🔲 Sección 5 — Gestión del instructor (en progreso)
+### ✅ Sección 5 — Gestión del instructor (completada)
 - [x] Modo "clase guiada": secuencia de ataques programada por el instructor (commit f8200aa)
   - Tab 🎓 Clase Guiada en instructor.html
   - POST /api/attacks/guided/start|stop, GET /api/attacks/guided/status
   - Loop async en scheduler, broadcast WS por paso
+  - Funciones JS: addGuidedStep, renderGuidedSteps, startGuidedSession, stopGuidedSession, refreshGuidedStatus, handleGuidedWsEvent
 - [x] Vista de monitoreo individual del aprendiz en tiempo real (commit b52cf97)
   - Panel en tab Monitor con selector de aprendiz
   - GET /api/sessions/student/{id}/live — score, bitácoras, diagnósticos, MTTD, auto-refresh 20s
-- [ ] Reporte de clase con análisis automático ("3/8 aprendices con MTTD > 5 min en hardware")
+- [x] Reporte de clase con análisis automático
+  - GET /api/sessions/class-report?date_str=YYYY-MM-DD
+  - Abre ventana con resumen del día, tabla por aprendiz, análisis automático en lenguaje natural
+- [x] Stats por paso de clase guiada (guided_step_stats WS event)
+  - Al finalizar cada paso: muestra quién detectó, MTTD, cantidad de aprendices activos
+  - Tarjeta verde/amarilla en log del instructor según si hubo detección o no
+- [x] Guía aprendiz `frontend/guia_aprendiz.html` — doc educativo del proceso completo
 
 ---
 
