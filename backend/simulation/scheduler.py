@@ -25,6 +25,14 @@ class EventScheduler:
         self._broadcast_cb: Optional[Callable] = None
         self._db_save_cb: Optional[Callable] = None
 
+        # Modo clase guiada
+        self._guided_active = False
+        self._guided_name: str = ""
+        self._guided_steps: list = []
+        self._guided_current_step: int = 0
+        self._guided_task: Optional[asyncio.Task] = None
+        self._guided_auto_attacks_was: bool = True  # para restaurar al terminar
+
     def set_broadcast_callback(self, cb: Callable):
         """Callback para enviar eventos por WebSocket."""
         self._broadcast_cb = cb
@@ -373,6 +381,141 @@ class EventScheduler:
 
     def set_auto_attacks(self, enabled: bool):
         self._auto_attacks = enabled
+
+    # ──────────────────────────────────────────────────────────
+    # MODO CLASE GUIADA
+    # ──────────────────────────────────────────────────────────
+    def guided_session_active(self) -> bool:
+        return self._guided_active
+
+    def start_guided_session(self, name: str, steps: list, disable_auto: bool = True):
+        """Inicia la sesión guiada y lanza el loop asíncrono."""
+        self._guided_name = name
+        self._guided_steps = steps
+        self._guided_current_step = 0
+        self._guided_active = True
+        if disable_auto:
+            self._guided_auto_attacks_was = self._auto_attacks
+            self._auto_attacks = False
+        # Lanza la tarea asíncrona
+        self._guided_task = asyncio.create_task(self._guided_session_loop())
+
+    def stop_guided_session(self):
+        """Detiene la sesión guiada."""
+        self._guided_active = False
+        self._auto_attacks = self._guided_auto_attacks_was
+        if self._guided_task and not self._guided_task.done():
+            self._guided_task.cancel()
+        self._guided_task = None
+
+    def get_guided_status(self) -> dict:
+        if not self._guided_active:
+            return {"active": False}
+        total = len(self._guided_steps)
+        current = self._guided_current_step
+        return {
+            "active": True,
+            "name": self._guided_name,
+            "total_steps": total,
+            "current_step": current,
+            "steps_done": current,
+            "steps_remaining": total - current,
+            "steps": [
+                {
+                    "index": i,
+                    "attack_type": s["attack_type"],
+                    "node_id": s["node_id"],
+                    "intensity": s["intensity"],
+                    "delay_before_sec": s["delay_before_sec"],
+                    "status": "done" if i < current else ("running" if i == current else "pending"),
+                }
+                for i, s in enumerate(self._guided_steps)
+            ],
+        }
+
+    async def _guided_session_loop(self):
+        """Ejecuta los pasos de la sesión guiada en orden."""
+        logger.info(f"🎓 Sesión guiada '{self._guided_name}' iniciada ({len(self._guided_steps)} pasos)")
+        try:
+            for i, step in enumerate(self._guided_steps):
+                if not self._guided_active:
+                    break
+
+                self._guided_current_step = i
+                delay = step.get("delay_before_sec", 60)
+
+                # Notificar cuenta regresiva
+                if self._broadcast_cb:
+                    await self._broadcast_cb("guided_step_countdown", {
+                        "step_index": i,
+                        "total_steps": len(self._guided_steps),
+                        "attack_type": step["attack_type"],
+                        "node_id": step["node_id"],
+                        "delay_sec": delay,
+                        "message": f"🎓 Paso {i+1}/{len(self._guided_steps)}: '{step['attack_type']}' en {step['node_id']} en {delay}s",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+
+                # Esperar delay (en trozos de 5s para poder cancelar)
+                waited = 0
+                while waited < delay and self._guided_active:
+                    await asyncio.sleep(min(5, delay - waited))
+                    waited += 5
+
+                if not self._guided_active:
+                    break
+
+                # Lanzar ataque
+                result = attack_manager.inject_attack(
+                    attack_type=step["attack_type"],
+                    node_id=step["node_id"],
+                    intensity=step.get("intensity", 0.7),
+                    duration_sec=step.get("duration_sec", 120),
+                )
+
+                logger.info(f"🎓 Paso {i+1}: {result.get('name')} → {step['node_id']}")
+
+                # Guardar incidente en DB
+                if self._db_save_cb:
+                    await self._db_save_cb("incident", {
+                        "incident_type": step["attack_type"],
+                        "category": result.get("category", "attack"),
+                        "severity": result.get("severity", "warning"),
+                        "node_affected": step["node_id"],
+                        "description": f"[CLASE GUIADA] {result.get('description', '')}",
+                        "started_at": datetime.utcnow(),
+                        "status": "active",
+                    })
+
+                # Broadcast
+                if self._broadcast_cb:
+                    await self._broadcast_cb("guided_step_launched", {
+                        "step_index": i,
+                        "total_steps": len(self._guided_steps),
+                        "attack": result,
+                        "node_id": step["node_id"],
+                        "message": f"🚨 [Clase Guiada] Paso {i+1}/{len(self._guided_steps)}: {result.get('name')} en {step['node_id']}",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+
+        except asyncio.CancelledError:
+            logger.info("🎓 Sesión guiada cancelada")
+        except Exception as e:
+            logger.error(f"Error en guided_session_loop: {e}")
+        finally:
+            if self._guided_active:
+                # Terminó naturalmente
+                self._guided_active = False
+                self._auto_attacks = self._guided_auto_attacks_was
+                self._guided_current_step = len(self._guided_steps)
+                if self._broadcast_cb:
+                    await self._broadcast_cb("guided_session_completed", {
+                        "name": self._guided_name,
+                        "total_steps": len(self._guided_steps),
+                        "message": f"✅ Sesión guiada '{self._guided_name}' completada",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+                logger.info(f"✅ Sesión guiada '{self._guided_name}' completada")
 
 
 # Instancia global

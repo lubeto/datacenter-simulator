@@ -289,3 +289,183 @@ async def toggle_auto_attacks(
     from ..simulation.scheduler import scheduler
     scheduler.set_auto_attacks(enabled)
     return {"auto_attacks_enabled": enabled}
+
+
+# ── Modo Clase Guiada ─────────────────────────────────────────
+
+class GuidedStep(BaseModel):
+    attack_type: str
+    node_id: str
+    intensity: float = 0.7
+    duration_sec: int = 120
+    delay_before_sec: int = 60   # segundos a esperar antes de lanzar este ataque
+
+
+class GuidedSessionRequest(BaseModel):
+    name: str = "Clase guiada"
+    steps: list[GuidedStep]
+    auto_attacks_off: bool = True  # desactivar ataques auto durante la sesión
+
+
+@router.post("/guided/start")
+async def start_guided_session(
+    req: GuidedSessionRequest,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_instructor)
+):
+    """Inicia una sesión de clase guiada con secuencia de ataques predefinida."""
+    from ..simulation.scheduler import scheduler
+    if scheduler.guided_session_active():
+        raise HTTPException(status_code=409, detail="Ya hay una sesión guiada activa")
+    if not req.steps:
+        raise HTTPException(status_code=400, detail="La sesión debe tener al menos un ataque")
+
+    steps_dict = [s.model_dump() for s in req.steps]
+    scheduler.start_guided_session(req.name, steps_dict, req.auto_attacks_off)
+
+    await ws_manager.broadcast("guided_session_started", {
+        "name": req.name,
+        "total_steps": len(req.steps),
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": f"🎓 Sesión guiada '{req.name}' iniciada — {len(req.steps)} ataques programados",
+    })
+    return {"started": True, "name": req.name, "total_steps": len(req.steps)}
+
+
+@router.post("/guided/stop")
+async def stop_guided_session(_=Depends(require_instructor)):
+    """Detiene la sesión de clase guiada en curso."""
+    from ..simulation.scheduler import scheduler
+    scheduler.stop_guided_session()
+    await ws_manager.broadcast("guided_session_stopped", {
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": "🛑 Sesión guiada detenida por el instructor",
+    })
+    return {"stopped": True}
+
+
+@router.get("/guided/status")
+async def guided_session_status(_=Depends(require_instructor)):
+    """Estado actual de la sesión guiada."""
+    from ..simulation.scheduler import scheduler
+    return scheduler.get_guided_status()
+
+
+# ── Modo Clase Guiada ─────────────────────────────────────────
+
+class GuidedStep(BaseModel):
+    attack_type: str
+    node_id: str
+    intensity: float = 0.7
+    duration_sec: int = 120
+    delay_before_sec: int = 60   # segundos a esperar antes de lanzar este ataque
+
+
+class GuidedSessionRequest(BaseModel):
+    name: str = "Clase guiada"
+    steps: list[GuidedStep]
+    auto_attacks_off: bool = True  # desactivar ataques auto durante la sesión
+
+
+@router.post("/guided/start")
+async def start_guided_session(
+    req: GuidedSessionRequest,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_instructor)
+):
+    """Inicia una sesión de clase guiada con secuencia de ataques predefinida."""
+    from ..simulation.scheduler import scheduler
+    if scheduler.guided_session_active():
+        raise HTTPException(status_code=409, detail="Ya hay una sesión guiada activa")
+    if not req.steps:
+        raise HTTPException(status_code=400, detail="La sesión debe tener al menos un ataque")
+
+    steps_dict = [s.model_dump() for s in req.steps]
+    scheduler.start_guided_session(req.name, steps_dict, req.auto_attacks_off)
+
+    await ws_manager.broadcast("guided_session_started", {
+        "name": req.name,
+        "total_steps": len(req.steps),
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": f"🎓 Sesión guiada '{req.name}' iniciada — {len(req.steps)} ataques programados",
+    })
+    return {"started": True, "name": req.name, "total_steps": len(req.steps)}
+
+
+@router.post("/guided/stop")
+async def stop_guided_session(_=Depends(require_instructor)):
+    """Detiene la sesión de clase guiada en curso."""
+    from ..simulation.scheduler import scheduler
+    scheduler.stop_guided_session()
+    await ws_manager.broadcast("guided_session_stopped", {
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": "🛑 Sesión guiada detenida por el instructor",
+    })
+    return {"stopped": True}
+
+
+@router.get("/guided/status")
+async def guided_session_status(_=Depends(require_instructor)):
+    """Estado actual de la sesión guiada."""
+    from ..simulation.scheduler import scheduler
+    return scheduler.get_guided_status()
+
+
+# ── Modo Clase Guiada ─────────────────────────────────────────
+
+class GuidedStep(BaseModel):
+    attack_type: str
+    node_id: str
+    intensity: float = 0.7
+    duration_sec: int = 120
+    delay_before_sec: int = 60
+
+
+class GuidedSessionRequest(BaseModel):
+    name: str = "Clase guiada"
+    steps: list[GuidedStep]
+    auto_attacks_off: bool = True
+
+
+@router.post("/guided/start")
+async def start_guided_session(
+    req: GuidedSessionRequest,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_instructor)
+):
+    """Inicia una sesión de clase guiada con secuencia de ataques predefinida."""
+    from ..simulation.scheduler import scheduler
+    if scheduler.guided_session_active():
+        raise HTTPException(status_code=409, detail="Ya hay una sesión guiada activa")
+    if not req.steps:
+        raise HTTPException(status_code=400, detail="La sesión debe tener al menos un ataque")
+
+    steps_dict = [s.model_dump() for s in req.steps]
+    scheduler.start_guided_session(req.name, steps_dict, req.auto_attacks_off)
+
+    await ws_manager.broadcast("guided_session_started", {
+        "name": req.name,
+        "total_steps": len(req.steps),
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": f"🎓 Sesión guiada '{req.name}' iniciada — {len(req.steps)} ataques programados",
+    })
+    return {"started": True, "name": req.name, "total_steps": len(req.steps)}
+
+
+@router.post("/guided/stop")
+async def stop_guided_session(_=Depends(require_instructor)):
+    """Detiene la sesión de clase guiada en curso."""
+    from ..simulation.scheduler import scheduler
+    scheduler.stop_guided_session()
+    await ws_manager.broadcast("guided_session_stopped", {
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": "🛑 Sesión guiada detenida por el instructor",
+    })
+    return {"stopped": True}
+
+
+@router.get("/guided/status")
+async def guided_session_status(_=Depends(require_instructor)):
+    """Estado actual de la sesión guiada."""
+    from ..simulation.scheduler import scheduler
+    return scheduler.get_guided_status()

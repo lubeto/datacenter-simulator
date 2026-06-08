@@ -232,6 +232,7 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
   <button class="tab-btn"        id="tabBtn-monitor"  onclick="switchTab('monitor')">👁️ Monitor en Vivo <span class="tab-badge" id="monitorAlertBadge" style="display:none">!</span></button>
   <button class="tab-btn"        id="tabBtn-analytics" onclick="switchTab('analytics')">📊 Analytics</button>
   <button class="tab-btn"        id="tabBtn-reportes" onclick="switchTab('reportes')">📋 Reportes</button>
+  <button class="tab-btn"        id="tabBtn-guided"   onclick="switchTab('guided')">🎓 Clase Guiada <span class="tab-badge" id="guidedBadge" style="display:none">▶</span></button>
 </nav>
 
 <div class="container">
@@ -891,6 +892,74 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 
 </div><!-- /tab-reportes -->
 
+<!-- ══ TAB: CLASE GUIADA ══════════════════════════════════════ -->
+<div id="tab-guided" class="tab-pane">
+  <div class="container" style="max-width:900px;margin:0 auto;padding:1rem">
+
+    <!-- STATUS BANNER -->
+    <div id="guidedStatusBanner" style="display:none;background:#1a3a1a;border:1px solid #22c55e;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;color:#86efac;font-size:.9rem">
+      <span id="guidedStatusText">▶ Sesión activa</span>
+      <button onclick="stopGuidedSession()" style="float:right;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:.25rem .75rem;cursor:pointer;font-size:.85rem">⏹ Detener</button>
+    </div>
+
+    <div class="grid-2" style="gap:1rem">
+
+      <!-- PANEL IZQUIERDO: Configurar sesión -->
+      <div class="card" style="border-color:#f59e0b">
+        <div class="card-header" style="border-bottom-color:#78350f">
+          <span class="card-title">🎓 Nueva Sesión Guiada</span>
+        </div>
+        <div style="padding:1rem">
+          <label style="display:block;margin-bottom:.5rem;font-size:.85rem;color:#d1d5db">Nombre de la sesión</label>
+          <input id="guidedName" type="text" value="Clase guiada" placeholder="ej. Práctica APT — Grupo A"
+            style="width:100%;padding:.5rem;background:#111;border:1px solid #374151;border-radius:4px;color:#f9fafb;margin-bottom:1rem;box-sizing:border-box">
+
+          <label style="display:block;margin-bottom:.5rem;font-size:.85rem;color:#d1d5db">Secuencia de ataques</label>
+          <div id="guidedStepsList" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem"></div>
+
+          <button onclick="addGuidedStep()" style="width:100%;padding:.5rem;background:#1f2937;border:1px dashed #4b5563;border-radius:4px;color:#9ca3af;cursor:pointer;font-size:.85rem;margin-bottom:1rem">
+            + Agregar ataque
+          </button>
+
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#d1d5db;margin-bottom:1rem;cursor:pointer">
+            <input type="checkbox" id="guidedDisableAuto" checked style="accent-color:#f59e0b">
+            Desactivar ataques automáticos durante la sesión
+          </label>
+
+          <button onclick="startGuidedSession()" id="guidedStartBtn"
+            style="width:100%;padding:.6rem;background:#f59e0b;color:#000;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:.95rem">
+            ▶ Iniciar Sesión Guiada
+          </button>
+        </div>
+      </div>
+
+      <!-- PANEL DERECHO: Estado en vivo -->
+      <div class="card" style="border-color:#3b82f6">
+        <div class="card-header" style="border-bottom-color:#1e3a5f">
+          <span class="card-title">📡 Estado en Vivo</span>
+          <button onclick="refreshGuidedStatus()" style="background:#1f2937;border:1px solid #374151;color:#9ca3af;border-radius:4px;padding:.2rem .5rem;cursor:pointer;font-size:.8rem">↻</button>
+        </div>
+        <div id="guidedStatusPanel" style="padding:1rem;color:#9ca3af;font-size:.85rem;min-height:200px">
+          <p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>
+        </div>
+      </div>
+
+    </div><!-- /grid-2 -->
+
+    <!-- LOG DE EVENTOS -->
+    <div class="card" style="margin-top:1rem;border-color:#6b7280">
+      <div class="card-header">
+        <span class="card-title">📋 Log de Sesión Guiada</span>
+        <button onclick="document.getElementById('guidedLog').innerHTML=''" style="background:#1f2937;border:1px solid #374151;color:#9ca3af;border-radius:4px;padding:.2rem .5rem;cursor:pointer;font-size:.8rem">Limpiar</button>
+      </div>
+      <div id="guidedLog" style="padding:.75rem;font-size:.8rem;font-family:monospace;max-height:200px;overflow-y:auto;color:#6b7280">
+        <span style="color:#4b5563">— Sin eventos —</span>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab-guided -->
+
 </div><!-- /container -->
 
 <div class="notif" id="notifContainer"></div>
@@ -928,6 +997,12 @@ function handleWS(msg) {
     case 'sst_alert': addTimeline('🌡️', `SST: ${msg.data.sensor_id||''}`, msg.data.message||'', 'warn'); break;
     case 'connected': document.getElementById('wsClientCount').textContent = `${msg.data.ws_clients||1} conectados`; break;
     case 'practice_mode': handlePracticeModeEcho(msg.data); break;
+    case 'guided_step_countdown':
+    case 'guided_step_launched':
+    case 'guided_session_completed':
+    case 'guided_session_stopped':
+    case 'guided_session_started':
+      handleGuidedWsEvent(evt, msg.data); break;
   }
 }
 
@@ -2946,6 +3021,181 @@ async function loadSessionHistory() {
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem">Sin sesiones activas actualmente</td></tr>';
   } catch(e) {}
+}
+
+// ══ MODO CLASE GUIADA ════════════════════════════════════════
+
+let guidedSteps = [];   // [{attack_type, node_id, intensity, duration_sec, delay_before_sec}]
+
+function addGuidedStep() {
+  const idx = guidedSteps.length;
+  guidedSteps.push({ attack_type: '', node_id: '', intensity: 0.7, duration_sec: 120, delay_before_sec: 60 });
+  renderGuidedSteps();
+}
+
+function removeGuidedStep(idx) {
+  guidedSteps.splice(idx, 1);
+  renderGuidedSteps();
+}
+
+function renderGuidedSteps() {
+  const container = document.getElementById('guidedStepsList');
+  if (!guidedSteps.length) {
+    container.innerHTML = '<p style="color:#4b5563;font-size:.82rem;text-align:center">Sin pasos. Agrega al menos uno.</p>';
+    return;
+  }
+  const nodeOpts = (allNodeIds || []).map(id => `<option value="${id}">${id}</option>`).join('');
+  const attackOpts = catalog ? Object.entries(catalog).map(([k,v]) =>
+    `<option value="${k}">[${v.severity.toUpperCase()}] ${v.name}</option>`).join('') : '';
+
+  container.innerHTML = guidedSteps.map((s, i) => `
+    <div style="background:#111;border:1px solid #374151;border-radius:6px;padding:.6rem;position:relative">
+      <span style="position:absolute;top:.4rem;right:.4rem;color:#6b7280;font-size:.75rem">Paso ${i+1}</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.4rem">
+        <select onchange="guidedSteps[${i}].attack_type=this.value"
+          style="padding:.35rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+          <option value="">-- Ataque --</option>${attackOpts}
+        </select>
+        <select onchange="guidedSteps[${i}].node_id=this.value"
+          style="padding:.35rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+          <option value="">-- Nodo --</option>${nodeOpts}
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;align-items:center">
+        <label style="font-size:.75rem;color:#9ca3af">
+          Delay (s)<br>
+          <input type="number" value="${s.delay_before_sec}" min="10" max="600"
+            onchange="guidedSteps[${i}].delay_before_sec=+this.value"
+            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+        </label>
+        <label style="font-size:.75rem;color:#9ca3af">
+          Duración (s)<br>
+          <input type="number" value="${s.duration_sec}" min="30" max="600"
+            onchange="guidedSteps[${i}].duration_sec=+this.value"
+            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+        </label>
+        <label style="font-size:.75rem;color:#9ca3af">
+          Intensidad<br>
+          <input type="number" value="${s.intensity}" min="0.1" max="1" step="0.1"
+            onchange="guidedSteps[${i}].intensity=+this.value"
+            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+        </label>
+      </div>
+      <button onclick="removeGuidedStep(${i})"
+        style="margin-top:.4rem;background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:.75rem">✕ Eliminar</button>
+    </div>
+  `).join('');
+
+  // Restaurar valores seleccionados (los select se regeneran)
+  const selects = container.querySelectorAll('select');
+  guidedSteps.forEach((s, i) => {
+    if (selects[i*2])   selects[i*2].value   = s.attack_type;
+    if (selects[i*2+1]) selects[i*2+1].value = s.node_id;
+  });
+}
+
+async function startGuidedSession() {
+  if (!guidedSteps.length) { showNotif('Agrega al menos un ataque', 'error'); return; }
+  const invalid = guidedSteps.find(s => !s.attack_type || !s.node_id);
+  if (invalid) { showNotif('Completa ataque y nodo en todos los pasos', 'error'); return; }
+
+  const name = document.getElementById('guidedName').value || 'Clase guiada';
+  const disableAuto = document.getElementById('guidedDisableAuto').checked;
+
+  try {
+    await apiFetch('/api/attacks/guided/start', {
+      method: 'POST',
+      body: JSON.stringify({ name, steps: guidedSteps, auto_attacks_off: disableAuto })
+    });
+    showNotif(`✅ Sesión '${name}' iniciada`, 'success');
+    guidedLogAdd(`▶ Sesión '${name}' iniciada (${guidedSteps.length} pasos)`);
+    document.getElementById('guidedBadge').style.display = '';
+    document.getElementById('guidedStatusBanner').style.display = '';
+    document.getElementById('guidedStatusText').textContent = `▶ Sesión activa: ${name}`;
+    document.getElementById('guidedStartBtn').disabled = true;
+    refreshGuidedStatus();
+  } catch(e) {
+    showNotif('Error al iniciar sesión: ' + e.message, 'error');
+  }
+}
+
+async function stopGuidedSession() {
+  try {
+    await apiFetch('/api/attacks/guided/stop', { method: 'POST' });
+    showNotif('🛑 Sesión guiada detenida', 'warning');
+    guidedLogAdd('⏹ Sesión detenida por instructor');
+    document.getElementById('guidedBadge').style.display = 'none';
+    document.getElementById('guidedStatusBanner').style.display = 'none';
+    document.getElementById('guidedStartBtn').disabled = false;
+    document.getElementById('guidedStatusPanel').innerHTML = '<p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>';
+  } catch(e) {
+    showNotif('Error al detener: ' + e.message, 'error');
+  }
+}
+
+async function refreshGuidedStatus() {
+  try {
+    const st = await apiFetch('/api/attacks/guided/status');
+    const panel = document.getElementById('guidedStatusPanel');
+    if (!st.active) {
+      panel.innerHTML = '<p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>';
+      document.getElementById('guidedBadge').style.display = 'none';
+      document.getElementById('guidedStatusBanner').style.display = 'none';
+      document.getElementById('guidedStartBtn').disabled = false;
+      return;
+    }
+    const pct = st.total_steps ? Math.round(st.steps_done / st.total_steps * 100) : 0;
+    panel.innerHTML = `
+      <div style="margin-bottom:.75rem">
+        <div style="font-weight:700;color:#f9fafb;margin-bottom:.25rem">${st.name}</div>
+        <div style="font-size:.8rem;color:#9ca3af">Paso ${st.steps_done}/${st.total_steps} — ${pct}%</div>
+        <div style="background:#1f2937;border-radius:4px;height:6px;margin-top:.4rem">
+          <div style="background:#f59e0b;height:6px;border-radius:4px;width:${pct}%;transition:width .5s"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        ${(st.steps||[]).map(s => {
+          const color = s.status==='done' ? '#22c55e' : s.status==='running' ? '#f59e0b' : '#4b5563';
+          const icon  = s.status==='done' ? '✅' : s.status==='running' ? '▶' : '⏳';
+          return `<div style="font-size:.8rem;color:${color}">${icon} Paso ${s.index+1}: ${s.attack_type} → ${s.node_id} (delay: ${s.delay_before_sec}s)</div>`;
+        }).join('')}
+      </div>
+    `;
+  } catch(e) {
+    console.error('Error refreshGuidedStatus', e);
+  }
+}
+
+function guidedLogAdd(msg) {
+  const log = document.getElementById('guidedLog');
+  const ts = new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const first = log.querySelector('span[style*="4b5563"]');
+  if (first) first.remove();
+  const line = document.createElement('div');
+  line.style.cssText = 'border-bottom:1px solid #1f2937;padding:.2rem 0;color:#9ca3af';
+  line.textContent = `[${ts}] ${msg}`;
+  log.insertBefore(line, log.firstChild);
+}
+
+// Escuchar eventos WebSocket de clase guiada
+function handleGuidedWsEvent(type, data) {
+  if (type === 'guided_step_countdown') {
+    guidedLogAdd(`⏱ ${data.message}`);
+    refreshGuidedStatus();
+  } else if (type === 'guided_step_launched') {
+    guidedLogAdd(`🚨 ${data.message}`);
+    showNotif(data.message, 'warning');
+    refreshGuidedStatus();
+  } else if (type === 'guided_session_completed') {
+    guidedLogAdd(`✅ ${data.message}`);
+    showNotif(data.message, 'success');
+    document.getElementById('guidedBadge').style.display = 'none';
+    document.getElementById('guidedStatusBanner').style.display = 'none';
+    document.getElementById('guidedStartBtn').disabled = false;
+    refreshGuidedStatus();
+  } else if (type === 'guided_session_stopped') {
+    guidedLogAdd(`⏹ ${data.message}`);
+  }
 }
 
 // ── INIT ─────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-03
+## Última sesión: 2026-06-07
 
 ---
 
@@ -45,6 +45,30 @@ docker/Dockerfile          — Imagen Docker para Render
 ---
 
 ## Historial de sesiones
+
+### Sesión 2026-06-07 (skills Cowork + fix brute_force + verificación producción)
+
+#### Skills instaladas en Cowork
+- `impeccable.skill` — skill de diseño UI/UX (adaptada de GitHub, sin Node.js)
+- `caveman.skill` — modo comunicación ultra-comprimida (intensidades: lite/full/ultra/wenyan)
+- `dc-monitor.skill` — skill propia del proyecto: briefing, monitoreo en vivo, actualizar ESTADO.md
+
+#### `backend/simulation/engine.py`
+- **Fix BRUTE_FORCE**: `connections + 200 * ramp` → `connections + 2000 * ramp` (commit 252a720)
+- Umbral de detección era 400 conexiones; con +200 nunca se alcanzaba; ahora sube correctamente
+
+#### Git
+- Commit 252a720: fix brute_force connections +2000*ramp
+- Commit 721c723: archivos sin rastrear (`Guia_Ataques_Datacenter.html`, `.pptx`, `build_attacks_pptx.js`)
+- Eliminado archivo basura `h` (output de git guardado accidentalmente)
+- Push a main → Render auto-deploy
+
+#### Verificaciones en producción (https://datacenter-simulator.onrender.com)
+- `loadEvalReports()` tab Reportes: ✅ nombres correctos (ABIMELEC, LAURA, DEIRIS, ANNEY, ELIANA)
+- Catches en `instructor.html`: ✅ `loadAllIncidents`, `loadEvalReports`, `_loadEvalStudentFilter` — todos con mensaje de error, ninguno vacío
+- "Informe Completo del Aprendiz": ✅ abre en ventana nueva, 2 páginas, 7 secciones visibles en página 1 + sección 8 en página 2
+
+---
 
 ### Sesión 2026-06-03 (sexta parte — V2 implementada)
 
@@ -160,12 +184,13 @@ docker/Dockerfile          — Imagen Docker para Render
 
 ## Estado pendiente (para próxima sesión)
 
-- [ ] **Push pendiente**: hacer `git pull && git add frontend/index.html && git commit && git push` con los cambios V2
-- [ ] Probar "Informe Completo del Aprendiz" en producción — debe mostrar 8 secciones
-- [ ] **Bug BRUTE_FORCE**: conexiones solo suben +200 (umbral 400) → `engine.py`: `connections += 2000 * ramp`
+- [x] **Push pendiente**: cambios V2 pusheados a main ✅
+- [x] **Bug BRUTE_FORCE**: fix en engine.py (commit 252a720) ✅
+- [x] Probar "Informe Completo del Aprendiz" en producción ✅ (funciona, 2 páginas)
+- [x] Revisar `loadEvalReports()` — nombres correctos en producción ✅
+- [x] `instructor.html`: catches verificados en prod ✅
 - [ ] Verificar penalización de calidad de bitácora en panel de resultados
-- [ ] Revisar `loadEvalReports()` en tab Reportes del instructor — nombres de aprendices
-- [ ] `instructor.html`: catches vacíos corregidos (loadAllIncidents, _loadEvalStudentFilter, loadClassReport) — ya en código, verificar en prod
+- [ ] Verificar sección 8 del reporte (página 2 del Informe Completo)
 
 ---
 
