@@ -44,7 +44,7 @@ class EventScheduler:
     async def start(self):
         """Inicia todos los loops del scheduler."""
         self._running = True
-        logger.info("🕐 Scheduler iniciado")
+        logger.info("Scheduler iniciado")
         await asyncio.gather(
             self._metrics_loop(),
             self._auto_attack_loop(),
@@ -56,12 +56,12 @@ class EventScheduler:
     async def stop(self):
         self._running = False
 
-    # ──────────────────────────────────────────────────────────
-    # LOOP DE MÉTRICAS (cada 2 segundos)
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
+    # LOOP DE METRICAS (cada 2 segundos)
+    # ----------------------------------------------------------
     async def _metrics_loop(self):
         from .engine import generate_full_snapshot, tick_attacks
-        _db_tick = 0  # guardar en DB cada 15 ciclos (cada 30s) en vez de cada 2s
+        _db_tick = 0
         while self._running:
             try:
                 tick_attacks()
@@ -79,37 +79,30 @@ class EventScheduler:
                 logger.error(f"Error en metrics_loop: {e}")
             await asyncio.sleep(2)
 
-    # ──────────────────────────────────────────────────────────
-    # LOOP DE ATAQUES AUTOMÁTICOS
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
+    # LOOP DE ATAQUES AUTOMATICOS
+    # ----------------------------------------------------------
     async def _auto_attack_loop(self):
         import os
         auto_enabled = os.getenv("AUTO_ATTACK_ENABLED", "true").lower() == "true"
-        # Intervalo reducido: 2-7 min para mantener al aprendiz alerta en el NOC
         min_min = int(os.getenv("AUTO_ATTACK_MIN_INTERVAL_MIN", "2"))
         max_min = int(os.getenv("AUTO_ATTACK_MAX_INTERVAL_MIN", "7"))
 
         def _has_manual_attack() -> bool:
-            """Devuelve True si hay algún ataque inyectado manualmente activo."""
             return any(
                 not a.get("auto_injected", True)
                 for a in sim_state.active_attacks.values()
             )
 
         while self._running:
-            # Calcular nuevo intervalo de espera
             wait_sec = random.randint(min_min * 60, max_min * 60)
             elapsed = 0
 
-            # Esperar en trozos de 10 s para poder reaccionar a cambios
             while elapsed < wait_sec and self._running:
                 await asyncio.sleep(10)
                 elapsed += 10
-
-                # Si el instructor inyectó un ataque manual, reiniciar el temporizador
-                # (los auto-ataques ceden el turno mientras el instructor controla)
                 if _has_manual_attack():
-                    elapsed = 0  # reset: esperar intervalo completo tras terminar el manual
+                    elapsed = 0
 
             if not self._running:
                 break
@@ -117,11 +110,9 @@ class EventScheduler:
             if not auto_enabled or not self._auto_attacks:
                 continue
 
-            # No inyectar si el instructor está en control (ataque manual activo)
             if _has_manual_attack():
                 continue
 
-            # No acumular más de 1 ataque automático simultáneo
             if len(sim_state.active_attacks) >= 1:
                 continue
 
@@ -136,18 +127,16 @@ class EventScheduler:
                 auto=True
             )
 
-            logger.info(f"🚨 Auto-ataque: {result['name']} → {scenario['node_id']}")
+            logger.info(f"Auto-ataque: {result['name']} -> {scenario['node_id']}")
 
-            # Notificar por WebSocket
             if self._broadcast_cb:
                 await self._broadcast_cb("new_incident", {
                     "type": "auto_attack",
                     "attack": result,
                     "timestamp": datetime.utcnow().isoformat(),
-                    "message": f"⚠️ NUEVO INCIDENTE: {result['name']} detectado en {scenario['node_id']}"
+                    "message": f"NUEVO INCIDENTE: {result['name']} detectado en {scenario['node_id']}"
                 })
 
-            # Guardar incidente en DB
             if self._db_save_cb:
                 await self._db_save_cb("incident", {
                     "incident_type": scenario["attack_type"],
@@ -159,9 +148,9 @@ class EventScheduler:
                     "status": "active",
                 })
 
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     # LOOP DE MONITOREO SSL (cada 60 segundos)
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     async def _ssl_check_loop(self):
         from .nodes import get_nodes_with_ssl
         import os
@@ -177,15 +166,13 @@ class EventScheduler:
                 ssl_status = []
 
                 for node in ssl_nodes:
-                    # Simular estado SSL del certificado
-                    # En un entorno real, aquí se haría la conexión SSL real
                     days = self._simulate_cert_days(node.id)
                     now = datetime.utcnow()
                     expires_at = now + timedelta(days=days)
 
                     is_expired = days <= 0
                     tls_version = self._simulate_tls_version(node.id)
-                    is_self_signed = random.random() < 0.05  # 5% chance
+                    is_self_signed = random.random() < 0.05
 
                     alert_level = "normal"
                     alert_msg = ""
@@ -194,16 +181,16 @@ class EventScheduler:
                         alert_msg = "Certificado EXPIRADO"
                     elif days <= 7:
                         alert_level = "critical"
-                        alert_msg = f"Certificado vence en {days} días"
+                        alert_msg = f"Certificado vence en {days} dias"
                     elif days <= 30:
                         alert_level = "warning"
-                        alert_msg = f"Certificado vence en {days} días"
+                        alert_msg = f"Certificado vence en {days} dias"
                     elif tls_version in ("TLSv1.0", "TLSv1.1"):
                         alert_level = "warning"
-                        alert_msg = f"Versión TLS insegura: {tls_version}"
+                        alert_msg = f"Version TLS insegura: {tls_version}"
                     elif is_self_signed:
                         alert_level = "warning"
-                        alert_msg = "Certificado auto-firmado en producción"
+                        alert_msg = "Certificado auto-firmado en produccion"
 
                     cert_data = {
                         "domain": node.ssl_domain or f"{node.id.lower()}.datacenter.edu",
@@ -238,9 +225,9 @@ class EventScheduler:
             except Exception as e:
                 logger.error(f"Error en ssl_check_loop: {e}")
 
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     # LOOP DE MONITOREO SST (cada 5 segundos)
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     async def _sst_monitor_loop(self):
         from .engine import generate_sst_reading
         from .nodes import SST_SENSORS
@@ -276,10 +263,9 @@ class EventScheduler:
             except Exception as e:
                 logger.error(f"Error en sst_monitor_loop: {e}")
 
-
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     # LOOP DE ESCALADO DE ALERTAS (cada 10 segundos)
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     async def _escalation_loop(self):
         """Escala alertas si los incidentes no se detectan a tiempo."""
         from ..database.db import AsyncSessionLocal
@@ -306,16 +292,12 @@ class EventScheduler:
                         critical_t = ESCALATION_CONFIG["critical_after_sec"]
                         auto_t     = ESCALATION_CONFIG["auto_detect_after_sec"]
 
-                        # Ignorar incidentes muy viejos (más de 15 min) — son históricos
-                        # El aprendiz no puede detectar algo que pasó hace horas
-                        if elapsed > 900:  # 15 minutos
-                            # Marcar como detectado automáticamente para limpiar la cola
+                        if elapsed > 900:
                             await crud.detect_incident(db, inc.id, 0)
                             await db.commit()
                             continue
 
                         if elapsed >= auto_t and self._broadcast_cb:
-                            # Auto-detectar con penalizacion
                             await crud.detect_incident(db, inc.id, 0)
                             await db.commit()
                             await self._broadcast_cb("incident_auto_detected", {
@@ -350,15 +332,14 @@ class EventScheduler:
             except Exception as e:
                 logger.warning(f"Error en escalation_loop: {e}")
 
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     # HELPERS
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     _cert_days_cache: dict = {}
 
     def _simulate_cert_days(self, node_id: str) -> int:
-        """Simula días restantes del certificado. Consistente por nodo."""
+        """Simula dias restantes del certificado. Consistente por nodo."""
         if node_id not in self._cert_days_cache:
-            # Distribuir: 70% > 90 días, 20% 30-90, 7% 7-30, 3% < 7
             r = random.random()
             if r < 0.70:
                 days = random.randint(90, 365)
@@ -372,7 +353,7 @@ class EventScheduler:
         return self._cert_days_cache[node_id]
 
     def _simulate_tls_version(self, node_id: str) -> str:
-        """Simula versión TLS del nodo."""
+        """Simula version TLS del nodo."""
         r = random.random()
         if r < 0.60: return "TLSv1.3"
         if r < 0.85: return "TLSv1.2"
@@ -382,14 +363,14 @@ class EventScheduler:
     def set_auto_attacks(self, enabled: bool):
         self._auto_attacks = enabled
 
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     # MODO CLASE GUIADA
-    # ──────────────────────────────────────────────────────────
+    # ----------------------------------------------------------
     def guided_session_active(self) -> bool:
         return self._guided_active
 
     def start_guided_session(self, name: str, steps: list, disable_auto: bool = True):
-        """Inicia la sesión guiada y lanza el loop asíncrono."""
+        """Inicia la sesion guiada y lanza el loop asincrono."""
         self._guided_name = name
         self._guided_steps = steps
         self._guided_current_step = 0
@@ -397,11 +378,10 @@ class EventScheduler:
         if disable_auto:
             self._guided_auto_attacks_was = self._auto_attacks
             self._auto_attacks = False
-        # Lanza la tarea asíncrona
         self._guided_task = asyncio.create_task(self._guided_session_loop())
 
     def stop_guided_session(self):
-        """Detiene la sesión guiada."""
+        """Detiene la sesion guiada."""
         self._guided_active = False
         self._auto_attacks = self._guided_auto_attacks_was
         if self._guided_task and not self._guided_task.done():
@@ -425,17 +405,77 @@ class EventScheduler:
                     "index": i,
                     "attack_type": s["attack_type"],
                     "node_id": s["node_id"],
-                    "intensity": s["intensity"],
-                    "delay_before_sec": s["delay_before_sec"],
+                    "intensity": s.get("intensity", 0.7),
+                    "delay_before_sec": s.get("delay_before_sec", 60),
                     "status": "done" if i < current else ("running" if i == current else "pending"),
                 }
                 for i, s in enumerate(self._guided_steps)
             ],
         }
 
+    async def _get_step_stats(self, incident_id: int, step_info: dict) -> dict:
+        """Consulta estadisticas de deteccion para un paso de clase guiada."""
+        from ..database.db import AsyncSessionLocal
+        from ..database.models import Incident, Session as EvalSession, Student
+        from sqlalchemy import select as sa_select, func as sa_func
+
+        was_detected = False
+        detected_by = None
+        mttd_seconds = None
+        active_students = 0
+
+        try:
+            async with AsyncSessionLocal() as db:
+                inc_q = await db.execute(sa_select(Incident).where(Incident.id == incident_id))
+                inc = inc_q.scalar_one_or_none()
+                if inc:
+                    was_detected = inc.detected_at is not None
+                    mttd_seconds = inc.mttd_seconds
+                    if inc.session_id:
+                        sess_q = await db.execute(sa_select(EvalSession).where(EvalSession.id == inc.session_id))
+                        sess = sess_q.scalar_one_or_none()
+                        if sess:
+                            stu_q = await db.execute(sa_select(Student).where(Student.id == sess.student_id))
+                            stu = stu_q.scalar_one_or_none()
+                            if stu:
+                                detected_by = stu.name
+
+                count_q = await db.execute(
+                    sa_select(sa_func.count(EvalSession.id)).where(EvalSession.ended_at.is_(None))
+                )
+                active_students = count_q.scalar() or 0
+        except Exception as e:
+            logger.error(f"Error en _get_step_stats: {e}")
+
+        step_num = step_info.get("step_index", 0) + 1
+        mttd_fmt = f"{mttd_seconds:.1f}s" if mttd_seconds is not None else "--"
+        atk_name = step_info.get("attack_name", step_info.get("attack_type", ""))
+        node_id = step_info.get("node_id", "")
+
+        return {
+            "incident_id": incident_id,
+            "step_num": step_num,
+            "attack_name": atk_name,
+            "node_id": node_id,
+            "was_detected": was_detected,
+            "detected_by": detected_by,
+            "mttd_seconds": mttd_seconds,
+            "active_students": active_students,
+            "message": (
+                f"Paso {step_num} -- "
+                f"{'Detectado por ' + detected_by if detected_by else 'Sin deteccion'} . "
+                f"MTTD: {mttd_fmt} . {active_students} activos"
+            ),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
     async def _guided_session_loop(self):
-        """Ejecuta los pasos de la sesión guiada en orden."""
-        logger.info(f"🎓 Sesión guiada '{self._guided_name}' iniciada ({len(self._guided_steps)} pasos)")
+        """Ejecuta los pasos de la sesion guiada en orden, con stats por paso."""
+        logger.info(f"Sesion guiada '{self._guided_name}' iniciada ({len(self._guided_steps)} pasos)")
+
+        prev_incident_id = None
+        prev_step_info = None
+
         try:
             for i, step in enumerate(self._guided_steps):
                 if not self._guided_active:
@@ -443,16 +483,26 @@ class EventScheduler:
 
                 self._guided_current_step = i
                 delay = step.get("delay_before_sec", 60)
+                total = len(self._guided_steps)
+
+                # Broadcast stats del paso ANTERIOR antes de la siguiente cuenta regresiva
+                if prev_incident_id is not None and self._broadcast_cb:
+                    try:
+                        stats = await self._get_step_stats(prev_incident_id, prev_step_info)
+                        await self._broadcast_cb("guided_step_stats", stats)
+                    except Exception as e:
+                        logger.warning(f"Error al broadcast step_stats: {e}")
 
                 # Notificar cuenta regresiva
                 if self._broadcast_cb:
                     await self._broadcast_cb("guided_step_countdown", {
                         "step_index": i,
-                        "total_steps": len(self._guided_steps),
+                        "step_num": i + 1,
+                        "total_steps": total,
                         "attack_type": step["attack_type"],
                         "node_id": step["node_id"],
-                        "delay_sec": delay,
-                        "message": f"🎓 Paso {i+1}/{len(self._guided_steps)}: '{step['attack_type']}' en {step['node_id']} en {delay}s",
+                        "delay_before_sec": delay,
+                        "message": f"Paso {i+1}/{total}: '{step['attack_type']}' en {step['node_id']} en {delay}s",
                         "timestamp": datetime.utcnow().isoformat(),
                     })
 
@@ -472,39 +522,82 @@ class EventScheduler:
                     intensity=step.get("intensity", 0.7),
                     duration_sec=step.get("duration_sec", 120),
                 )
+                logger.info(f"Paso {i+1}: {result.get('name')} -> {step['node_id']}")
 
-                logger.info(f"🎓 Paso {i+1}: {result.get('name')} → {step['node_id']}")
+                # Guardar incidente directamente para obtener el incident_id
+                incident_id = None
+                try:
+                    from ..database.db import AsyncSessionLocal
+                    from ..database.models import Incident as _Inc
+                    from ..simulation.mitigation import mitigation_engine as _mit_engine
+                    async with AsyncSessionLocal() as db:
+                        inc = _Inc(
+                            incident_type=step["attack_type"],
+                            category=result.get("category", "attack"),
+                            severity=result.get("severity", "warning"),
+                            node_affected=step["node_id"],
+                            description=f"[CLASE GUIADA] {result.get('description', '')}",
+                            started_at=datetime.utcnow(),
+                            status="active",
+                        )
+                        db.add(inc)
+                        await db.commit()
+                        await db.refresh(inc)
+                        incident_id = inc.id
+                        try:
+                            _mit_engine.register_suggestion(incident_id, step["attack_type"], step["node_id"])
+                        except Exception:
+                            pass
+                except Exception as e:
+                    logger.error(f"Error guardando incidente guiado: {e}")
+                    # fallback sin retorno de id
+                    if self._db_save_cb:
+                        await self._db_save_cb("incident", {
+                            "incident_type": step["attack_type"],
+                            "category": result.get("category", "attack"),
+                            "severity": result.get("severity", "warning"),
+                            "node_affected": step["node_id"],
+                            "description": f"[CLASE GUIADA] {result.get('description', '')}",
+                            "started_at": datetime.utcnow(),
+                            "status": "active",
+                        })
 
-                # Guardar incidente en DB
-                if self._db_save_cb:
-                    await self._db_save_cb("incident", {
-                        "incident_type": step["attack_type"],
-                        "category": result.get("category", "attack"),
-                        "severity": result.get("severity", "warning"),
-                        "node_affected": step["node_id"],
-                        "description": f"[CLASE GUIADA] {result.get('description', '')}",
-                        "started_at": datetime.utcnow(),
-                        "status": "active",
-                    })
+                prev_incident_id = incident_id
+                prev_step_info = {
+                    "step_index": i,
+                    "attack_type": step["attack_type"],
+                    "attack_name": result.get("name", step["attack_type"]),
+                    "node_id": step["node_id"],
+                }
 
-                # Broadcast
+                # Broadcast paso lanzado
                 if self._broadcast_cb:
                     await self._broadcast_cb("guided_step_launched", {
                         "step_index": i,
-                        "total_steps": len(self._guided_steps),
+                        "step_num": i + 1,
+                        "total_steps": total,
                         "attack": result,
+                        "attack_name": result.get("name", step["attack_type"]),
                         "node_id": step["node_id"],
-                        "message": f"🚨 [Clase Guiada] Paso {i+1}/{len(self._guided_steps)}: {result.get('name')} en {step['node_id']}",
+                        "incident_id": incident_id,
+                        "message": f"[Clase Guiada] Paso {i+1}/{total}: {result.get('name')} en {step['node_id']}",
                         "timestamp": datetime.utcnow().isoformat(),
                     })
 
         except asyncio.CancelledError:
-            logger.info("🎓 Sesión guiada cancelada")
+            logger.info("Sesion guiada cancelada")
         except Exception as e:
             logger.error(f"Error en guided_session_loop: {e}")
         finally:
             if self._guided_active:
-                # Terminó naturalmente
+                # Stats del ultimo paso antes de completar
+                if prev_incident_id is not None and self._broadcast_cb:
+                    try:
+                        stats = await self._get_step_stats(prev_incident_id, prev_step_info)
+                        await self._broadcast_cb("guided_step_stats", stats)
+                    except Exception as e:
+                        logger.warning(f"Error al broadcast step_stats final: {e}")
+
                 self._guided_active = False
                 self._auto_attacks = self._guided_auto_attacks_was
                 self._guided_current_step = len(self._guided_steps)
@@ -512,10 +605,10 @@ class EventScheduler:
                     await self._broadcast_cb("guided_session_completed", {
                         "name": self._guided_name,
                         "total_steps": len(self._guided_steps),
-                        "message": f"✅ Sesión guiada '{self._guided_name}' completada",
+                        "message": f"Sesion guiada '{self._guided_name}' completada",
                         "timestamp": datetime.utcnow().isoformat(),
                     })
-                logger.info(f"✅ Sesión guiada '{self._guided_name}' completada")
+                logger.info(f"Sesion guiada '{self._guided_name}' completada")
 
 
 # Instancia global

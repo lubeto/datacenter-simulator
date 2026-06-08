@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía del Aprendiz — DC Monitoring Simulator</title>
+<style>
+/* ── Tokens ─────────────────────────────────────────────── */
+:root {
+  --bg:      #18181b;
+  --surface: #27272a;
+  --surface2:#2d2d30;
+  --border:  #3f3f46;
+  --accent:  #f59e0b;
+  --accent2: #f97316;
+  --green:   #22c55e;
+  --yellow:  #eab308;
+  --red:     #ef4444;
+  --blue:    #3b82f6;
+  --purple:  #a78bfa;
+  --cyan:    #06b6d4;
+  --text:    #fafafa;
+  --muted:   #a1a1aa;
+  --font:    'Segoe UI', system-ui, sans-serif;
+  --mono:    'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  --nav-w:   260px;
+  --header-h:60px;
+  --radius:  10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Header ─────────────────────────────────────────────── */
+#header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  background: #111113;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.header-tag {
+  font-size: .72rem;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: .2rem .75rem;
+  font-weight: 500;
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+#layout {
+  display: flex;
+  padding-top: var(--header-h);
+  min-height: 100vh;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+#sidebar {
+  width: var(--nav-w);
+  flex-shrink: 0;
+  position: sticky;
+  top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  padding: 1.5rem 1rem;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.nav-label {
+  font-size: .67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+  padding: .9rem .5rem .35rem;
+  margin-top: .5rem;
+}
+
+.nav-label:first-child { margin-top: 0; padding-top: .35rem; }
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .45rem .65rem;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: .84rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: color .15s, background .15s;
+}
+
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,.05); }
+.nav-link.active { color: var(--accent); background: rgba(245,158,11,.1); font-weight: 700; }
+
+.nav-icon { font-size: .95rem; flex-shrink: 0; }
+
+/* ── Main content ───────────────────────────────────────── */
+#main {
+  flex: 1;
+  max-width: 900px;
+  padding: 2.5rem 2.5rem 4rem;
+  overflow: hidden;
+}
+
+/* ── Section ────────────────────────────────────────────── */
+.section {
+  margin-bottom: 4rem;
+  scroll-margin-top: calc(var(--header-h) + 1.5rem);
+}
+
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+  margin-bottom: .4rem;
+}
+
+.section-sub {
+  color: var(--muted);
+  font-size: .93rem;
+  max-width: 65ch;
+  text-wrap: pretty;
+  margin-bottom: 1.8rem;
+}
+
+.section-divider {
+  width: 36px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin-bottom: .8rem;
+}
+
+/* ── Step flow ───────────────────────────────────────────── */
+.step-flow {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin-bottom: 1.5rem;
+}
+
+.step-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: .9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color .2s;
+}
+
+.step-item:hover { border-color: var(--accent); }
+
+.step-num {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  color: #000;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: .78rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: .05rem;
+}
+
+.step-content { flex: 1; }
+.step-title { font-size: .93rem; font-weight: 700; margin-bottom: .2rem; }
+.step-desc { font-size: .83rem; color: var(--muted); line-height: 1.55; }
+
+/* ── Metric table ───────────────────────────────────────── */
+.metric-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-table th {
+  text-align: left;
+  padding: .6rem 1rem;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: .73rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+}
+
+.metric-table th:first-child { border-radius: var(--radius) 0 0 0; }
+.metric-table th:last-child  { border-radius: 0 var(--radius) 0 0; }
+
+.metric-table td {
+  padding: .55rem 1rem;
+  border-bottom: 1px solid rgba(63,63,70,.5);
+  vertical-align: middle;
+}
+
+.metric-table tr:last-child td { border-bottom: none; }
+.metric-table tr:hover td { background: rgba(255,255,255,.02); }
+
+.metric-table td:first-child { font-weight: 600; }
+
+.pill {
+  display: inline-block;
+  padding: .18rem .65rem;
+  border-radius: 20px;
+  font-size: .73rem;
+  font-weight: 700;
+}
+
+.pill-green { background: rgba(34,197,94,.15);  color: var(--green); }
+.pill-yellow{ background: rgba(234,179,8,.15);  color: var(--yellow); }
+.pill-red   { background: rgba(239,68,68,.15);  color: var(--red); }
+.pill-blue  { background: rgba(59,130,246,.15); color: var(--blue); }
+.pill-purple{ background: rgba(167,139,250,.15);color: var(--purple); }
+
+/* ── Attack cards ───────────────────────────────────────── */
+.attack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: .75rem;
+  margin-bottom: 1.5rem;
+}
+
+.atk-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .2s, transform .15s;
+}
+
+.atk-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.atk-card.open  { border-color: var(--accent); }
+
+.atk-header {
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.atk-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.bg-red    { background: rgba(239,68,68,.15); }
+.bg-yellow { background: rgba(234,179,8,.15); }
+.bg-orange { background: rgba(249,115,22,.15); }
+.bg-blue   { background: rgba(59,130,246,.15); }
+.bg-purple { background: rgba(167,139,250,.15); }
+.bg-cyan   { background: rgba(6,182,212,.15); }
+.bg-green  { background: rgba(34,197,94,.15); }
+
+.atk-title { font-size: .9rem; font-weight: 700; }
+.atk-cat   { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+
+.atk-toggle {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: .8rem;
+  transition: transform .25s;
+}
+
+.atk-card.open .atk-toggle { transform: rotate(180deg); }
+
+.atk-body {
+  display: none;
+  padding: .75rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.atk-card.open .atk-body { display: block; }
+
+.atk-desc {
+  font-size: .82rem;
+  color: var(--muted);
+  margin-bottom: .85rem;
+  line-height: 1.55;
+}
+
+.atk-section-title {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+  margin-bottom: .4rem;
+}
+
+.indicator-list, .mitigation-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  margin-bottom: .85rem;
+}
+
+.indicator-list li {
+  font-size: .8rem;
+  font-family: var(--mono);
+  color: var(--yellow);
+  background: rgba(234,179,8,.07);
+  padding: .2rem .6rem;
+  border-radius: 5px;
+}
+
+.mitigation-list li {
+  font-size: .8rem;
+  color: var(--text);
+  padding: .2rem 0;
+  display: flex;
+  gap: .5rem;
+  align-items: flex-start;
+}
+
+.mit-check { color: var(--green); flex-shrink: 0; margin-top: .07rem; }
+
+/* ── Info box ───────────────────────────────────────────── */
+.info-box {
+  background: rgba(59,130,246,.08);
+  border: 1px solid rgba(59,130,246,.25);
+  border-radius: var(--radius);
+  padding: .9rem 1.1rem;
+  font-size: .85rem;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.warn-box {
+  background: rgba(234,179,8,.08);
+  border: 1px solid rgba(234,179,8,.25);
+  border-radius: var(--radius);
+  padding: .9rem 1.1rem;
+  font-size: .85rem;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.tip-box {
+  background: rgba(34,197,94,.07);
+  border: 1px solid rgba(34,197,94,.22);
+  border-radius: var(--radius);
+  padding: .9rem 1.1rem;
+  font-size: .85rem;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+/* ── Difficulty levels ──────────────────────────────────── */
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .75rem;
+  margin-bottom: 1.5rem;
+}
+
+.diff-card {
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.diff-card.green  { border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.06); }
+.diff-card.yellow { border-color: rgba(234,179,8,.35); background: rgba(234,179,8,.06); }
+.diff-card.red    { border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.06); }
+
+.diff-badge {
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 800;
+  padding: .15rem .55rem;
+  border-radius: 10px;
+  margin-bottom: .6rem;
+}
+
+.diff-card.green  .diff-badge { background: rgba(34,197,94,.2);  color: var(--green); }
+.diff-card.yellow .diff-badge { background: rgba(234,179,8,.2);  color: var(--yellow); }
+.diff-card.red    .diff-badge { background: rgba(239,68,68,.2);  color: var(--red); }
+
+.diff-title { font-size: .9rem; font-weight: 700; margin-bottom: .35rem; }
+.diff-desc  { font-size: .78rem; color: var(--muted); line-height: 1.55; }
+
+/* ── Bitácora examples ──────────────────────────────────── */
+.bita-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+
+.bita-example {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.bita-example.bad  { border-color: rgba(239,68,68,.4); }
+.bita-example.good { border-color: rgba(34,197,94,.4); }
+
+.bita-label {
+  padding: .5rem .9rem;
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.bad  .bita-label { background: rgba(239,68,68,.15);  color: #f87171; }
+.good .bita-label { background: rgba(34,197,94,.15);  color: var(--green); }
+
+.bita-text {
+  padding: .75rem .9rem;
+  font-size: .82rem;
+  line-height: 1.6;
+  background: var(--surface);
+  color: var(--text);
+  min-height: 80px;
+}
+
+.bita-why {
+  padding: .5rem .9rem;
+  font-size: .75rem;
+  line-height: 1.5;
+  background: var(--surface2);
+}
+
+.bad  .bita-why { color: #f87171; }
+.good .bita-why { color: var(--green); }
+
+/* ── Field guide ───────────────────────────────────────── */
+.field-guide {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  margin-bottom: 1.5rem;
+}
+
+.field-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+
+.field-header {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin-bottom: .6rem;
+}
+
+.field-num {
+  width: 24px; height: 24px;
+  background: var(--purple);
+  color: #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: .72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.field-name { font-size: .93rem; font-weight: 700; }
+.field-hint { font-size: .78rem; color: var(--muted); margin-top: .05rem; }
+
+.field-prompts {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+
+.field-prompts li {
+  font-size: .8rem;
+  color: var(--muted);
+  padding-left: 1rem;
+  position: relative;
+}
+
+.field-prompts li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+/* ── Quality scoring ────────────────────────────────────── */
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .6rem;
+  margin-bottom: 1.5rem;
+}
+
+.quality-card {
+  padding: .85rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: center;
+}
+
+.quality-label {
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .4rem;
+}
+
+.quality-score {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: .3rem;
+}
+
+.quality-desc { font-size: .72rem; color: var(--muted); line-height: 1.4; }
+
+.q-alta   .quality-label, .q-alta   .quality-score { color: var(--green); }
+.q-media  .quality-label, .q-media  .quality-score { color: var(--yellow); }
+.q-baja   .quality-label, .q-baja   .quality-score { color: var(--orange); }
+.q-basura .quality-label, .q-basura .quality-score { color: var(--red); }
+
+/* ── Full example bitácora ──────────────────────────────── */
+.bita-full {
+  background: var(--surface);
+  border: 1px solid rgba(34,197,94,.4);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.bita-full-header {
+  background: rgba(34,197,94,.1);
+  padding: .6rem 1.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .78rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.bita-field {
+  padding: .75rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bita-field:last-child { border-bottom: none; }
+
+.bita-field-name {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+  margin-bottom: .35rem;
+}
+
+.bita-field-text {
+  font-size: .83rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+/* ── Quick reference table ──────────────────────────────── */
+.quick-ref {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.quick-ref-title {
+  padding: .6rem 1rem;
+  background: var(--surface2);
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.quick-ref table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quick-ref td {
+  padding: .5rem 1rem;
+  font-size: .82rem;
+  border-bottom: 1px solid rgba(63,63,70,.4);
+}
+
+.quick-ref tr:last-child td { border-bottom: none; }
+.quick-ref td:first-child { color: var(--accent); font-weight: 600; width: 38%; }
+
+/* ── Penalties box ──────────────────────────────────────── */
+.penalty-list {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  margin-bottom: 1.5rem;
+}
+
+.penalty-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: .6rem .9rem;
+  background: rgba(239,68,68,.07);
+  border: 1px solid rgba(239,68,68,.2);
+  border-radius: 7px;
+  font-size: .83rem;
+}
+
+.penalty-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+.penalty-text { flex: 1; line-height: 1.5; }
+.penalty-text strong { color: var(--red); }
+
+/* ── Tag cloud style helpers ────────────────────────────── */
+.keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-top: .5rem;
+}
+
+.tag {
+  font-size: .74rem;
+  padding: .18rem .55rem;
+  border-radius: 5px;
+  background: rgba(167,139,250,.12);
+  color: var(--purple);
+  font-family: var(--mono);
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #sidebar { display: none; }
+  #main { padding: 1.5rem 1.25rem 4rem; }
+  .bita-compare { grid-template-columns: 1fr; }
+  .diff-grid    { grid-template-columns: 1fr; }
+  .quality-grid { grid-template-columns: repeat(2, 1fr); }
+  .attack-grid  { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 540px) {
+  .quality-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Mobile nav toggle ──────────────────────────────────── */
+#mob-nav-btn {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: .3rem .65rem;
+  color: var(--text);
+  font-size: .82rem;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  #mob-nav-btn { display: block; }
+}
+
+#mob-nav {
+  display: none;
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  background: var(--bg);
+  z-index: 90;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+#mob-nav.open { display: block; }
+
+/* ── Motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .atk-body { transition: none; }
+  .atk-toggle { transition: transform .22s cubic-bezier(.4,0,.2,1); }
+  .step-item  { transition: border-color .2s, transform .18s cubic-bezier(.4,0,.2,1); }
+  .atk-card   { transition: border-color .2s, transform .18s cubic-bezier(.4,0,.2,1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atk-toggle { transition: none; }
+  .step-item, .atk-card { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────── -->
+<header id="header">
+  <a class="logo" href="/index.html">
+    <div class="logo-icon">🖥️</div>
+    DC Monitoring Simulator
+  </a>
+  <div style="display:flex;align-items:center;gap:.75rem">
+    <span class="header-tag">📘 Guía del Aprendiz</span>
+    <button id="mob-nav-btn" onclick="toggleMobNav()">☰ Secciones</button>
+  </div>
+</header>
+
+<!-- ── Mobile nav ─────────────────────────────────── -->
+<nav id="mob-nav">
+  <div style="font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">Secciones</div>
+  <div id="mob-nav-links"></div>
+</nav>
+
+<!-- ── Layout ─────────────────────────────────────── -->
+<div id="layout">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="nav-label">Contenido</div>
+    <a class="nav-link active" href="#s-proceso"   onclick="setActive(this)"><span class="nav-icon">🔄</span> El Proceso Completo</a>
+    <a class="nav-link"        href="#s-metricas"  onclick="setActive(this)"><span class="nav-icon">📊</span> Cómo leer las métricas</a>
+    <a class="nav-link"        href="#s-ataques"   onclick="setActive(this)"><span class="nav-icon">⚡</span> Tipos de ataque</a>
+    <a class="nav-link"        href="#s-ayudas"    onclick="setActive(this)"><span class="nav-icon">💡</span> Ayudas del simulador</a>
+    <a class="nav-link"        href="#s-bitacora"  onclick="setActive(this)"><span class="nav-icon">📋</span> Cómo llenar la bitácora</a>
+
+    <div class="nav-label">Bitácora</div>
+    <a class="nav-link" href="#b-campos"   onclick="setActive(this)"><span class="nav-icon">✏️</span> Los 4 campos</a>
+    <a class="nav-link" href="#b-calidad"  onclick="setActive(this)"><span class="nav-icon">⭐</span> Calidad y penalización</a>
+    <a class="nav-link" href="#b-ejemplos" onclick="setActive(this)"><span class="nav-icon">📝</span> Ejemplo completo</a>
+
+    <div class="nav-label">Referencia rápida</div>
+    <a class="nav-link" href="#ref-umbrales" onclick="setActive(this)"><span class="nav-icon">📏</span> Umbrales críticos</a>
+  </nav>
+
+  <!-- Main -->
+  <main id="main">
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 1 — EL PROCESO COMPLETO
+    ═══════════════════════════════════════════════ -->
+    <section class="section" id="s-proceso">
+      <div class="section-divider"></div>
+      <h1 class="section-title">El Proceso Completo</h1>
+      <p class="section-sub">Cada sesión de práctica sigue este flujo. Conocerlo de memoria te permite reaccionar sin dudar cuando aparece un incidente.</p>
+
+      <div class="step-flow">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Iniciar sesión de práctica</div>
+            <div class="step-desc">En el dashboard del simulador, presiona <strong>▶ Iniciar Práctica</strong>. El sistema abre una sesión de evaluación y comienza a registrar tu MTTD (tiempo de detección) desde ese instante.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Vigilar el mapa y las métricas</div>
+            <div class="step-desc">Observa el mapa de nodos y los paneles de métricas. Un nodo que cambia a <span style="color:var(--yellow);font-weight:700">amarillo</span> o <span style="color:var(--red);font-weight:700">rojo</span> indica anomalía. Revisa CPU, RAM, latencia y conexiones en el panel de la derecha.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Detectar el incidente</div>
+            <div class="step-desc">Haz clic sobre el nodo afectado para ver sus métricas en detalle. Cuando confirmes que hay un problema, presiona <strong>🔍 Detectar Incidente</strong>. Ese clic detiene el cronómetro de MTTD. Cuanto antes lo hagas, mayor tu puntaje.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Diagnóstico guiado (panel de preguntas)</div>
+            <div class="step-desc">Se abre el panel de diagnóstico con preguntas sobre el ataque. Responde en orden: qué ves en las métricas, qué tipo de ataque es, cuál es la causa raíz y cómo mitigarlo. Cada respuesta correcta suma puntos; las incorrectas descuentan.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Aplicar mitigación</div>
+            <div class="step-desc">En el panel de mitigación (debajo del mapa), aparecen los pasos recomendados para ese tipo de ataque. Marca cada paso que completes. El sistema registra las acciones que tomaste.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-title">Diligenciar la bitácora</div>
+            <div class="step-desc">Al finalizar el diagnóstico se abre el formulario de bitácora con 4 campos. Este es el paso que más afecta tu calificación final. Describe en detalle: síntomas observados, causa raíz, acciones tomadas y lecciones aprendidas.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">7</div>
+          <div class="step-content">
+            <div class="step-title">Ver resultados y repetir</div>
+            <div class="step-desc">El sistema muestra tu puntaje final (detección + diagnóstico + bitácora), el MTTD logrado y si hubo penalización por calidad de texto. El instructor puede ver tus registros en tiempo real.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>💡 MTTD — Mean Time To Detect:</strong> es el número de segundos entre que el ataque fue inyectado y el momento en que tú presionas "Detectar". El objetivo es mantenerlo por debajo de 5 minutos (300 segundos). Un MTTD bajo indica una vigilancia activa del dashboard.
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 2 — MÉTRICAS
+    ═══════════════════════════════════════════════ -->
+    <section class="section" id="s-metricas">
+      <div class="section-divider"></div>
+      <h2 class="section-title">Cómo leer las métricas</h2>
+      <p class="section-sub">Cada nodo expone 9 métricas clave. Aprende qué valor es normal, cuál es de advertencia y cuál es crítico. Eso te permite identificar el tipo de ataque antes de abrir el panel de diagnóstico.</p>
+
+      <table class="metric-table">
+        <thead>
+          <tr>
+            <th>Métrica</th>
+            <th>Normal ✅</th>
+            <th>Advertencia 🟡</th>
+            <th>Crítico 🔴</th>
+            <th>Posible causa</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CPU %</td>
+            <td><span class="pill pill-green">&lt; 70%</span></td>
+            <td><span class="pill pill-yellow">70–90%</span></td>
+            <td><span class="pill pill-red">&gt; 90%</span></td>
+            <td>SYN Flood, DoS, Memory Leak</td>
+          </tr>
+          <tr>
+            <td>RAM %</td>
+            <td><span class="pill pill-green">&lt; 80%</span></td>
+            <td><span class="pill pill-yellow">80–90%</span></td>
+            <td><span class="pill pill-red">&gt; 90%</span></td>
+            <td>Memory Leak (sube progresivamente)</td>
+          </tr>
+          <tr>
+            <td>Net In (Mbps)</td>
+            <td><span class="pill pill-green">&lt; 400</span></td>
+            <td><span class="pill pill-yellow">400–800</span></td>
+            <td><span class="pill pill-red">&gt; 800</span></td>
+            <td>DoS, DDoS, SYN Flood</td>
+          </tr>
+          <tr>
+            <td>Latencia (ms)</td>
+            <td><span class="pill pill-green">&lt; 10ms</span></td>
+            <td><span class="pill pill-yellow">10–100ms</span></td>
+            <td><span class="pill pill-red">&gt; 100ms</span></td>
+            <td>DoS, DDoS, SYN Flood, ARP Spoofing</td>
+          </tr>
+          <tr>
+            <td>Pérdida paquetes</td>
+            <td><span class="pill pill-green">&lt; 1%</span></td>
+            <td><span class="pill pill-yellow">1–10%</span></td>
+            <td><span class="pill pill-red">&gt; 10%</span></td>
+            <td>DoS, DDoS, fallo de red</td>
+          </tr>
+          <tr>
+            <td>Conexiones</td>
+            <td><span class="pill pill-green">&lt; 1 000</span></td>
+            <td><span class="pill pill-yellow">1 000–5 000</span></td>
+            <td><span class="pill pill-red">&gt; 5 000</span></td>
+            <td>DDoS (&gt;50 000), SYN Flood (&gt;60 000), Brute Force (+2 000)</td>
+          </tr>
+          <tr>
+            <td>Disk I/O (MB/s)</td>
+            <td><span class="pill pill-green">&lt; 100</span></td>
+            <td><span class="pill pill-yellow">100–150</span></td>
+            <td><span class="pill pill-red">&gt; 150</span></td>
+            <td>Disk Failure (llega a 400+)</td>
+          </tr>
+          <tr>
+            <td>Errores SMART</td>
+            <td><span class="pill pill-green">0</span></td>
+            <td><span class="pill pill-yellow">1–4</span></td>
+            <td><span class="pill pill-red">≥ 5</span></td>
+            <td>Disk Failure (rango 5–20)</td>
+          </tr>
+          <tr>
+            <td>Temperatura (°C)</td>
+            <td><span class="pill pill-green">&lt; 25°C</span></td>
+            <td><span class="pill pill-yellow">25–28°C</span></td>
+            <td><span class="pill pill-red">&gt; 28°C</span></td>
+            <td>Sobrecalentamiento (falla CRAC)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="warn-box">
+        <strong>⚠️ Memory Leak — patrón diferente:</strong> la RAM no sube de golpe; crece aproximadamente 2–3% por minuto. Si ves la RAM subir progresivamente durante varios minutos sin causa aparente, es casi siempre un Memory Leak. Revisa también que el CPU esté moderadamente elevado y no haya tráfico de red anormal.
+      </div>
+
+      <div class="tip-box">
+        <strong>✅ Truco de lectura rápida:</strong> en el mapa de nodos, el color del borde te da el diagnóstico inicial: verde = ok, amarillo = advertencia, rojo = crítico (pulsante = ataque activo). Empieza siempre por los nodos con borde rojo pulsante.
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 3 — TIPOS DE ATAQUE
+    ═══════════════════════════════════════════════ -->
+    <section class="section" id="s-ataques">
+      <div class="section-divider"></div>
+      <h2 class="section-title">Tipos de ataque</h2>
+      <p class="section-sub">El simulador incluye ataques de red, fallos de hardware, eventos de infraestructura física (SST) y problemas SSL/TLS. Haz clic en cada tarjeta para ver los indicadores y pasos de mitigación.</p>
+
+      <!-- Red -->
+      <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:.75rem">Ataques de Red</p>
+      <div class="attack-grid" id="grid-red"></div>
+
+      <!-- Hardware -->
+      <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--orange);margin-bottom:.75rem;margin-top:1.5rem">Fallos de Hardware</p>
+      <div class="attack-grid" id="grid-hw"></div>
+
+      <!-- SST -->
+      <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--yellow);margin-bottom:.75rem;margin-top:1.5rem">Infraestructura Física (SST)</p>
+      <div class="attack-grid" id="grid-sst"></div>
+
+      <!-- SSL -->
+      <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:.75rem;margin-top:1.5rem">Seguridad SSL / TLS</p>
+      <div class="attack-grid" id="grid-ssl"></div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 4 — AYUDAS
+    ═══════════════════════════════════════════════ -->
+    <section class="section" id="s-ayudas">
+      <div class="section-divider"></div>
+      <h2 class="section-title">Ayudas del simulador</h2>
+      <p class="section-sub">El simulador tiene herramientas para apoyarte durante la práctica. Conocerlas te permite usarlas de forma estratégica sin perder puntos innecesarios.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.9rem;color:var(--accent)">Niveles de dificultad</h3>
+
+      <div class="diff-grid">
+        <div class="diff-card green">
+          <div class="diff-badge">🟢 Guiado</div>
+          <div class="diff-title">Modo aprendizaje</div>
+          <div class="diff-desc">Tras una respuesta incorrecta, el sistema muestra automáticamente la pista correcta. Descuento de <strong>−10 pts</strong> por pista usada. Ideal para cuando estás empezando.</div>
+        </div>
+        <div class="diff-card yellow">
+          <div class="diff-badge">🟡 Asistido</div>
+          <div class="diff-title">Modo estándar</div>
+          <div class="diff-desc">Las pistas están disponibles si las solicitas (botón <em>💡 Pista −10 pts</em>). No se muestran automáticamente. Es el nivel por defecto para las prácticas.</div>
+        </div>
+        <div class="diff-card red">
+          <div class="diff-badge">🔴 Experto</div>
+          <div class="diff-title">Sin ayuda</div>
+          <div class="diff-desc">Sin botón de pista. El diagnóstico tiene un cronómetro de 5 minutos. Si se agota, descuenta <strong>−20 pts</strong>. Actívalo cuando ya domines el material.</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.9rem;color:var(--accent)">Otras herramientas disponibles</h3>
+
+      <div class="step-flow">
+        <div class="step-item">
+          <div class="step-num" style="background:var(--blue)">💡</div>
+          <div class="step-content">
+            <div class="step-title">Pistas del diagnóstico (−10 pts)</div>
+            <div class="step-desc">En modo Asistido, el botón "💡 Pista −10 pts" muestra orientación para la pregunta actual. Úsala solo cuando genuinamente estás bloqueado; en modo Guiado aparece automáticamente.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num" style="background:var(--cyan)">🗺️</div>
+          <div class="step-content">
+            <div class="step-title">Mapa interactivo con zoom</div>
+            <div class="step-desc">Usa <strong>Ctrl + scroll</strong> para hacer zoom en el mapa de nodos. Arrastra para mover. Esto te permite ver mejor el estado de nodos individuales cuando hay muchos activos.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num" style="background:var(--purple)">⚡</div>
+          <div class="step-content">
+            <div class="step-title">Detección rápida (botón de alerta)</div>
+            <div class="step-desc">En la lista de alertas hay un botón rápido para detectar el incidente sin abrir el panel del nodo. Úsalo cuando ya ves claramente el tipo de alerta y quieres detener el MTTD de inmediato.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num" style="background:var(--green)">📅</div>
+          <div class="step-content">
+            <div class="step-title">Línea de tiempo de sesión</div>
+            <div class="step-desc">El panel de línea de tiempo registra automáticamente cada evento de tu sesión: inicio, detecciones, diagnósticos, labs, SST. Úsala para revisar tu actuación y para construir la bitácora.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num" style="background:var(--yellow)">🏆</div>
+          <div class="step-content">
+            <div class="step-title">Tabla de liderazgo anónima</div>
+            <div class="step-desc">Cada detección registra tu MTTD en una tabla de liderazgo local (top 5 de la sesión actual). Es anónima, solo visible para ti, y sirve para que compitas con tu propio rendimiento anterior.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>💡 Estrategia recomendada:</strong> empieza en modo Asistido. Cuando puedas responder todas las preguntas sin usar pistas durante 3 sesiones seguidas, sube a Experto. El objetivo es llegar a Experto con MTTD consistente por debajo de 3 minutos.
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 5 — BITÁCORA
+    ═══════════════════════════════════════════════ -->
+    <section class="section" id="s-bitacora">
+      <div class="section-divider"></div>
+      <h2 class="section-title">Cómo llenar la bitácora</h2>
+      <p class="section-sub">La bitácora es el registro oficial del incidente. Es evaluada tanto por el sistema (calidad de texto) como por el instructor. Es el componente que más diferencia a quienes aprueban de quienes no.</p>
+
+      <div class="warn-box">
+        <strong>⚠️ Error más frecuente:</strong> escribir texto genérico o muy corto. El sistema detecta automáticamente si el texto es de baja calidad y puede reducir tu puntaje. Escribe con datos reales: nombres de nodos, valores de métricas y acciones específicas.
+      </div>
+    </section>
+
+    <!-- Los 4 campos -->
+    <section class="section" id="b-campos">
+      <h3 style="font-size:1.15rem;font-weight:800;margin-bottom:.3rem">Los 4 campos de la bitácora</h3>
+      <p class="section-sub" style="margin-bottom:1.2rem">Cada campo tiene un propósito específico. El sistema requiere mínimo 30 caracteres por campo y evalúa la variedad de vocabulario.</p>
+
+      <div class="field-guide">
+        <div class="field-item">
+          <div class="field-header">
+            <div class="field-num">1</div>
+            <div>
+              <div class="field-name">Síntomas Observados</div>
+              <div class="field-hint">¿Qué viste exactamente en el dashboard?</div>
+            </div>
+          </div>
+          <ul class="field-prompts">
+            <li>¿Qué nodo estaba afectado? ¿A qué hora?</li>
+            <li>¿Qué valores tenían las métricas (números concretos)?</li>
+            <li>¿Hubo propagación a otros nodos?</li>
+            <li>¿Qué alertas aparecieron en el panel?</li>
+          </ul>
+          <div class="keyword-tags">
+            <span class="tag">nodo</span><span class="tag">CPU</span><span class="tag">RAM</span>
+            <span class="tag">latencia</span><span class="tag">conexiones</span><span class="tag">Net In</span>
+            <span class="tag">Mbps</span><span class="tag">%</span><span class="tag">ms</span>
+          </div>
+        </div>
+
+        <div class="field-item">
+          <div class="field-header">
+            <div class="field-num">2</div>
+            <div>
+              <div class="field-name">Causa Raíz</div>
+              <div class="field-hint">¿Qué tipo de ataque fue y por qué ocurrió?</div>
+            </div>
+          </div>
+          <ul class="field-prompts">
+            <li>¿Cuál es el nombre técnico del ataque o fallo?</li>
+            <li>¿Por qué ese ataque produce esos síntomas?</li>
+            <li>¿Qué servicio o protocolo fue explotado?</li>
+            <li>¿Cuál es el vector de ataque (red, hardware, físico)?</li>
+          </ul>
+          <div class="keyword-tags">
+            <span class="tag">DDoS</span><span class="tag">SYN Flood</span><span class="tag">TCP</span>
+            <span class="tag">handshake</span><span class="tag">botnet</span><span class="tag">RAID</span>
+            <span class="tag">SMART</span><span class="tag">fuga de memoria</span>
+          </div>
+        </div>
+
+        <div class="field-item">
+          <div class="field-header">
+            <div class="field-num">3</div>
+            <div>
+              <div class="field-name">Acciones Tomadas</div>
+              <div class="field-hint">¿Qué hiciste para resolver el incidente?</div>
+            </div>
+          </div>
+          <ul class="field-prompts">
+            <li>¿Qué pasos de mitigación aplicaste y en qué orden?</li>
+            <li>¿Usaste alguna herramienta del simulador (pistas, labs)?</li>
+            <li>¿Notificaste al instructor? ¿Escalaste el incidente?</li>
+            <li>¿Qué resultado tuviste después de cada acción?</li>
+          </ul>
+          <div class="keyword-tags">
+            <span class="tag">ACL</span><span class="tag">firewall</span><span class="tag">rate limiting</span>
+            <span class="tag">bloquear IP</span><span class="tag">reiniciar</span><span class="tag">notifiqué</span>
+            <span class="tag">snapshot</span><span class="tag">escalé</span>
+          </div>
+        </div>
+
+        <div class="field-item">
+          <div class="field-header">
+            <div class="field-num">4</div>
+            <div>
+              <div class="field-name">Lecciones Aprendidas</div>
+              <div class="field-hint">¿Qué entiendes ahora que no sabías antes?</div>
+            </div>
+          </div>
+          <ul class="field-prompts">
+            <li>¿Qué harías diferente la próxima vez?</li>
+            <li>¿Qué métrica deberías haber mirado primero?</li>
+            <li>¿Entendiste mejor cómo funciona este tipo de ataque?</li>
+            <li>¿Cómo se puede prevenir este incidente en el futuro?</li>
+          </ul>
+          <div class="keyword-tags">
+            <span class="tag">prevención</span><span class="tag">monitoreo</span><span class="tag">detección temprana</span>
+            <span class="tag">aprendí</span><span class="tag">próxima vez</span><span class="tag">umbral</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:.8rem">Comparación: mal vs. bien escrito</h3>
+
+      <div class="bita-compare">
+        <div class="bita-example bad">
+          <div class="bita-label">❌ Texto que baja tu nota</div>
+          <div class="bita-text">el servidor estaba lento</div>
+          <div class="bita-why">Sin valores, sin nodo específico, sin datos técnicos. El sistema lo marcará como calidad "muy baja".</div>
+        </div>
+        <div class="bita-example good">
+          <div class="bita-label">✅ Texto que sube tu nota</div>
+          <div class="bita-text">SRV-DB-01 mostró CPU al 97% y latencia de 450ms. Net In llegó a 940 Mbps. Se registraron más de 65 000 conexiones concurrentes.</div>
+          <div class="bita-why">Nodo nombrado, métricas con valores específicos, vocabulario técnico variado.</div>
+        </div>
+      </div>
+
+      <div class="bita-compare">
+        <div class="bita-example bad">
+          <div class="bita-label">❌ Causa raíz vacía</div>
+          <div class="bita-text">fue un ataque</div>
+          <div class="bita-why">Solo 3 palabras. No identifica el tipo de ataque ni su mecanismo.</div>
+        </div>
+        <div class="bita-example good">
+          <div class="bita-label">✅ Causa raíz técnica</div>
+          <div class="bita-text">Ataque DDoS distribuido coordinado desde múltiples IPs (botnet). El alto volumen de tráfico saturó el ancho de banda antes de llegar al firewall, haciendo ineficaz el filtrado perimetral.</div>
+          <div class="bita-why">Nombre técnico, mecanismo explicado, vocabulario específico y diverso.</div>
+        </div>
+      </div>
+
+      <div class="bita-compare">
+        <div class="bita-example bad">
+          <div class="bita-label">❌ Acciones genéricas</div>
+          <div class="bita-text">hice lo que decía el simulador</div>
+          <div class="bita-why">No menciona ninguna acción concreta. No aporta evidencia de comprensión del proceso.</div>
+        </div>
+        <div class="bita-example good">
+          <div class="bita-label">✅ Acciones concretas</div>
+          <div class="bita-text">Activé el scrubbing center desde el CDN. Implementé blackhole routing en RTR-EDGE. Distribuí carga entre SRV-APP-01 y SRV-APP-02. Monitoreé durante 5 min hasta que las métricas volvieron a niveles normales.</div>
+          <div class="bita-why">Acciones enumeradas, herramientas y nodos nombrados, resultado verificado.</div>
+        </div>
+      </div>
+
+      <div class="bita-compare">
+        <div class="bita-example bad">
+          <div class="bita-label">❌ Lección aprendida vacía</div>
+          <div class="bita-text">aprendí mucho</div>
+          <div class="bita-why">Dos palabras. No demuestra ningún aprendizaje específico.</div>
+        </div>
+        <div class="bita-example good">
+          <div class="bita-label">✅ Lección concreta</div>
+          <div class="bita-text">Entendí que en un DDoS hay que actuar primero a nivel del ISP (upstream) porque el firewall local ya está saturado cuando el ataque llega. La próxima vez activaré el scrubbing center antes de intentar reglas en el firewall.</div>
+          <div class="bita-why">Reflexión técnica específica, menciona una acción futura concreta con justificación.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Calidad y penalización -->
+    <section class="section" id="b-calidad">
+      <h3 style="font-size:1.15rem;font-weight:800;margin-bottom:.3rem">Calidad y penalización</h3>
+      <p class="section-sub" style="margin-bottom:1.2rem">El sistema analiza cada campo automáticamente y clasifica su calidad. Si la calidad promedio es muy baja, tu puntaje de diagnóstico se reduce.</p>
+
+      <div class="quality-grid">
+        <div class="quality-card q-alta">
+          <div class="quality-label">Alta</div>
+          <div class="quality-score">≥ 75</div>
+          <div class="quality-desc">Texto técnico, variado, con datos concretos. Sin penalización.</div>
+        </div>
+        <div class="quality-card q-media">
+          <div class="quality-label">Media</div>
+          <div class="quality-score">45–74</div>
+          <div class="quality-desc">Texto correcto pero poco específico o repetitivo. Puede haber penalización leve.</div>
+        </div>
+        <div class="quality-card q-baja">
+          <div class="quality-label">Baja</div>
+          <div class="quality-score">20–44</div>
+          <div class="quality-desc">Texto vago o muy corto. Penalización moderada en el puntaje final.</div>
+        </div>
+        <div class="quality-card q-basura">
+          <div class="quality-label">⚠️ Basura</div>
+          <div class="quality-score">&lt; 20</div>
+          <div class="quality-desc">Texto sin sentido, teclas repetidas o patrones de teclado. Penalización severa.</div>
+        </div>
+      </div>
+
+      <p style="font-size:.9rem;font-weight:700;margin-bottom:.75rem">¿Qué detecta el sistema?</p>
+
+      <div class="penalty-list">
+        <div class="penalty-item">
+          <div class="penalty-icon">🔤</div>
+          <div class="penalty-text">
+            <strong>Caracteres repetidos consecutivos</strong> — escribir "aaaaa" o "ssssss" reduce el puntaje por cada carácter extra repetido (más de 3 iguales seguidos).
+          </div>
+        </div>
+        <div class="penalty-item">
+          <div class="penalty-icon">📉</div>
+          <div class="penalty-text">
+            <strong>Menos de 3 palabras únicas</strong> — si usas menos de 3 palabras diferentes con 3 o más letras, el sistema descuenta −40 puntos del campo.
+          </div>
+        </div>
+        <div class="penalty-item">
+          <div class="penalty-icon">🔡</div>
+          <div class="penalty-text">
+            <strong>Baja diversidad de letras</strong> — si el texto usa muy pocas letras distintas (por ejemplo, solo a, s, d, f), el sistema descuenta −35 puntos del campo.
+          </div>
+        </div>
+        <div class="penalty-item">
+          <div class="penalty-icon">⌨️</div>
+          <div class="penalty-text">
+            <strong>Patrones de teclado</strong> — secuencias como "qwer", "asdf", "zxcv", "jkl" son detectadas como texto sin intención real. Descuento de −25 puntos del campo.
+          </div>
+        </div>
+        <div class="penalty-item">
+          <div class="penalty-icon">📏</div>
+          <div class="penalty-text">
+            <strong>Menos de 30 caracteres por campo</strong> — el formulario no acepta campos con menos de 30 caracteres. No hay forma de enviarlo sin cumplir este mínimo.
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <strong>✅ La regla sencilla:</strong> escribe como si le estuvieras explicando el incidente a un compañero de trabajo que no estaba en la sala. Que al leer tu bitácora pueda entender exactamente qué pasó, cómo lo detectaste, qué hiciste y qué aprendiste. Si cumple eso, siempre será calidad Alta.
+      </div>
+    </section>
+
+    <!-- Ejemplo completo -->
+    <section class="section" id="b-ejemplos">
+      <h3 style="font-size:1.15rem;font-weight:800;margin-bottom:.3rem">Ejemplo completo de bitácora</h3>
+      <p class="section-sub" style="margin-bottom:1.2rem">Incidente real del simulador: ataque DDoS sobre SRV-APP-01 durante una sesión de práctica.</p>
+
+      <div class="bita-full">
+        <div class="bita-full-header">
+          <span>✅ Bitácora — Calidad: <strong>Alta</strong></span>
+          <span style="color:var(--muted);font-weight:400">Incidente: DDoS · SRV-APP-01</span>
+        </div>
+
+        <div class="bita-field">
+          <div class="bita-field-name">Síntomas Observados</div>
+          <div class="bita-field-text">
+            A los 3 minutos de iniciar la sesión, el nodo SRV-APP-01 cambió a estado crítico (borde rojo pulsante). Al abrir su panel de métricas, registraba CPU al 94%, latencia en 520ms y Net In en 940 Mbps, superando el umbral crítico de 800 Mbps. El contador de conexiones mostraba más de 52 000, lo que es claramente anormal frente al valor típico de menos de 1 000. El nodo SRV-APP-02 también mostró latencia elevada (110ms) por propagación de carga desde el nodo primario. El panel de alertas mostró "HIGH LATENCY" y "CONNECTION OVERLOAD" en rojo.
+          </div>
+        </div>
+
+        <div class="bita-field">
+          <div class="bita-field-name">Causa Raíz</div>
+          <div class="bita-field-text">
+            Ataque DDoS (Distributed Denial of Service) coordinado dirigido al servidor de aplicaciones SRV-APP-01. El ataque provino de múltiples IPs (botnet) generando más de 50 000 conexiones simultáneas y saturando el ancho de banda antes de que el firewall pudiera filtrar el tráfico. El tipo de ataque genera un volumen tan alto de peticiones que el servidor legítimo queda sin capacidad para responder a usuarios reales, constituyendo una denegación de servicio distribuida.
+          </div>
+        </div>
+
+        <div class="bita-field">
+          <div class="bita-field-name">Acciones Tomadas</div>
+          <div class="bita-field-text">
+            Presioné "Detectar Incidente" a los 2 minutos 38 segundos (MTTD: 158s). Abrí el panel de diagnóstico y respondí las 4 etapas correctamente identificando el ataque como DDoS. En el panel de mitigación apliqué los pasos en orden: (1) activé el scrubbing center desde la consola CDN, (2) implementé blackhole routing (RTBH) en el router perimetral RTR-EDGE para el prefijo afectado, (3) distribuí la carga entre SRV-APP-01 y SRV-APP-02, (4) contacté al proveedor de upstream para filtrado en su red. Monitoré las métricas durante 5 minutos hasta confirmar que CPU bajó a 45% y las conexiones se normalizaron por debajo de 800.
+          </div>
+        </div>
+
+        <div class="bita-field">
+          <div class="bita-field-name">Lecciones Aprendidas</div>
+          <div class="bita-field-text">
+            Comprendí que en un DDoS, el primer paso efectivo debe ser a nivel del proveedor de internet (upstream), porque el firewall local ya está saturado cuando el ataque llega al datacenter. Intentar bloquear por ACL en ese punto es ineficaz porque el daño ya está hecho en el ancho de banda. También aprendí a distinguir un DDoS de un DoS simple: el DoS tiene una sola IP origen y se puede bloquear fácilmente con una ACL; el DDoS tiene miles de IPs y requiere scrubbing center o blackhole routing. La próxima vez buscaré primero si las conexiones vienen de muchas IPs diferentes antes de decidir la estrategia de respuesta.
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>📌 Nota:</strong> no es necesario que tu bitácora sea tan larga como el ejemplo. Lo importante es que cada campo tenga datos técnicos concretos (nombres de nodos, valores numéricos, nombres de protocolos o herramientas) y que el vocabulario sea variado. Un párrafo sólido de 4–6 oraciones por campo es suficiente para calidad Alta.
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════
+         REFERENCIA RÁPIDA
+    ═══════════════════════════════════════════════ -->
+    <section class="section" id="ref-umbrales">
+      <div class="section-divider"></div>
+      <h2 class="section-title">Referencia rápida</h2>
+      <p class="section-sub">Tarjeta de consulta durante la práctica. Úsala para identificar el tipo de ataque a partir de las métricas.</p>
+
+      <div class="quick-ref">
+        <div class="quick-ref-title">Tipo de ataque → señal clave</div>
+        <table>
+          <tr><td>DoS</td><td>Net In &gt; 800 Mbps · Latencia &gt; 200ms · Packet loss &gt; 10%</td></tr>
+          <tr><td>DDoS</td><td>Net In &gt; 900 Mbps · Conexiones &gt; 50 000 · Packet loss &gt; 25%</td></tr>
+          <tr><td>SYN Flood</td><td>Conexiones &gt; 60 000 · CPU &gt; 85% · Latencia &gt; 300ms</td></tr>
+          <tr><td>Brute Force SSH</td><td>Conexiones +2 000 · Sin subida de red significativa</td></tr>
+          <tr><td>Port Scan</td><td>Net In con spike · Conexiones desde una sola IP a múltiples puertos</td></tr>
+          <tr><td>ARP Spoofing</td><td>Latencia sube · SSL warnings · Tablas ARP inconsistentes</td></tr>
+          <tr><td>Disk Failure</td><td>Disk I/O &gt; 400 MB/s · SMART errors ≥ 5</td></tr>
+          <tr><td>Memory Leak</td><td>RAM sube ~2%/min durante varios minutos consecutivos</td></tr>
+          <tr><td>Sobrecalentamiento</td><td>Temperatura &gt; 28°C · Sensores CRAC en warning</td></tr>
+          <tr><td>SSL Expirado</td><td>Panel SSL en rojo · days_to_expire ≤ 0</td></tr>
+          <tr><td>TLS Downgrade</td><td>Versión TLS 1.0 detectada · POODLE/BEAST warning</td></tr>
+        </table>
+      </div>
+
+      <div class="quick-ref">
+        <div class="quick-ref-title">Bitácora — lista de verificación antes de enviar</div>
+        <table>
+          <tr><td>✅ ≥ 30 caracteres</td><td>Cada campo supera el mínimo aceptado por el formulario</td></tr>
+          <tr><td>✅ Nodo nombrado</td><td>Menciono el nodo afectado (ej. SRV-DB-01, FW-01)</td></tr>
+          <tr><td>✅ Valores numéricos</td><td>Incluyo métricas con números (CPU al 94%, 52 000 conexiones)</td></tr>
+          <tr><td>✅ Nombre del ataque</td><td>Digo el tipo técnico (DDoS, SYN Flood, Memory Leak...)</td></tr>
+          <tr><td>✅ Acciones concretas</td><td>Describo qué hice paso a paso, no solo "resolví el incidente"</td></tr>
+          <tr><td>✅ Lección específica</td><td>Menciono algo que aprendí o haría diferente, con detalle técnico</td></tr>
+          <tr><td>✅ Sin texto basura</td><td>No usé "asdf", "aaaa", ni texto copiado sin sentido</td></tr>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Attack data ─────────────────────────────── -->
+<script>
+const ATTACKS = {
+  red: [
+    {
+      icon: '🌊', bg: 'bg-red', cat: 'Ataque de Red · Crítico',
+      name: 'DoS — Denegación de Servicio',
+      desc: 'Inundación de paquetes desde una sola IP. Satura el ancho de banda del nodo objetivo.',
+      indicators: ['net_in_mbps > 800', 'latency_ms > 200', 'packet_loss_pct > 10%'],
+      mit: ['Identificar IP origen en logs del firewall','Aplicar ACL para bloquear IP atacante','Activar rate limiting en FW-01','Notificar al ISP si el ataque es externo','Monitorear 15 min post-bloqueo']
+    },
+    {
+      icon: '💥', bg: 'bg-red', cat: 'Ataque de Red · Crítico',
+      name: 'DDoS — Ataque Distribuido',
+      desc: 'Ataque coordinado desde múltiples IPs (botnet). Alta volumetría, imposible de bloquear por IP individual.',
+      indicators: ['net_in_mbps > 900', 'connections > 50 000', 'packet_loss_pct > 25%'],
+      mit: ['Activar scrubbing center / CDN DDoS protection','Implementar blackhole routing (RTBH)','Distribuir carga entre múltiples servidores','Contactar al proveedor de upstream','Activar modo de degradación controlada']
+    },
+    {
+      icon: '🔌', bg: 'bg-red', cat: 'Ataque de Red · Crítico',
+      name: 'SYN Flood',
+      desc: 'Explota el handshake TCP de 3 vías. Agota la tabla de conexiones semi-abiertas del servidor.',
+      indicators: ['connections > 60 000', 'cpu_pct > 85%', 'latency_ms > 300'],
+      mit: ['Habilitar SYN Cookies en el kernel','Reducir timeout de conexiones TCP','Implementar SYN proxy en el firewall','Filtrar por geolocalización si aplica']
+    },
+    {
+      icon: '🔐', bg: 'bg-yellow', cat: 'Ataque de Red · Advertencia',
+      name: 'Brute Force SSH',
+      desc: 'Intentos masivos de autenticación SSH desde IP externa. Detectar antes de que alguna credencial sea comprometida.',
+      indicators: ['auth_failures > 100/min', 'connections +2 000 adicionales'],
+      mit: ['Bloquear IP atacante con fail2ban','Cambiar puerto SSH a no estándar','Deshabilitar login por contraseña (usar solo llaves)','Revisar /var/log/auth.log','Verificar que ningún usuario fue comprometido']
+    },
+    {
+      icon: '🔭', bg: 'bg-yellow', cat: 'Ataque de Red · Advertencia',
+      name: 'Escaneo de Puertos',
+      desc: 'Reconocimiento activo. Un atacante mapea los servicios expuestos antes de lanzar un ataque real.',
+      indicators: ['net_in_mbps spike desde 1 IP', 'conexiones a múltiples puertos distintos'],
+      mit: ['Identificar IP origen en logs','Bloquear IP en firewall perimetral','Revisar qué puertos fueron escaneados','Verificar que no hay puertos innecesarios abiertos','Documentar el incidente']
+    },
+    {
+      icon: '🕵️', bg: 'bg-red', cat: 'Ataque de Red · Crítico',
+      name: 'ARP Spoofing / MITM',
+      desc: 'Envenenamiento de caché ARP. El atacante redirige el tráfico de red y puede interceptar comunicaciones.',
+      indicators: ['latency aumenta progresivamente', 'SSL warnings en servicios HTTPS', 'tablas ARP inconsistentes'],
+      mit: ['Activar Dynamic ARP Inspection en switches','Implementar ARP estático para IPs críticas','Aislar el segmento de red afectado','Identificar MAC address del atacante','Revisar integridad de tráfico SSL']
+    },
+  ],
+  hw: [
+    {
+      icon: '💽', bg: 'bg-orange', cat: 'Fallo de Hardware · Crítico',
+      name: 'Falla de Disco RAID',
+      desc: 'Disco del array RAID reporta errores SMART. Degradación progresiva. Sin intervención puede perderse el array.',
+      indicators: ['disk_io_mbps > 400', 'SMART errors ≥ 5', 'I/O wait spike en CPU'],
+      mit: ['Verificar estado RAID: mdadm --detail /dev/md0','Identificar disco fallando: smartctl -a /dev/sdX','Iniciar reconstrucción RAID con disco de repuesto','Crear snapshot de datos críticos','Ordenar disco de reemplazo urgente']
+    },
+    {
+      icon: '🧠', bg: 'bg-yellow', cat: 'Fallo de Hardware · Advertencia',
+      name: 'Memory Leak (Fuga de Memoria)',
+      desc: 'Proceso con fuga de memoria. La RAM se agota progresivamente (~2% por minuto). Riesgo de OOM Killer y pérdida de servicio.',
+      indicators: ['ram_pct sube ~2% por minuto', 'swap activo', 'OOM Killer en logs'],
+      mit: ["Identificar proceso: 'top' o 'htop'","Verificar consumo: ps aux --sort=-%mem | head",'Reiniciar el servicio afectado','Aplicar parche o actualizar el proceso','Implementar watchdog para reinicio automático']
+    },
+  ],
+  sst: [
+    {
+      icon: '🌡️', bg: 'bg-red', cat: 'Infraestructura Física · Crítico',
+      name: 'Sobrecalentamiento',
+      desc: 'Falla en unidad CRAC/CRAH. La temperatura del rack sube 0.5°C por minuto. Los CPUs entran en throttling para protegerse.',
+      indicators: ['temp > 28°C', 'CPU con throttling', 'sensores de fan al máximo'],
+      mit: ['Verificar estado de unidades CRAC/CRAH','Activar enfriamiento de emergencia','Migrar cargas críticas a otros racks','Apagar servidores no críticos','Abrir puertas del pasillo frío si es necesario']
+    },
+    {
+      icon: '⚡', bg: 'bg-yellow', cat: 'Infraestructura Física · Crítico',
+      name: 'Corte de Energía',
+      desc: 'PDU principal falla. El UPS entra en acción con una autonomía de aprox. 15 minutos. Hay que actuar rápido.',
+      indicators: ['UPS activo', 'baterías drenando', 'generador no arranca'],
+      mit: ['Verificar estado del UPS: apcupsd status','Intentar activar generador de emergencia','Apagar sistemas no críticos para conservar batería','Notificar al proveedor eléctrico','Activar plan de continuidad de negocio']
+    },
+    {
+      icon: '🔥', bg: 'bg-red', cat: 'Infraestructura Física · Crítico',
+      name: 'Alerta de Humo / Incendio',
+      desc: 'Sensor de humo detecta partículas. Posible inicio de incendio. Siempre verificar físicamente antes de activar supresión.',
+      indicators: ['smoke_ppm > 10', 'detector activado', 'temperatura en zona elevada'],
+      mit: ['Verificar zona con personal físicamente','Activar sistema de supresión FM-200 si confirmado','Evacuar personal del DC','Llamar a bomberos si se confirma incendio','Activar plan de evacuación y contingencia']
+    },
+    {
+      icon: '🚪', bg: 'bg-purple', cat: 'Infraestructura Física · Crítico',
+      name: 'Acceso No Autorizado',
+      desc: 'Intento de acceso físico sin credenciales válidas al datacenter. Puede indicar amenaza interna o externa.',
+      indicators: ['ACCESS DENIED en zona restringida', 'badge inválido o sin autorización'],
+      mit: ['Revisar cámara CCTV del punto de acceso','Bloquear la tarjeta de acceso reportada','Notificar a seguridad física','Revisar logs de acceso de las últimas 24h','Presentar reporte a RRHH si es empleado']
+    },
+  ],
+  ssl: [
+    {
+      icon: '🔓', bg: 'bg-red', cat: 'SSL / TLS · Crítico',
+      name: 'Certificado SSL Expirado',
+      desc: 'El certificado SSL/TLS venció. Los navegadores muestran error de seguridad. El servicio HTTPS está caído efectivamente.',
+      indicators: ['days_to_expire ≤ 0', 'browser muestra SSL error', 'HTTPS down'],
+      mit: ['Generar nuevo CSR para el dominio','Adquirir o renovar certificado con la CA','Instalar certificado en el servidor','Reiniciar nginx/apache para aplicar','Verificar con SSL Labs: ssllabs.com/ssltest']
+    },
+    {
+      icon: '⏳', bg: 'bg-yellow', cat: 'SSL / TLS · Advertencia',
+      name: 'SSL Próximo a Vencer',
+      desc: 'El certificado vence en menos de 30 días. Requiere renovación urgente antes de que se convierta en incidente crítico.',
+      indicators: ['days_to_expire < 30'],
+      mit: ['Programar renovación del certificado','Verificar proceso de renovación automática (Let\'s Encrypt)','Notificar al equipo responsable']
+    },
+    {
+      icon: '📉', bg: 'bg-blue', cat: 'SSL / TLS · Crítico',
+      name: 'Downgrade de TLS',
+      desc: 'Un atacante fuerza la negociación a TLS 1.0 (vulnerable a POODLE/BEAST). La comunicación queda expuesta.',
+      indicators: ['TLS 1.0 detectado', 'POODLE/BEAST vulnerability', 'cipher suites débiles activas'],
+      mit: ['Deshabilitar TLS 1.0 y 1.1 en nginx/apache','Forzar TLS 1.2 mínimo (idealmente 1.3)','Revisar cipher suites configuradas','Ejecutar audit SSL con testssl.sh','Actualizar configuración de todos los servicios HTTPS']
+    },
+  ]
+};
+
+// ── Render attack cards ──────────────────────────────
+function renderGrid(attacks, containerId) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = attacks.map((a, i) => `
+    <div class="atk-card" id="atk-${containerId}-${i}" onclick="toggleAtk(this)">
+      <div class="atk-header">
+        <div class="atk-icon ${a.bg}">${a.icon}</div>
+        <div>
+          <div class="atk-title">${a.name}</div>
+          <div class="atk-cat">${a.cat}</div>
+        </div>
+        <div class="atk-toggle">▼</div>
+      </div>
+      <div class="atk-body">
+        <div class="atk-desc">${a.desc}</div>
+        <div class="atk-section-title">Indicadores clave</div>
+        <ul class="indicator-list">
+          ${a.indicators.map(ind => `<li>${ind}</li>`).join('')}
+        </ul>
+        <div class="atk-section-title">Pasos de mitigación</div>
+        <ul class="mitigation-list">
+          ${a.mit.map(m => `<li><span class="mit-check">✓</span>${m}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `).join('');
+}
+
+renderGrid(ATTACKS.red,  'grid-red');
+renderGrid(ATTACKS.hw,   'grid-hw');
+renderGrid(ATTACKS.sst,  'grid-sst');
+renderGrid(ATTACKS.ssl,  'grid-ssl');
+
+function toggleAtk(card) {
+  card.classList.toggle('open');
+}
+
+// ── Sidebar active state ─────────────────────────────
+function setActive(el) {
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  el.classList.add('active');
+  // close mobile nav
+  document.getElementById('mob-nav').classList.remove('open');
+}
+
+// ── Mobile nav ───────────────────────────────────────
+function toggleMobNav() {
+  document.getElementById('mob-nav').classList.toggle('open');
+}
+
+// Clone sidebar links into mobile nav
+(function buildMobNav() {
+  const links = document.querySelectorAll('#sidebar .nav-link');
+  const labels = document.querySelectorAll('#sidebar .nav-label');
+  const mobContainer = document.getElementById('mob-nav-links');
+
+  // Simple: clone sidebar content
+  const sidebarClone = document.getElementById('sidebar').cloneNode(true);
+  sidebarClone.querySelectorAll('.nav-link').forEach(l => {
+    l.addEventListener('click', () => {
+      document.getElementById('mob-nav').classList.remove('open');
+    });
+  });
+  mobContainer.appendChild(sidebarClone);
+})();
+
+// ── Scroll spy ───────────────────────────────────────
+const sections = document.querySelectorAll('.section[id]');
+const navLinks = document.querySelectorAll('#sidebar .nav-link');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      navLinks.forEach(l => {
+        l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
