@@ -911,3 +911,130 @@ async def class_report(
             ],
         })
     return {"date": day.isoformat(), "students": result}
+
+
+# ══════════════════════════════════════════════════════════════
+# MONITOR INDIVIDUAL EN VIVO
+# ══════════════════════════════════════════════════════════════
+
+@router.get("/student/{student_id}/live")
+async def student_live_monitor(
+    student_id: int,
+    db: AsyncSession = Depends(get_db),
+    _:  Student      = Depends(require_instructor),
+):
+    """
+    Snapshot en tiempo real de un aprendiz: sesión activa, score acumulado hoy,
+    últimas bitácoras, diagnósticos recientes y actividad en los últimos 30 min.
+    """
+    from ..database.models import Bitacora, GuidedSession, PracticeSession, Incident
+    from sqlalchemy import select
+
+    stu_q = await db.execute(select(Student).where(Student.id == student_id))
+    stu   = stu_q.scalar_one_or_none()
+    if not stu:
+        raise HTTPException(status_code=404, detail="Aprendiz no encontrado")
+
+    now        = datetime.utcnow()
+    window_30  = now - timedelta(minutes=30)
+    today_start = datetime(now.year, now.month, now.day, 0, 0, 0)
+
+    # Sesión activa
+    sess_q = await db.execute(
+        select(EvalSession).where(
+            EvalSession.student_id == student_id,
+            EvalSession.is_active  == True,
+        ).order_by(EvalSession.started_at.desc()).limit(1)
+    )
+    active_sess = sess_q.scalar_one_or_none()
+    sess_start  = active_sess.started_at if active_sess else today_start
+    elapsed_min = round((now - sess_start).total_seconds() / 60, 1) if active_sess else None
+
+    # Score de la sesión actual (desde inicio de sesión o inicio del día)
+    stats = await _calc_student_score(db, student_id, sess_start)
+
+    # Últimas 8 bitácoras (últimos 30 min primero, luego hoy)
+    bits_q = await db.execute(
+        select(Bitacora).where(
+            Bitacora.student_id == student_id,
+            Bitacora.created_at >= today_start,
+        ).order_by(Bitacora.created_at.desc()).limit(8)
+    )
+    bits = bits_q.scalars().all()
+
+    # Últimos 5 diagnósticos guiados de hoy
+    guided_q = await db.execute(
+        select(GuidedSession).where(
+            GuidedSession.student_id  == student_id,
+            GuidedSession.completed_at >= today_start,
+        ).order_by(GuidedSession.completed_at.desc()).limit(5)
+    )
+    guided = guided_q.scalars().all()
+
+    # MTTD promedio de bitácoras de hoy
+    mttd_vals = [b.mttd_seconds for b in bits if b.mttd_seconds]
+    mttd_avg  = round(sum(mttd_vals) / len(mttd_vals), 1) if mttd_vals else None
+
+    # Actividad última media hora
+    recent_bits    = [b for b in bits if b.created_at >= window_30]
+    recent_guided  = [g for g in guided if g.completed_at and g.completed_at >= window_30]
+    last_activity  = None
+    all_times = (
+        [b.created_at for b in bits[:1]] +
+        [g.completed_at for g in guided[:1] if g.completed_at]
+    )
+    if all_times:
+        last_activity = max(all_times).isoformat()
+
+    return {
+        "student": {
+            "id":    stu.id,
+            "name":  stu.name,
+            "email": stu.email,
+            "level": stu.level or "Principiante",
+            "total_score": stu.avg_score or 0.0,
+            "total_sessions": stu.total_sessions or 0,
+        },
+        "session": {
+            "active":       active_sess is not None,
+            "session_id":   active_sess.id if active_sess else None,
+            "started_at":   sess_start.isoformat(),
+            "elapsed_min":  elapsed_min,
+            "type":         "Práctica" if active_sess and "[practice]" in (active_sess.notes or "") else "Formal",
+        },
+        "live_score": {
+            "score":    stats["score"],
+            "guided":   stats["guided"],
+            "bitacoras":stats["bitacoras"],
+            "labs":     stats["labs"],
+        },
+        "today": {
+            "bitacoras_count": len(bits),
+            "guided_count":    len(guided),
+            "mttd_avg_sec":    mttd_avg,
+            "last_activity":   last_activity,
+            "active_last_30min": len(recent_bits) + len(recent_guided) > 0,
+        },
+        "recent_bitacoras": [
+            {
+                "attack_type": b.attack_type,
+                "node_id":     b.node_id,
+                "score":       b.score,
+                "correct":     b.correct_answers,
+                "total":       b.total_questions,
+                "mttd_s":      b.mttd_seconds,
+                "time":        b.created_at.strftime("%H:%M"),
+                "hints":       b.hints_used,
+            } for b in bits[:5]
+        ],
+        "recent_guided": [
+            {
+                "attack_type": g.attack_type,
+                "node_id":     g.node_id,
+                "score":       g.score,
+                "correct":     g.correct_answers,
+                "total":       g.total_questions,
+                "time":        g.completed_at.strftime("%H:%M") if g.completed_at else "—",
+            } for g in guided[:5]
+        ],
+    }

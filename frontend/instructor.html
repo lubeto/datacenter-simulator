@@ -734,6 +734,23 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     </div>
   </div>
 
+  <!-- Monitor Individual -->
+  <div class="card" style="margin-top:1rem;border-color:#8b5cf6">
+    <div class="card-header" style="border-bottom-color:#4c1d95;justify-content:space-between">
+      <span class="card-title">🔍 Monitor Individual en Tiempo Real</span>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <select id="liveStudentSel" onchange="loadStudentLive()"
+          style="padding:.3rem .5rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.82rem">
+          <option value="">— Seleccionar aprendiz —</option>
+        </select>
+        <button onclick="loadStudentLive()" style="background:#1f2937;border:1px solid #374151;color:#9ca3af;border-radius:4px;padding:.3rem .6rem;cursor:pointer;font-size:.8rem">↻</button>
+      </div>
+    </div>
+    <div id="liveStudentPanel" style="padding:1rem;min-height:120px;color:#6b7280;font-size:.85rem">
+      <p style="text-align:center;margin-top:1.5rem">Selecciona un aprendiz para ver su actividad en vivo</p>
+    </div>
+  </div>
+
 </div><!-- /tab-monitor -->
 
 <!-- ══ TAB: ANALYTICS ════════════════════════════════════════ -->
@@ -2680,7 +2697,7 @@ function switchTab(tab) {
   document.getElementById('tab-' + tab)?.classList.add('active');
   document.getElementById('tabBtn-' + tab)?.classList.add('active');
   currentTab = tab;
-  if (tab === 'monitor')   loadMonitor();
+  if (tab === 'monitor')   { loadMonitor(); populateLiveStudentSel(); }
   if (tab === 'analytics') loadAnalytics();
   if (tab === 'reportes')  { loadEvalReportsTab(); loadRepBmStudentFilter(); loadSessionHistory(); }
 }
@@ -3023,6 +3040,99 @@ async function loadSessionHistory() {
   } catch(e) {}
 }
 
+// ══ MONITOR INDIVIDUAL EN VIVO ═══════════════════════════════
+
+let _liveRefreshTimer = null;
+
+async function populateLiveStudentSel() {
+  try {
+    const students = await apiFetch('/api/students/list');
+    const sel = document.getElementById('liveStudentSel');
+    if (!sel) return;
+    const opts = students
+      .filter(s => s.role === 'student')
+      .map(s => `<option value="${s.id}">${s.name}</option>`)
+      .join('');
+    sel.innerHTML = '<option value="">— Seleccionar aprendiz —</option>' + opts;
+  } catch(e) { console.error('populateLiveStudentSel', e); }
+}
+
+async function loadStudentLive() {
+  const sel = document.getElementById('liveStudentSel');
+  const sid = sel?.value;
+  const panel = document.getElementById('liveStudentPanel');
+  if (!sid) { panel.innerHTML = '<p style="text-align:center;margin-top:1.5rem;color:#4b5563">Selecciona un aprendiz para ver su actividad en vivo</p>'; return; }
+
+  try {
+    const d = await apiFetch(`/api/sessions/student/${sid}/live`);
+    const activeColor = d.session.active ? '#22c55e' : '#6b7280';
+    const actBadge    = d.today.active_last_30min
+      ? '<span style="background:#22c55e22;color:#22c55e;border-radius:4px;padding:.1rem .4rem;font-size:.75rem">● Activo</span>'
+      : '<span style="background:#6b728022;color:#6b7280;border-radius:4px;padding:.1rem .4rem;font-size:.75rem">○ Sin actividad reciente</span>';
+
+    const scoreColor = d.live_score.score >= 80 ? '#22c55e' : d.live_score.score >= 60 ? '#f59e0b' : '#ef4444';
+
+    const bitsHtml = d.recent_bitacoras.length ? d.recent_bitacoras.map(b => {
+      const sc = b.score >= 80 ? '#22c55e' : b.score >= 60 ? '#f59e0b' : '#ef4444';
+      return `<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid #1f2937;font-size:.8rem">
+        <span style="color:#d1d5db">${b.time} · ${b.attack_type} → ${b.node_id}</span>
+        <span style="color:${sc};font-weight:700">${b.score?.toFixed(0) ?? '—'}</span>
+      </div>`;
+    }).join('') : '<span style="color:#4b5563;font-size:.8rem">Sin bitácoras hoy</span>';
+
+    const guidedHtml = d.recent_guided.length ? d.recent_guided.map(g => {
+      const sc = g.score >= 80 ? '#22c55e' : g.score >= 60 ? '#f59e0b' : '#ef4444';
+      return `<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid #1f2937;font-size:.8rem">
+        <span style="color:#d1d5db">${g.time} · ${g.attack_type} → ${g.node_id} (${g.correct}/${g.total})</span>
+        <span style="color:${sc};font-weight:700">${g.score?.toFixed(0) ?? '—'}</span>
+      </div>`;
+    }).join('') : '<span style="color:#4b5563;font-size:.8rem">Sin diagnósticos hoy</span>';
+
+    panel.innerHTML = `
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+        <span style="font-size:1rem;font-weight:700;color:#f9fafb">${d.student.name}</span>
+        <span style="color:#9ca3af;font-size:.8rem">${d.student.email}</span>
+        ${actBadge}
+        ${d.session.active ? `<span style="color:${activeColor};font-size:.8rem">⏱ ${d.session.elapsed_min} min en sesión (${d.session.type})</span>` : '<span style="color:#6b7280;font-size:.8rem">Sin sesión activa</span>'}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem">
+        <div style="background:#111;border:1px solid #374151;border-radius:6px;padding:.5rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:700;color:${scoreColor}">${d.live_score.score}</div>
+          <div style="font-size:.72rem;color:#6b7280">Score sesión</div>
+        </div>
+        <div style="background:#111;border:1px solid #374151;border-radius:6px;padding:.5rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:700;color:#60a5fa">${d.today.bitacoras_count}</div>
+          <div style="font-size:.72rem;color:#6b7280">Bitácoras hoy</div>
+        </div>
+        <div style="background:#111;border:1px solid #374151;border-radius:6px;padding:.5rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:700;color:#a78bfa">${d.today.guided_count}</div>
+          <div style="font-size:.72rem;color:#6b7280">Diagnósticos hoy</div>
+        </div>
+        <div style="background:#111;border:1px solid #374151;border-radius:6px;padding:.5rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">${d.today.mttd_avg_sec ? d.today.mttd_avg_sec+'s' : '—'}</div>
+          <div style="font-size:.72rem;color:#6b7280">MTTD prom</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#9ca3af;margin-bottom:.4rem">📝 Últimas Bitácoras</div>
+          ${bitsHtml}
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#9ca3af;margin-bottom:.4rem">🧠 Últimos Diagnósticos</div>
+          ${guidedHtml}
+        </div>
+      </div>
+    `;
+
+    // Auto-refresh cada 20s mientras esté seleccionado
+    clearTimeout(_liveRefreshTimer);
+    _liveRefreshTimer = setTimeout(loadStudentLive, 20000);
+  } catch(e) {
+    panel.innerHTML = `<p style="color:#ef4444;font-size:.85rem">Error: ${e.message}</p>`;
+  }
+}
+
 // ══ MODO CLASE GUIADA ════════════════════════════════════════
 
 let guidedSteps = [];   // [{attack_type, node_id, intensity, duration_sec, delay_before_sec}]
@@ -3208,6 +3318,7 @@ setTimeout(() => {
   loadNodes();
   loadStudents();
   loadStudentList();
+  populateLiveStudentSel();
   loadAllIncidents();
   // Eval session data
   _loadEvalStudentFilter();
