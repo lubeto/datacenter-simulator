@@ -1,6 +1,6 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-07
+## Última sesión: 2026-06-07 (continuación — Sección 5 en progreso)
 
 ---
 
@@ -191,6 +191,7 @@ docker/Dockerfile          — Imagen Docker para Render
 - [x] `instructor.html`: catches verificados en prod ✅
 - [ ] Verificar penalización de calidad de bitácora en panel de resultados
 - [ ] Verificar sección 8 del reporte (página 2 del Informe Completo)
+- [ ] Reporte de clase con análisis automático (Sección 5 — último ítem)
 
 ---
 
@@ -215,9 +216,14 @@ docker/Dockerfile          — Imagen Docker para Render
 - [ ] Migrar SQLite → PostgreSQL en Render
 - [ ] Motor de simulación con escenarios predefinidos y progresión temporal realista
 
-### 🔲 Sección 5 — Gestión del instructor (pendiente)
-- [ ] Vista de monitoreo individual del aprendiz en tiempo real
-- [ ] Modo "clase guiada": secuencia de ataques programada por el instructor
+### 🔲 Sección 5 — Gestión del instructor (en progreso)
+- [x] Modo "clase guiada": secuencia de ataques programada por el instructor (commit f8200aa)
+  - Tab 🎓 Clase Guiada en instructor.html
+  - POST /api/attacks/guided/start|stop, GET /api/attacks/guided/status
+  - Loop async en scheduler, broadcast WS por paso
+- [x] Vista de monitoreo individual del aprendiz en tiempo real (commit b52cf97)
+  - Panel en tab Monitor con selector de aprendiz
+  - GET /api/sessions/student/{id}/live — score, bitácoras, diagnósticos, MTTD, auto-refresh 20s
 - [ ] Reporte de clase con análisis automático ("3/8 aprendices con MTTD > 5 min en hardware")
 
 ---

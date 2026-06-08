@@ -233,6 +233,7 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
   <button class="tab-btn"        id="tabBtn-analytics" onclick="switchTab('analytics')">📊 Analytics</button>
   <button class="tab-btn"        id="tabBtn-reportes" onclick="switchTab('reportes')">📋 Reportes</button>
   <button class="tab-btn"        id="tabBtn-guided"   onclick="switchTab('guided')">🎓 Clase Guiada <span class="tab-badge" id="guidedBadge" style="display:none">▶</span></button>
+  <button class="tab-btn"        id="tabBtn-classreport" onclick="switchTab('classreport')">📊 Reporte de Clase</button>
 </nav>
 
 <div class="container">
@@ -976,6 +977,71 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 
   </div>
 </div><!-- /tab-guided -->
+
+<!-- ══ TAB: REPORTE DE CLASE ══════════════════════════════════ -->
+<div id="tab-classreport" class="tab-pane">
+  <div class="container" style="max-width:960px;margin:0 auto;padding:1rem">
+
+    <!-- Controles -->
+    <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+      <label style="font-size:.85rem;color:#d1d5db">Fecha:
+        <input type="date" id="classReportDate" style="margin-left:.4rem;padding:.3rem .5rem;background:#111;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.85rem">
+      </label>
+      <button onclick="generateClassReport()" style="padding:.4rem 1rem;background:#f59e0b;color:#000;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">
+        📊 Generar Reporte
+      </button>
+      <button onclick="exportClassReport()" id="classExportBtn" style="display:none;padding:.4rem 1rem;background:#1f2937;border:1px solid #374151;color:#9ca3af;border-radius:6px;cursor:pointer;font-size:.85rem">
+        ⬇ Exportar CSV
+      </button>
+    </div>
+
+    <!-- Análisis automático -->
+    <div id="classAnalysisPanel" style="display:none">
+
+      <!-- Insights narrativos -->
+      <div class="card" style="margin-bottom:1rem;border-color:#f59e0b">
+        <div class="card-header" style="border-bottom-color:#78350f">
+          <span class="card-title">🤖 Análisis Automático</span>
+          <span id="classReportDateLabel" style="font-size:.8rem;color:#9ca3af"></span>
+        </div>
+        <div id="classInsights" style="padding:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
+      </div>
+
+      <!-- KPIs globales -->
+      <div id="classKpis" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;margin-bottom:1rem"></div>
+
+      <!-- Tabla de aprendices -->
+      <div class="card" style="border-color:#374151">
+        <div class="card-header">
+          <span class="card-title">👥 Detalle por Aprendiz</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:.82rem" id="classStudentTable">
+            <thead>
+              <tr style="border-bottom:1px solid #374151;color:#9ca3af;text-align:left">
+                <th style="padding:.5rem">#</th>
+                <th style="padding:.5rem">Aprendiz</th>
+                <th style="padding:.5rem;text-align:center">Bitácoras</th>
+                <th style="padding:.5rem;text-align:center">Diagnósticos</th>
+                <th style="padding:.5rem;text-align:center">Score Prom</th>
+                <th style="padding:.5rem;text-align:center">MTTD (s)</th>
+                <th style="padding:.5rem;text-align:center">Tiempo (min)</th>
+                <th style="padding:.5rem;text-align:center">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="classStudentTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /classAnalysisPanel -->
+
+    <div id="classReportEmpty" style="text-align:center;padding:3rem;color:#4b5563">
+      Selecciona una fecha y genera el reporte
+    </div>
+
+  </div>
+</div><!-- /tab-classreport -->
 
 </div><!-- /container -->
 
@@ -2699,7 +2765,8 @@ function switchTab(tab) {
   currentTab = tab;
   if (tab === 'monitor')   { loadMonitor(); populateLiveStudentSel(); }
   if (tab === 'analytics') loadAnalytics();
-  if (tab === 'reportes')  { loadEvalReportsTab(); loadRepBmStudentFilter(); loadSessionHistory(); }
+  if (tab === 'reportes')    { loadEvalReportsTab(); loadRepBmStudentFilter(); loadSessionHistory(); }
+  if (tab === 'classreport') initClassReportDate();
 }
 
 // ── MONITOR EN VIVO ────────────────────────────────────────
@@ -3038,6 +3105,185 @@ async function loadSessionHistory() {
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1rem">Sin sesiones activas actualmente</td></tr>';
   } catch(e) {}
+}
+
+// ══ REPORTE DE CLASE ═════════════════════════════════════════
+
+let _classReportData = null;
+
+// Inicializar fecha a hoy al cargar
+function initClassReportDate() {
+  const inp = document.getElementById('classReportDate');
+  if (inp && !inp.value) {
+    inp.value = new Date().toISOString().slice(0,10);
+  }
+}
+
+async function generateClassReport() {
+  const date = document.getElementById('classReportDate').value
+    || new Date().toISOString().slice(0,10);
+
+  document.getElementById('classReportEmpty').style.display  = 'none';
+  document.getElementById('classAnalysisPanel').style.display = 'none';
+  document.getElementById('classReportEmpty').textContent     = '⏳ Cargando datos...';
+  document.getElementById('classReportEmpty').style.display  = '';
+
+  try {
+    const data = await apiFetch(`/api/sessions/class-report?date_str=${date}`);
+    _classReportData = data;
+    _renderClassReport(data, date);
+  } catch(e) {
+    document.getElementById('classReportEmpty').textContent = `Error: ${e.message}`;
+  }
+}
+
+function _renderClassReport(data, date) {
+  const students = data.students || [];
+  const active   = students.filter(s => s.summary.bitacoras > 0 || s.summary.guided_sessions > 0);
+
+  document.getElementById('classReportEmpty').style.display   = 'none';
+  document.getElementById('classAnalysisPanel').style.display = '';
+  document.getElementById('classReportDateLabel').textContent = date;
+  document.getElementById('classExportBtn').style.display     = '';
+
+  // ── KPIs globales ──────────────────────────────────────────
+  const totalBits      = active.reduce((a,s) => a + s.summary.bitacoras, 0);
+  const totalGuided    = active.reduce((a,s) => a + s.summary.guided_sessions, 0);
+  const avgScore       = active.length ? (active.reduce((a,s) => a + s.summary.avg_score, 0) / active.length).toFixed(1) : '—';
+  const mttdVals       = active.filter(s => s.summary.mttd_avg > 0).map(s => s.summary.mttd_avg);
+  const avgMttd        = mttdVals.length ? Math.round(mttdVals.reduce((a,v)=>a+v,0)/mttdVals.length) : null;
+  const totalTimeMin   = active.reduce((a,s) => a + s.summary.total_time_min, 0);
+
+  const kpiColor = (val, good, warn) => val >= good ? '#22c55e' : val >= warn ? '#f59e0b' : '#ef4444';
+
+  document.getElementById('classKpis').innerHTML = [
+    { label: 'Aprendices activos', val: `${active.length}/${students.length}`, color: '#60a5fa' },
+    { label: 'Bitácoras totales',  val: totalBits,  color: '#a78bfa' },
+    { label: 'Diagnósticos',       val: totalGuided, color: '#34d399' },
+    { label: 'Score promedio',     val: avgScore, color: kpiColor(+avgScore||0, 75, 55) },
+    { label: 'MTTD promedio',      val: avgMttd ? avgMttd+'s' : '—', color: avgMttd ? kpiColor(300-avgMttd, 200, 100) : '#6b7280' },
+  ].map(k => `
+    <div style="background:#111;border:1px solid #374151;border-radius:6px;padding:.6rem;text-align:center">
+      <div style="font-size:1.4rem;font-weight:700;color:${k.color}">${k.val}</div>
+      <div style="font-size:.72rem;color:#6b7280;margin-top:.15rem">${k.label}</div>
+    </div>
+  `).join('');
+
+  // ── Análisis automático (insights narrativos) ──────────────
+  const insights = _generateInsights(active, students, avgMttd, avgScore);
+  document.getElementById('classInsights').innerHTML = insights.map(ins => `
+    <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.5rem .75rem;background:${ins.bg};border-left:3px solid ${ins.color};border-radius:0 6px 6px 0">
+      <span style="font-size:1rem">${ins.icon}</span>
+      <span style="font-size:.85rem;color:#d1d5db">${ins.text}</span>
+    </div>
+  `).join('') || '<span style="color:#4b5563">Sin datos suficientes para generar análisis.</span>';
+
+  // ── Tabla por aprendiz ────────────────────────────────────
+  const sorted = [...students].sort((a,b) => b.summary.avg_score - a.summary.avg_score);
+  document.getElementById('classStudentTbody').innerHTML = sorted.map((s, i) => {
+    const sm       = s.summary;
+    const inactive = sm.bitacoras === 0 && sm.guided_sessions === 0;
+    const scoreC   = inactive ? '#4b5563' : sm.avg_score >= 75 ? '#22c55e' : sm.avg_score >= 55 ? '#f59e0b' : '#ef4444';
+    const mttdC    = !sm.mttd_avg ? '#4b5563' : sm.mttd_avg <= 120 ? '#22c55e' : sm.mttd_avg <= 300 ? '#f59e0b' : '#ef4444';
+    const badge    = inactive
+      ? '<span style="color:#ef4444;font-size:.75rem">⚠ Sin actividad</span>'
+      : sm.avg_score >= 75
+        ? '<span style="color:#22c55e;font-size:.75rem">✅ Bien</span>'
+        : sm.avg_score >= 55
+          ? '<span style="color:#f59e0b;font-size:.75rem">⚠ Regular</span>'
+          : '<span style="color:#ef4444;font-size:.75rem">🔴 Atención</span>';
+    return `<tr style="border-bottom:1px solid #1f2937;color:#d1d5db${inactive?' opacity:.5':''}">
+      <td style="padding:.45rem .5rem;color:#6b7280">${i+1}</td>
+      <td style="padding:.45rem .5rem;font-weight:600">${s.student.name}</td>
+      <td style="padding:.45rem .5rem;text-align:center">${sm.bitacoras}</td>
+      <td style="padding:.45rem .5rem;text-align:center">${sm.guided_sessions}</td>
+      <td style="padding:.45rem .5rem;text-align:center;color:${scoreC};font-weight:700">${sm.avg_score || '—'}</td>
+      <td style="padding:.45rem .5rem;text-align:center;color:${mttdC}">${sm.mttd_avg ? Math.round(sm.mttd_avg)+'s' : '—'}</td>
+      <td style="padding:.45rem .5rem;text-align:center">${sm.total_time_min ? Math.round(sm.total_time_min)+'min' : '—'}</td>
+      <td style="padding:.45rem .5rem">${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function _generateInsights(active, all, avgMttd, avgScore) {
+  const insights = [];
+  const total    = all.length;
+  const actN     = active.length;
+  const inactN   = total - actN;
+
+  // Participación
+  const pctAct = total ? Math.round(actN/total*100) : 0;
+  if (inactN > 0) {
+    insights.push({
+      icon: '👥', color: '#ef4444', bg: '#1a0a0a',
+      text: `<b>${inactN} de ${total} aprendices</b> no registraron actividad hoy (${100-pctAct}%). Verificar asistencia: ${all.filter(s=>s.summary.bitacoras===0&&s.summary.guided_sessions===0).map(s=>s.student.name).join(', ')}.`
+    });
+  } else {
+    insights.push({ icon: '✅', color: '#22c55e', bg: '#0a1a0a', text: `<b>Participación completa</b> — los ${total} aprendices registraron actividad.` });
+  }
+
+  // MTTD
+  if (avgMttd) {
+    const slowN = active.filter(s => s.summary.mttd_avg > 300).length;
+    if (slowN > 0) {
+      const names = active.filter(s=>s.summary.mttd_avg>300).map(s=>s.student.name).join(', ');
+      insights.push({
+        icon: '⏱', color: '#f59e0b', bg: '#1a1200',
+        text: `<b>${slowN}/${actN} aprendices con MTTD > 5 min</b>: ${names}. Pueden necesitar refuerzo en identificación de síntomas.`
+      });
+    } else {
+      insights.push({ icon: '⚡', color: '#22c55e', bg: '#0a1a0a', text: `<b>Tiempos de detección buenos</b> — MTTD promedio ${avgMttd}s. Ningún aprendiz superó los 5 min.` });
+    }
+  }
+
+  // Score
+  const lowN  = active.filter(s => s.summary.avg_score > 0 && s.summary.avg_score < 55).length;
+  const highN = active.filter(s => s.summary.avg_score >= 80).length;
+  if (lowN > 0) {
+    const names = active.filter(s=>s.summary.avg_score>0&&s.summary.avg_score<55).map(s=>s.student.name).join(', ');
+    insights.push({
+      icon: '🔴', color: '#ef4444', bg: '#1a0a0a',
+      text: `<b>${lowN} aprendiz(ces) con score < 55</b>: ${names}. Revisar bitácoras y diagnósticos guiados para identificar errores recurrentes.`
+    });
+  }
+  if (highN > 0) {
+    insights.push({
+      icon: '🏆', color: '#f59e0b', bg: '#1a1200',
+      text: `<b>${highN} aprendiz(ces) con score ≥ 80</b> — desempeño destacado en la sesión.`
+    });
+  }
+
+  // Volumen de bitácoras
+  const avgBits = actN ? active.reduce((a,s)=>a+s.summary.bitacoras,0)/actN : 0;
+  if (avgBits < 2 && actN > 0) {
+    insights.push({
+      icon: '📝', color: '#6b7280', bg: '#111',
+      text: `Promedio de <b>${avgBits.toFixed(1)} bitácoras por aprendiz</b> — actividad baja. Considerar inyectar más incidentes o usar modo clase guiada.`
+    });
+  }
+
+  // Sin insights negativos
+  if (insights.length === 1 && pctAct === 100) {
+    insights.push({ icon: '🎯', color: '#22c55e', bg: '#0a1a0a', text: `Score promedio de clase: <b>${avgScore}/100</b>. Sesión dentro de parámetros normales.` });
+  }
+
+  return insights;
+}
+
+function exportClassReport() {
+  if (!_classReportData) return;
+  const rows = [['Aprendiz','Email','Bitácoras','Diagnósticos','Score Prom','MTTD (s)','Tiempo (min)']];
+  for (const s of _classReportData.students) {
+    const sm = s.summary;
+    rows.push([s.student.name, s.student.email, sm.bitacoras, sm.guided_sessions,
+      sm.avg_score||0, sm.mttd_avg ? Math.round(sm.mttd_avg) : '', Math.round(sm.total_time_min||0)]);
+  }
+  const csv  = rows.map(r => r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `reporte-clase-${_classReportData.date}.csv`;
+  a.click();
 }
 
 // ══ MONITOR INDIVIDUAL EN VIVO ═══════════════════════════════
