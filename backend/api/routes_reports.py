@@ -221,40 +221,6 @@ async def _collect_report_data(db: AsyncSession, report_type: str,
         }]
 
     elif report_type == "full_summary":
-        # Reporte completo: salud + incidentes + SSL + resumen del aprendiz
-        from ..simulation.engine import generate_full_snapshot
-        snapshot = generate_full_snapshot()
-        incidents = await crud.get_incidents_history(db, limit=20)
-        student   = await crud.get_student_by_id(db, student_id)
-        certs     = await crud.get_all_ssl_certs(db)
-
-        nodes_data = [
-            {"section": "health", "node": nid, "type": ndata["type"],
-             "cpu_pct": ndata["metrics"]["cpu_pct"], "ram_pct": ndata["metrics"]["ram_pct"],
-             "latency_ms": ndata["metrics"]["latency_ms"], "online": ndata["metrics"]["is_online"]}
-            for nid, ndata in snapshot["nodes"].items()
-        ]
-        incidents_data = [
-            {"section": "incident", "id": i.id, "type": i.incident_type,
-             "severity": i.severity, "node": i.node_affected,
-             "started": str(i.started_at), "status": i.status}
-            for i in incidents
-        ]
-        ssl_data = [
-            {"section": "ssl", "node": c.node_id, "domain": getattr(c, "domain", ""),
-             "days_to_expire": c.days_to_expire, "tls_version": c.tls_version,
-             "is_valid": getattr(c, "is_valid", True), "is_expired": getattr(c, "is_expired", False),
-             "alert_level": c.alert_level, "alert_message": getattr(c, "alert_message", "") or ""}
-            for c in certs
-        ]
-        student_data = [{
-            "section": "student", "student": student.name if student else "—",
-            "sessions": student.total_sessions if student else 0,
-            "avg_score": student.avg_score if student else 0,
-        }]
-        return student_data + nodes_data + incidents_data + ssl_data
-
-    elif report_type == "full_summary":
         from ..simulation.engine import generate_full_snapshot
         from sqlalchemy import select as _sel
         from ..database.models import Bitacora, GuidedSession, SSTProtocolSession, PracticeSession
@@ -370,4 +336,13 @@ async def _collect_report_data(db: AsyncSession, report_type: str,
             "node": c.node_id, "domain": c.domain,
             "days_to_expire": c.days_to_expire,
             "tls_version": c.tls_version,
-            "is_valid": c.i
+            "is_valid": c.is_valid,
+            "is_expired": c.is_expired,
+            "alert_level": c.alert_level or "ok",
+            "alert_message": c.alert_message or "",
+        } for c in certs]
+
+        return (student_data + sessions_data + sst_data + lab_data +
+                bitacoras_data + incidents_data + nodes_data + ssl_data)
+
+    return []
