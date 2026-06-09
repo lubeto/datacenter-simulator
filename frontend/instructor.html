@@ -3208,7 +3208,7 @@ async function loadAnalytics() {
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}},
     });
 
-    // Incident history + quality
+    // Incident history
     loadIncidentHistory();
     loadBitacoraQuality();
   } catch(e) {
@@ -3249,12 +3249,9 @@ async function loadBitacoraQuality() {
       wrap.innerHTML = '<div style="color:var(--muted);text-align:center;font-size:.8rem;padding:1.5rem">Sin bitácoras registradas aún</div>';
       return;
     }
-
     const lvl = d.by_level;
     const pctAlta = d.pct_alta;
     const pctColor = pctAlta >= 60 ? '#4ade80' : pctAlta >= 35 ? '#facc15' : '#f87171';
-
-    // KPI header row
     const kpiHtml = `
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;margin-bottom:1rem">
         <div style="background:var(--card);border-radius:8px;padding:.7rem;text-align:center">
@@ -3278,8 +3275,6 @@ async function loadBitacoraQuality() {
           <div style="font-size:1.2rem;font-weight:700;color:#f87171">${lvl.baja + lvl.muy_baja}</div>
         </div>
       </div>`;
-
-    // Per-student table
     const rowsHtml = d.by_student.map(s => {
       const bar = (count, total, color) => count
         ? `<span style="display:inline-block;width:${Math.round(count/total*60)}px;height:8px;border-radius:3px;background:${color};vertical-align:middle;margin-right:2px" title="${count}"></span>`
@@ -3301,47 +3296,35 @@ async function loadBitacoraQuality() {
         </td>
       </tr>`;
     }).join('');
-
     const tableHtml = `
       <div style="overflow-x:auto;margin-bottom:1rem">
         <table class="ranking-full" style="width:100%">
           <thead><tr>
-            <th>Aprendiz</th>
-            <th style="text-align:center">Bitácoras</th>
-            <th>Distribución</th>
-            <th style="text-align:center">Calidad prom.</th>
+            <th>Aprendiz</th><th style="text-align:center">Bitácoras</th>
+            <th>Distribución</th><th style="text-align:center">Calidad prom.</th>
             <th style="text-align:center">% Alta</th>
           </tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>
-      <div style="font-size:.65rem;color:var(--muted)">
-        A=Alta &nbsp;|&nbsp; M=Media &nbsp;|&nbsp; B=Baja &nbsp;|&nbsp; X=Basura (texto repetitivo o sin contenido)
-      </div>`;
-
+      <div style="font-size:.65rem;color:var(--muted)">A=Alta &nbsp;|&nbsp; M=Media &nbsp;|&nbsp; B=Baja &nbsp;|&nbsp; X=Basura</div>`;
     wrap.innerHTML = kpiHtml + tableHtml;
-
-    // Donut chart — re-render after DOM update
     const existing = document.getElementById('qualityDonut');
     if (existing) {
-      const ctx = existing.getContext('2d');
       if (anQualChart) { anQualChart.destroy(); anQualChart = null; }
-      anQualChart = new Chart(ctx, {
+      anQualChart = new Chart(existing.getContext('2d'), {
         type: 'doughnut',
         data: {
           labels: ['Alta', 'Media', 'Baja', 'Basura'],
           datasets: [{
             data: [lvl.alta, lvl.media, lvl.baja, lvl.muy_baja],
-            backgroundColor: ['rgba(74,222,128,.8)', 'rgba(250,204,21,.8)', 'rgba(251,146,60,.8)', 'rgba(248,113,113,.8)'],
+            backgroundColor: ['rgba(74,222,128,.8)','rgba(250,204,21,.8)','rgba(251,146,60,.8)','rgba(248,113,113,.8)'],
             borderColor: ['#4ade80','#facc15','#fb923c','#f87171'],
-            borderWidth: 1.5,
-            hoverOffset: 6,
+            borderWidth: 1.5, hoverOffset: 6,
           }],
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '62%',
+          responsive: true, maintainAspectRatio: false, cutout: '62%',
           plugins: {
             legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, padding: 10 }},
             tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/d.total)*100).toFixed(1)}%)` }},
@@ -3785,4 +3768,170 @@ function renderGuidedSteps() {
         <label style="font-size:.75rem;color:#9ca3af">
           Delay (s)<br>
           <input type="number" value="${s.delay_before_sec}" min="10" max="600"
-            onchange="guidedSteps[${
+            onchange="guidedSteps[${i}].delay_before_sec=+this.value"
+            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+        </label>
+        <label style="font-size:.75rem;color:#9ca3af">
+          Duración (s)<br>
+          <input type="number" value="${s.duration_sec}" min="30" max="600"
+            onchange="guidedSteps[${i}].duration_sec=+this.value"
+            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+        </label>
+        <label style="font-size:.75rem;color:#9ca3af">
+          Intensidad<br>
+          <input type="number" value="${s.intensity}" min="0.1" max="1" step="0.1"
+            onchange="guidedSteps[${i}].intensity=+this.value"
+            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
+        </label>
+      </div>
+      <button onclick="removeGuidedStep(${i})"
+        style="margin-top:.4rem;background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:.75rem">✕ Eliminar</button>
+    </div>
+  `).join('');
+
+  // Restaurar valores seleccionados (los select se regeneran)
+  const selects = container.querySelectorAll('select');
+  guidedSteps.forEach((s, i) => {
+    if (selects[i*2])   selects[i*2].value   = s.attack_type;
+    if (selects[i*2+1]) selects[i*2+1].value = s.node_id;
+  });
+}
+
+async function startGuidedSession() {
+  if (!guidedSteps.length) { showNotif('Agrega al menos un ataque', 'error'); return; }
+  const invalid = guidedSteps.find(s => !s.attack_type || !s.node_id);
+  if (invalid) { showNotif('Completa ataque y nodo en todos los pasos', 'error'); return; }
+
+  const name = document.getElementById('guidedName').value || 'Clase guiada';
+  const disableAuto = document.getElementById('guidedDisableAuto').checked;
+
+  try {
+    await apiFetch('/api/attacks/guided/start', {
+      method: 'POST',
+      body: JSON.stringify({ name, steps: guidedSteps, auto_attacks_off: disableAuto })
+    });
+    showNotif(`✅ Sesión '${name}' iniciada`, 'success');
+    guidedLogAdd(`▶ Sesión '${name}' iniciada (${guidedSteps.length} pasos)`);
+    document.getElementById('guidedBadge').style.display = '';
+    document.getElementById('guidedStatusBanner').style.display = '';
+    document.getElementById('guidedStatusText').textContent = `▶ Sesión activa: ${name}`;
+    document.getElementById('guidedStartBtn').disabled = true;
+    refreshGuidedStatus();
+  } catch(e) {
+    showNotif('Error al iniciar sesión: ' + e.message, 'error');
+  }
+}
+
+async function stopGuidedSession() {
+  try {
+    await apiFetch('/api/attacks/guided/stop', { method: 'POST' });
+    showNotif('🛑 Sesión guiada detenida', 'warning');
+    guidedLogAdd('⏹ Sesión detenida por instructor');
+    document.getElementById('guidedBadge').style.display = 'none';
+    document.getElementById('guidedStatusBanner').style.display = 'none';
+    document.getElementById('guidedStartBtn').disabled = false;
+    document.getElementById('guidedStatusPanel').innerHTML = '<p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>';
+  } catch(e) {
+    showNotif('Error al detener: ' + e.message, 'error');
+  }
+}
+
+async function refreshGuidedStatus() {
+  try {
+    const st = await apiFetch('/api/attacks/guided/status');
+    const panel = document.getElementById('guidedStatusPanel');
+    if (!st.active) {
+      panel.innerHTML = '<p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>';
+      document.getElementById('guidedBadge').style.display = 'none';
+      document.getElementById('guidedStatusBanner').style.display = 'none';
+      document.getElementById('guidedStartBtn').disabled = false;
+      return;
+    }
+    const pct = st.total_steps ? Math.round(st.steps_done / st.total_steps * 100) : 0;
+    panel.innerHTML = `
+      <div style="margin-bottom:.75rem">
+        <div style="font-weight:700;color:#f9fafb;margin-bottom:.25rem">${st.name}</div>
+        <div style="font-size:.8rem;color:#9ca3af">Paso ${st.steps_done}/${st.total_steps} — ${pct}%</div>
+        <div style="background:#1f2937;border-radius:4px;height:6px;margin-top:.4rem">
+          <div style="background:#f59e0b;height:6px;border-radius:4px;width:${pct}%;transition:width .5s"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        ${(st.steps||[]).map(s => {
+          const color = s.status==='done' ? '#22c55e' : s.status==='running' ? '#f59e0b' : '#4b5563';
+          const icon  = s.status==='done' ? '✅' : s.status==='running' ? '▶' : '⏳';
+          return `<div style="font-size:.8rem;color:${color}">${icon} Paso ${s.index+1}: ${s.attack_type} → ${s.node_id} (delay: ${s.delay_before_sec}s)</div>`;
+        }).join('')}
+      </div>
+    `;
+  } catch(e) {
+    console.error('Error refreshGuidedStatus', e);
+  }
+}
+
+function guidedLogAdd(msg) {
+  const log = document.getElementById('guidedLog');
+  const ts = new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const first = log.querySelector('span[style*="4b5563"]');
+  if (first) first.remove();
+  const line = document.createElement('div');
+  line.style.cssText = 'border-bottom:1px solid #1f2937;padding:.2rem 0;color:#9ca3af';
+  line.textContent = `[${ts}] ${msg}`;
+  log.insertBefore(line, log.firstChild);
+}
+
+// Escuchar eventos WebSocket de clase guiada
+function handleGuidedWsEvent(type, data) {
+  if (type === 'guided_step_countdown') {
+    guidedLogAdd(`⏱ ${data.message}`);
+    refreshGuidedStatus();
+  } else if (type === 'guided_step_launched') {
+    guidedLogAdd(`🚨 ${data.message}`);
+    showNotif(data.message, 'warning');
+    refreshGuidedStatus();
+  } else if (type === 'guided_session_completed') {
+    guidedLogAdd(`✅ ${data.message}`);
+    showNotif(data.message, 'success');
+    document.getElementById('guidedBadge').style.display = 'none';
+    document.getElementById('guidedStatusBanner').style.display = 'none';
+    document.getElementById('guidedStartBtn').disabled = false;
+    refreshGuidedStatus();
+  } else if (type === 'guided_session_stopped') {
+    guidedLogAdd(`⏹ ${data.message}`);
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+// Load initial data after a short delay to ensure DOM and WS are ready
+setTimeout(() => {
+  // Connect WebSocket
+  connectWS();
+  // Load catalogs
+  loadCatalog();
+  loadNodes();
+  loadStudents();
+  loadStudentList();
+  populateLiveStudentSel();
+  loadAllIncidents();
+  // Eval session data
+  _loadEvalStudentFilter();
+  loadActiveSessions();
+  loadActiveGroups();
+  // Bitácoras
+  loadBitacoras();
+  _loadBmStudentFilter();
+  // APT Chains grid
+  renderAptChains();
+}, 900);
+
+// Refresh active sessions, groups, and monitor every 30 seconds
+setInterval(() => {
+  loadActiveSessions();
+  loadActiveGroups();
+  loadBitacoras();
+  if (currentTab === 'monitor') { loadMonitor(); loadRecentActivity(); }
+}, 30000);
+
+</script>
+</body>
+</html>
