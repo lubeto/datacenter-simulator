@@ -698,3 +698,113 @@ async def stop_practice_mode(current=Depends(get_current_student)):
     scheduler.set_auto_attacks(True)
     await ws_manager.broadcast("practice_mode", {"active": False})
     return {"ok": True}
+
+
+@router.get("/bitacora-quality")
+async def get_bitacora_quality(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_instructor),
+):
+    """Agrega calidad textual de bitacoras por aprendiz."""
+    import re
+    from sqlalchemy import select as _sel
+    from ..database.models import Bitacora, Student
+
+    KEYBOARD_ROWS = [
+        "qwertyuiop", "asdfghjkl", "zxcvbnm",
+        "poiuytrewq", "lkjhgfdsa", "mnbvcxz",
+    ]
+
+    def _text_quality(text: str) -> float:
+        if not text or len(text.strip()) < 10:
+            return 0.1
+        t = text.lower().strip()
+        longest_run = max((len(m.group(0)) for m in re.finditer(r'(.)\1+', t)), default=1)
+        repeat_penalty = max(0.0, 1.0 - (longest_run - 2) * 0.15)
+        letters = re.sub(r'[^a-z]', '', t)
+        if not letters:
+            return 0.05
+        unique_ratio = len(set(letters)) / len(letters)
+        diversity_score = min(unique_ratio * 5, 1.0)
+        words = re.findall(r'[a-z]{3,}', t)
+        vocab_score = min(len(set(words)) / 4, 1.0)
+        keyboard_penalty = 1.0
+        for row in KEYBOARD_ROWS:
+            for length in range(4, 8):
+                for i in range(len(row) - length + 1):
+                    pattern = row[i:i+length]
+                    if pattern in t:
+                        keyboard_penalty = max(0.3, keyboard_penalty - 0.2)
+                        break
+        quality = (repeat_penalty * 0.30 + diversity_score * 0.35 + vocab_score * 0.25 + keyboard_penalty * 0.10)
+        return round(max(0.05, min(1.0, quality)), 3)
+
+    def _quality_label(avg: float) -> str:
+        if avg >= 0.75:
+            return "alta"
+        elif avg >= 0.45:
+            return "media"
+        elif avg >= 0.20:
+            return "baja"
+        return "muy_baja"
+
+    # Cargar todas las bitacoras con sus estudiantes
+    bq = await db.execute(
+        _sel(Bitacora).order_by(Bitacora.created_at.desc())
+    )
+    bitacoras = bq.scalars().all()
+
+    # Cargar mapa estudiante id -> nombre
+    sq = await db.execute(_sel(Student))
+    student_map = {s.id: s.name for s in sq.scalars().all()}
+
+    # Acumular por estudiante
+    by_student: dict = {}
+    totals = {"alta": 0, "media": 0, "baja": 0, "muy_baja": 0}
+
+    for b in bitacoras:
+        fields = [b.sintomas_observados, b.causa_raiz, b.acciones_tomadas, b.lecciones]
+        avg = sum(_text_quality(f or "") for f in fields) / 4
+        label = _quality_label(avg)
+        totals[label] += 1
+
+        sid = b.student_id
+        if sid not in by_student:
+            by_student[sid] = {
+                "student_id": sid,
+                "name": student_map.get(sid, f"ID {sid}"),
+                "total": 0,
+                "alta": 0, "media": 0, "baja": 0, "muy_baja": 0,
+                "quality_sum": 0.0,
+            }
+        by_student[sid]["total"] += 1
+        by_student[sid][label] += 1
+        by_student[sid]["quality_sum"] += avg
+
+    # Calcular promedios y ordenar por % alta desc
+    rows = []
+    for s in by_student.values():
+        avg_q = s["quality_sum"] / s["total"] if s["total"] else 0
+        pct_alta = round(s["alta"] / s["total"] * 100, 1) if s["total"] else 0
+        rows.append({
+            "student_id": s["student_id"],
+            "name": s["name"],
+            "total": s["total"],
+            "alta": s["alta"],
+            "media": s["media"],
+            "baja": s["baja"],
+            "muy_baja": s["muy_baja"],
+            "avg_quality": round(avg_q, 3),
+            "pct_alta": pct_alta,
+        })
+    rows.sort(key=lambda r: r["pct_alta"], reverse=True)
+
+    total_all = sum(totals.values())
+    pct_alta_global = round(totals["alta"] / total_all * 100, 1) if total_all else 0
+
+    return {
+        "total": total_all,
+        "pct_alta": pct_alta_global,
+        "by_level": totals,
+        "by_student": rows,
+    }

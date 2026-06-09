@@ -826,6 +826,23 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     </div>
   </div>
 
+
+  <!-- Calidad textual de bitácoras -->
+  <div class="card" style="margin-bottom:1rem" id="qualityCard">
+    <div class="card-header" style="justify-content:space-between">
+      <span class="card-title">🔬 Calidad Textual de Bitácoras</span>
+      <button onclick="loadBitacoraQuality()" class="btn btn-outline btn-sm">↻ Actualizar</button>
+    </div>
+    <div style="padding:1rem 1rem 0">
+      <div style="display:grid;grid-template-columns:140px 1fr;gap:1rem;align-items:start">
+        <div style="height:140px"><canvas id="qualityDonut"></canvas></div>
+        <div id="qualityContent">
+          <div style="color:var(--muted);text-align:center;font-size:.8rem;padding:2rem 0">Se carga al actualizar analíticas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /tab-analytics -->
 
 <!-- ══ TAB: REPORTES ═════════════════════════════════════════ -->
@@ -3191,8 +3208,9 @@ async function loadAnalytics() {
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}},
     });
 
-    // Incident history
+    // Incident history + quality
     loadIncidentHistory();
+    loadBitacoraQuality();
   } catch(e) {
     document.getElementById('rankingFullTbody').innerHTML = `<tr><td colspan="8" style="color:var(--red);text-align:center;padding:1.5rem">Error: ${e.message}</td></tr>`;
   }
@@ -3217,6 +3235,123 @@ async function toggleRankDetail(id) {
       <div style="font-size:.75rem;color:var(--muted)">Bitácoras recientes:</div>
       <div style="font-size:.75rem;margin-top:.3rem">${(s.recent_bitacoras||[]).slice(0,5).map(b=>`<span style="display:inline-block;background:var(--card);border-radius:5px;padding:.2rem .5rem;margin:.15rem;font-size:.7rem">${b.attack_type} → ${b.node_id} · ${(b.score||0).toFixed(0)}/100</span>`).join('')||'—'}</div>`;
   } catch(e) { panel.innerHTML = `<div style="color:var(--muted);padding:.5rem">Sin datos detallados</div>`; }
+}
+
+let anQualChart = null;
+
+async function loadBitacoraQuality() {
+  const wrap = document.getElementById('qualityContent');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="color:var(--muted);text-align:center;font-size:.8rem;padding:1.5rem">Cargando...</div>';
+  try {
+    const d = await apiFetch('/api/analytics/bitacora-quality');
+    if (!d.total) {
+      wrap.innerHTML = '<div style="color:var(--muted);text-align:center;font-size:.8rem;padding:1.5rem">Sin bitácoras registradas aún</div>';
+      return;
+    }
+
+    const lvl = d.by_level;
+    const pctAlta = d.pct_alta;
+    const pctColor = pctAlta >= 60 ? '#4ade80' : pctAlta >= 35 ? '#facc15' : '#f87171';
+
+    // KPI header row
+    const kpiHtml = `
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;margin-bottom:1rem">
+        <div style="background:var(--card);border-radius:8px;padding:.7rem;text-align:center">
+          <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem">Total</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#f1f5f9">${d.total}</div>
+        </div>
+        <div style="background:var(--card);border-radius:8px;padding:.7rem;text-align:center">
+          <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem">% Alta</div>
+          <div style="font-size:1.4rem;font-weight:800;color:${pctColor}">${pctAlta}%</div>
+        </div>
+        <div style="background:var(--card);border-radius:8px;padding:.7rem;text-align:center">
+          <div style="font-size:.62rem;color:#4ade80;margin-bottom:.2rem">Alta ✓</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#4ade80">${lvl.alta}</div>
+        </div>
+        <div style="background:var(--card);border-radius:8px;padding:.7rem;text-align:center">
+          <div style="font-size:.62rem;color:#facc15;margin-bottom:.2rem">Media ∼</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#facc15">${lvl.media}</div>
+        </div>
+        <div style="background:var(--card);border-radius:8px;padding:.7rem;text-align:center">
+          <div style="font-size:.62rem;color:#f87171;margin-bottom:.2rem">Baja / Basura ✗</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#f87171">${lvl.baja + lvl.muy_baja}</div>
+        </div>
+      </div>`;
+
+    // Per-student table
+    const rowsHtml = d.by_student.map(s => {
+      const bar = (count, total, color) => count
+        ? `<span style="display:inline-block;width:${Math.round(count/total*60)}px;height:8px;border-radius:3px;background:${color};vertical-align:middle;margin-right:2px" title="${count}"></span>`
+        : '';
+      const qColor = s.avg_quality >= 0.75 ? '#4ade80' : s.avg_quality >= 0.45 ? '#facc15' : '#f87171';
+      return `<tr>
+        <td style="padding:.45rem .7rem;font-size:.8rem"><strong>${s.name}</strong></td>
+        <td style="padding:.45rem .7rem;text-align:center;font-size:.8rem">${s.total}</td>
+        <td style="padding:.45rem .7rem">
+          ${bar(s.alta, s.total, '#4ade80')}${bar(s.media, s.total, '#facc15')}${bar(s.baja, s.total, '#fb923c')}${bar(s.muy_baja, s.total, '#f87171')}
+          <span style="font-size:.65rem;color:var(--muted);margin-left:4px">${s.alta}A ${s.media}M ${s.baja}B ${s.muy_baja}X</span>
+        </td>
+        <td style="padding:.45rem .7rem;text-align:center">
+          <strong style="color:${qColor};font-size:.85rem">${(s.avg_quality*100).toFixed(0)}</strong>
+          <span style="font-size:.65rem;color:var(--muted)">/100</span>
+        </td>
+        <td style="padding:.45rem .7rem;text-align:center">
+          <span style="font-size:.75rem;color:${s.pct_alta>=60?'#4ade80':s.pct_alta>=35?'#facc15':'#f87171'};font-weight:700">${s.pct_alta}%</span>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const tableHtml = `
+      <div style="overflow-x:auto;margin-bottom:1rem">
+        <table class="ranking-full" style="width:100%">
+          <thead><tr>
+            <th>Aprendiz</th>
+            <th style="text-align:center">Bitácoras</th>
+            <th>Distribución</th>
+            <th style="text-align:center">Calidad prom.</th>
+            <th style="text-align:center">% Alta</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div style="font-size:.65rem;color:var(--muted)">
+        A=Alta &nbsp;|&nbsp; M=Media &nbsp;|&nbsp; B=Baja &nbsp;|&nbsp; X=Basura (texto repetitivo o sin contenido)
+      </div>`;
+
+    wrap.innerHTML = kpiHtml + tableHtml;
+
+    // Donut chart — re-render after DOM update
+    const existing = document.getElementById('qualityDonut');
+    if (existing) {
+      const ctx = existing.getContext('2d');
+      if (anQualChart) { anQualChart.destroy(); anQualChart = null; }
+      anQualChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Alta', 'Media', 'Baja', 'Basura'],
+          datasets: [{
+            data: [lvl.alta, lvl.media, lvl.baja, lvl.muy_baja],
+            backgroundColor: ['rgba(74,222,128,.8)', 'rgba(250,204,21,.8)', 'rgba(251,146,60,.8)', 'rgba(248,113,113,.8)'],
+            borderColor: ['#4ade80','#facc15','#fb923c','#f87171'],
+            borderWidth: 1.5,
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, padding: 10 }},
+            tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/d.total)*100).toFixed(1)}%)` }},
+          },
+        },
+      });
+    }
+  } catch(e) {
+    if (wrap) wrap.innerHTML = `<div style="color:var(--red);padding:1rem;font-size:.8rem">Error: ${e.message}</div>`;
+  }
 }
 
 async function loadIncidentHistory() {
@@ -3650,170 +3785,4 @@ function renderGuidedSteps() {
         <label style="font-size:.75rem;color:#9ca3af">
           Delay (s)<br>
           <input type="number" value="${s.delay_before_sec}" min="10" max="600"
-            onchange="guidedSteps[${i}].delay_before_sec=+this.value"
-            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
-        </label>
-        <label style="font-size:.75rem;color:#9ca3af">
-          Duración (s)<br>
-          <input type="number" value="${s.duration_sec}" min="30" max="600"
-            onchange="guidedSteps[${i}].duration_sec=+this.value"
-            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
-        </label>
-        <label style="font-size:.75rem;color:#9ca3af">
-          Intensidad<br>
-          <input type="number" value="${s.intensity}" min="0.1" max="1" step="0.1"
-            onchange="guidedSteps[${i}].intensity=+this.value"
-            style="width:100%;padding:.3rem;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;font-size:.8rem">
-        </label>
-      </div>
-      <button onclick="removeGuidedStep(${i})"
-        style="margin-top:.4rem;background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:.75rem">✕ Eliminar</button>
-    </div>
-  `).join('');
-
-  // Restaurar valores seleccionados (los select se regeneran)
-  const selects = container.querySelectorAll('select');
-  guidedSteps.forEach((s, i) => {
-    if (selects[i*2])   selects[i*2].value   = s.attack_type;
-    if (selects[i*2+1]) selects[i*2+1].value = s.node_id;
-  });
-}
-
-async function startGuidedSession() {
-  if (!guidedSteps.length) { showNotif('Agrega al menos un ataque', 'error'); return; }
-  const invalid = guidedSteps.find(s => !s.attack_type || !s.node_id);
-  if (invalid) { showNotif('Completa ataque y nodo en todos los pasos', 'error'); return; }
-
-  const name = document.getElementById('guidedName').value || 'Clase guiada';
-  const disableAuto = document.getElementById('guidedDisableAuto').checked;
-
-  try {
-    await apiFetch('/api/attacks/guided/start', {
-      method: 'POST',
-      body: JSON.stringify({ name, steps: guidedSteps, auto_attacks_off: disableAuto })
-    });
-    showNotif(`✅ Sesión '${name}' iniciada`, 'success');
-    guidedLogAdd(`▶ Sesión '${name}' iniciada (${guidedSteps.length} pasos)`);
-    document.getElementById('guidedBadge').style.display = '';
-    document.getElementById('guidedStatusBanner').style.display = '';
-    document.getElementById('guidedStatusText').textContent = `▶ Sesión activa: ${name}`;
-    document.getElementById('guidedStartBtn').disabled = true;
-    refreshGuidedStatus();
-  } catch(e) {
-    showNotif('Error al iniciar sesión: ' + e.message, 'error');
-  }
-}
-
-async function stopGuidedSession() {
-  try {
-    await apiFetch('/api/attacks/guided/stop', { method: 'POST' });
-    showNotif('🛑 Sesión guiada detenida', 'warning');
-    guidedLogAdd('⏹ Sesión detenida por instructor');
-    document.getElementById('guidedBadge').style.display = 'none';
-    document.getElementById('guidedStatusBanner').style.display = 'none';
-    document.getElementById('guidedStartBtn').disabled = false;
-    document.getElementById('guidedStatusPanel').innerHTML = '<p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>';
-  } catch(e) {
-    showNotif('Error al detener: ' + e.message, 'error');
-  }
-}
-
-async function refreshGuidedStatus() {
-  try {
-    const st = await apiFetch('/api/attacks/guided/status');
-    const panel = document.getElementById('guidedStatusPanel');
-    if (!st.active) {
-      panel.innerHTML = '<p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>';
-      document.getElementById('guidedBadge').style.display = 'none';
-      document.getElementById('guidedStatusBanner').style.display = 'none';
-      document.getElementById('guidedStartBtn').disabled = false;
-      return;
-    }
-    const pct = st.total_steps ? Math.round(st.steps_done / st.total_steps * 100) : 0;
-    panel.innerHTML = `
-      <div style="margin-bottom:.75rem">
-        <div style="font-weight:700;color:#f9fafb;margin-bottom:.25rem">${st.name}</div>
-        <div style="font-size:.8rem;color:#9ca3af">Paso ${st.steps_done}/${st.total_steps} — ${pct}%</div>
-        <div style="background:#1f2937;border-radius:4px;height:6px;margin-top:.4rem">
-          <div style="background:#f59e0b;height:6px;border-radius:4px;width:${pct}%;transition:width .5s"></div>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:.3rem">
-        ${(st.steps||[]).map(s => {
-          const color = s.status==='done' ? '#22c55e' : s.status==='running' ? '#f59e0b' : '#4b5563';
-          const icon  = s.status==='done' ? '✅' : s.status==='running' ? '▶' : '⏳';
-          return `<div style="font-size:.8rem;color:${color}">${icon} Paso ${s.index+1}: ${s.attack_type} → ${s.node_id} (delay: ${s.delay_before_sec}s)</div>`;
-        }).join('')}
-      </div>
-    `;
-  } catch(e) {
-    console.error('Error refreshGuidedStatus', e);
-  }
-}
-
-function guidedLogAdd(msg) {
-  const log = document.getElementById('guidedLog');
-  const ts = new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const first = log.querySelector('span[style*="4b5563"]');
-  if (first) first.remove();
-  const line = document.createElement('div');
-  line.style.cssText = 'border-bottom:1px solid #1f2937;padding:.2rem 0;color:#9ca3af';
-  line.textContent = `[${ts}] ${msg}`;
-  log.insertBefore(line, log.firstChild);
-}
-
-// Escuchar eventos WebSocket de clase guiada
-function handleGuidedWsEvent(type, data) {
-  if (type === 'guided_step_countdown') {
-    guidedLogAdd(`⏱ ${data.message}`);
-    refreshGuidedStatus();
-  } else if (type === 'guided_step_launched') {
-    guidedLogAdd(`🚨 ${data.message}`);
-    showNotif(data.message, 'warning');
-    refreshGuidedStatus();
-  } else if (type === 'guided_session_completed') {
-    guidedLogAdd(`✅ ${data.message}`);
-    showNotif(data.message, 'success');
-    document.getElementById('guidedBadge').style.display = 'none';
-    document.getElementById('guidedStatusBanner').style.display = 'none';
-    document.getElementById('guidedStartBtn').disabled = false;
-    refreshGuidedStatus();
-  } else if (type === 'guided_session_stopped') {
-    guidedLogAdd(`⏹ ${data.message}`);
-  }
-}
-
-// ── INIT ─────────────────────────────────────────────────────
-// Load initial data after a short delay to ensure DOM and WS are ready
-setTimeout(() => {
-  // Connect WebSocket
-  connectWS();
-  // Load catalogs
-  loadCatalog();
-  loadNodes();
-  loadStudents();
-  loadStudentList();
-  populateLiveStudentSel();
-  loadAllIncidents();
-  // Eval session data
-  _loadEvalStudentFilter();
-  loadActiveSessions();
-  loadActiveGroups();
-  // Bitácoras
-  loadBitacoras();
-  _loadBmStudentFilter();
-  // APT Chains grid
-  renderAptChains();
-}, 900);
-
-// Refresh active sessions, groups, and monitor every 30 seconds
-setInterval(() => {
-  loadActiveSessions();
-  loadActiveGroups();
-  loadBitacoras();
-  if (currentTab === 'monitor') { loadMonitor(); loadRecentActivity(); }
-}, 30000);
-
-</script>
-</body>
-</html>
+            onchange="guidedSteps[${

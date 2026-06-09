@@ -241,8 +241,10 @@ async def _collect_report_data(db: AsyncSession, report_type: str,
             for i in incidents
         ]
         ssl_data = [
-            {"section": "ssl", "node": c.node_id, "days_to_expire": c.days_to_expire,
-             "tls_version": c.tls_version, "alert_level": c.alert_level}
+            {"section": "ssl", "node": c.node_id, "domain": getattr(c, "domain", ""),
+             "days_to_expire": c.days_to_expire, "tls_version": c.tls_version,
+             "is_valid": getattr(c, "is_valid", True), "is_expired": getattr(c, "is_expired", False),
+             "alert_level": c.alert_level, "alert_message": getattr(c, "alert_message", "") or ""}
             for c in certs
         ]
         student_data = [{
@@ -368,10 +370,4 @@ async def _collect_report_data(db: AsyncSession, report_type: str,
             "node": c.node_id, "domain": c.domain,
             "days_to_expire": c.days_to_expire,
             "tls_version": c.tls_version,
-            "alert_level": c.alert_level or "ok",
-        } for c in certs]
-
-        return (student_data + sessions_data + sst_data + lab_data +
-                bitacoras_data + incidents_data + nodes_data + ssl_data)
-
-    return []
+            "is_valid": c.i
