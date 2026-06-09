@@ -198,7 +198,7 @@ class EventScheduler:
                         "tls_version": tls_version,
                         "cipher_suite": "TLS_AES_256_GCM_SHA384",
                         "days_to_expire": days,
-                        "expires_at": expires_at,
+                        "expires_at": expires_at.isoformat(),
                         "is_expired": is_expired,
                         "is_self_signed": is_self_signed,
                         "is_valid": not is_expired and not is_self_signed,
