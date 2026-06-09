@@ -1077,6 +1077,15 @@ function handleWS(msg) {
     case 'new_incident': addTimeline('🚨', `Ataque: ${msg.data.attack?.name||''}`, `${msg.data.message||''}`, 'crit'); loadAllIncidents(); break;
     case 'incident_detected': addTimeline('🔍', `Detectado por ${msg.data.detected_by||''}`, `MTTD: ${msg.data.mttd_seconds?.toFixed(1)||'?'}s`, 'warn'); break;
     case 'incident_resolved': addTimeline('✅', `Resuelto por ${msg.data.resolved_by||''}`, `MTTR: ${msg.data.mttr_seconds?.toFixed(1)||'?'}s`, 'ok'); loadAllIncidents(); setTimeout(loadBitacoras, 3000); break;
+    case 'new_bitacora': {
+      const sc = msg.data.score || 0;
+      const qual = msg.data.quality_label || '';
+      const pen = msg.data.penalized ? ` ⚠️ penalizado (${qual})` : '';
+      addTimeline('📋', `Bitácora: ${msg.data.student_name||'Aprendiz'}`, `${msg.data.attack_type||'?'} → ${msg.data.node_id||'?'} · ${sc.toFixed(0)}/100${pen}`, sc>=80?'ok':sc>=50?'warn':'crit');
+      loadBitacoras();
+      if (currentTab === 'monitor') loadRecentActivity();
+      break;
+    }
     case 'sst_alert': addTimeline('🌡️', `SST: ${msg.data.sensor_id||''}`, msg.data.message||'', 'warn'); break;
     case 'connected': document.getElementById('wsClientCount').textContent = `${msg.data.ws_clients||1} conectados`; break;
     case 'practice_mode': handlePracticeModeEcho(msg.data); break;

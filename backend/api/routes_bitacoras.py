@@ -1,8 +1,8 @@
 """
-DC Monitoring Simulator — Rutas de Bitácoras
-POST /api/bitacoras          → guardar nueva bitácora
-GET  /api/bitacoras          → listar (instructor ve todas, estudiante ve las suyas)
-GET  /api/bitacoras/{id}     → detalle de una bitácora
+DC Monitoring Simulator - Rutas de Bitacoras
+POST /api/bitacoras          -> guardar nueva bitacora
+GET  /api/bitacoras          -> listar (instructor ve todas, estudiante ve las suyas)
+GET  /api/bitacoras/{id}     -> detalle de una bitacora
 """
 import re
 import math
@@ -16,11 +16,12 @@ from datetime import datetime, date, timedelta
 from ..database.db import get_db
 from ..database.models import Bitacora, Student
 from .routes_students import get_current_student
+from ..api.websocket import manager as ws_manager
 
 router = APIRouter(prefix="/api/bitacoras", tags=["bitacoras"])
 
 
-# ── Esquemas ──────────────────────────────────────────────────
+# -- Esquemas --------------------------------------------------
 
 class BitacoraCreate(BaseModel):
     node_id:             str
@@ -63,16 +64,17 @@ class BitacoraOut(BaseModel):
         from_attributes = True
 
 
-# ── Análisis de calidad textual ───────────────────────────────
+# -- Analisis de calidad textual -------------------------------
 KEYBOARD_ROWS = [
     "qwertyuiop", "asdfghjkl", "zxcvbnm",
     "poiuytrewq", "lkjhgfdsa", "mnbvcxz",
 ]
 
+
 def _text_quality(text: str) -> float:
     """
-    Devuelve un factor de calidad 0.0 – 1.0 para el texto de la bitácora.
-    Detecta: caracteres repetidos, baja diversidad léxica, patrones de teclado.
+    Devuelve un factor de calidad 0.0-1.0 para el texto de la bitacora.
+    Detecta: caracteres repetidos, baja diversidad lexica, patrones de teclado.
     1.0 = texto de alta calidad. 0.0 = texto basura total.
     """
     if not text or len(text.strip()) < 10:
@@ -85,17 +87,17 @@ def _text_quality(text: str) -> float:
     longest_run = max((len(m.group(0)) for m in re.finditer(r'(.)\1+', t)), default=1)
     repeat_penalty = max(0.0, 1.0 - (longest_run - 2) * 0.15)  # 3 repeticiones = -0.15
 
-    # 2. Diversidad de caracteres (letras únicas / total letras)
-    letters = re.sub(r'[^a-záéíóúñ]', '', t)
+    # 2. Diversidad de caracteres (letras unicas / total letras)
+    letters = re.sub(r'[^a-z]', '', t)
     if not letters:
         return 0.05
     unique_ratio = len(set(letters)) / len(letters)
-    diversity_score = min(unique_ratio * 5, 1.0)   # 0.2 ratio único = score 1.0
+    diversity_score = min(unique_ratio * 5, 1.0)   # 0.2 ratio unico = score 1.0
 
-    # 3. Palabras únicas (vocabulario)
-    words = re.findall(r'[a-záéíóúñ]{3,}', t)
+    # 3. Palabras unicas (vocabulario)
+    words = re.findall(r'[a-z]{3,}', t)
     unique_words = len(set(words))
-    vocab_score = min(unique_words / 4, 1.0)   # 4 palabras únicas = score 1.0
+    vocab_score = min(unique_words / 4, 1.0)   # 4 palabras unicas = score 1.0
 
     # 4. Penalizar patrones de teclado (ej: "asdfasdf", "qwerty")
     keyboard_penalty = 1.0
@@ -111,10 +113,10 @@ def _text_quality(text: str) -> float:
     return round(max(0.05, min(1.0, quality)), 3)
 
 
-def _bitacora_quality_score(data) -> tuple[float, str]:
+def _bitacora_quality_score(data) -> tuple:
     """
-    Calcula el factor de calidad promedio de los 4 campos de la bitácora.
-    Devuelve (factor 0-1, descripción).
+    Calcula el factor de calidad promedio de los 4 campos de la bitacora.
+    Devuelve (factor 0-1, descripcion).
     """
     fields = [
         data.sintomas_observados,
@@ -137,23 +139,23 @@ def _bitacora_quality_score(data) -> tuple[float, str]:
     return round(avg, 3), label
 
 
-# ── Endpoints ─────────────────────────────────────────────────
+# -- Endpoints ------------------------------------------------
 
-@router.post("", status_code=status.HTTP_201_CREATED)  # response_model omitido para incluir campos de calidad
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_bitacora(
     data: BitacoraCreate,
     db:   AsyncSession = Depends(get_db),
     me:   Student      = Depends(get_current_student),
 ):
-    """El aprendiz guarda su bitácora al completar el diagnóstico guiado."""
-    # ── Análisis de calidad del texto ──────────────────────────────────────
+    """El aprendiz guarda su bitacora al completar el diagnostico guiado."""
+    # Analisis de calidad del texto
     quality_factor, quality_label = _bitacora_quality_score(data)
 
-    # Penalizar score según calidad del texto:
-    #   Calidad alta (≥0.75) → sin penalización
-    #   Calidad media (0.45–0.75) → multiplicar por 0.80 (−20%)
-    #   Calidad baja (0.20–0.45) → multiplicar por 0.50 (−50%)
-    #   Calidad muy baja (<0.20) → score máximo 20, independiente de respuestas
+    # Penalizar score segun calidad del texto:
+    #   Calidad alta (>=0.75)  -> sin penalizacion
+    #   Calidad media (0.45-0.75) -> multiplicar por 0.80 (-20%)
+    #   Calidad baja (0.20-0.45)  -> multiplicar por 0.50 (-50%)
+    #   Calidad muy baja (<0.20)  -> score maximo 20
     base_score = data.score or 0
     if quality_factor >= 0.75:
         final_score = base_score
@@ -162,7 +164,7 @@ async def create_bitacora(
     elif quality_factor >= 0.20:
         final_score = round(base_score * 0.50, 1)
     else:
-        final_score = min(base_score, 20.0)   # techo de 20 pts por texto basura
+        final_score = min(base_score, 20.0)
 
     b = Bitacora(
         student_id          = me.id,
@@ -170,7 +172,7 @@ async def create_bitacora(
         node_id             = data.node_id,
         attack_type         = data.attack_type,
         severity            = data.severity,
-        score               = final_score,        # score ajustado por calidad
+        score               = final_score,
         correct_answers     = data.correct_answers,
         total_questions     = data.total_questions,
         hints_used          = data.hints_used,
@@ -181,9 +183,6 @@ async def create_bitacora(
         acciones_tomadas    = data.acciones_tomadas,
         lecciones           = data.lecciones,
     )
-    # Guardar calidad en las notas para que el instructor la vea
-    b._quality_factor = quality_factor    # temporal, no se persiste
-    b._quality_label  = quality_label
     db.add(b)
     await db.commit()
     await db.refresh(b)
@@ -193,28 +192,43 @@ async def create_bitacora(
     student = result.scalar_one_or_none()
     out = BitacoraOut.model_validate(b)
     out.student_name = student.name if student else None
-    # Añadir metadatos de calidad como campo extra en la respuesta
     out_dict = out.model_dump()
     out_dict["quality_factor"] = quality_factor
     out_dict["quality_label"]  = quality_label
     out_dict["score_original"] = base_score
     out_dict["score_adjusted"] = final_score
     out_dict["score_penalized"] = final_score < base_score
+
+    # Notificar al instructor en tiempo real
+    try:
+        await ws_manager.broadcast("new_bitacora", {
+            "student_id":    me.id,
+            "student_name":  student.name if student else "Aprendiz",
+            "attack_type":   data.attack_type,
+            "node_id":       data.node_id,
+            "score":         final_score,
+            "quality_label": quality_label,
+            "penalized":     final_score < base_score,
+            "timestamp":     datetime.utcnow().isoformat(),
+        })
+    except Exception:
+        pass  # no bloquear si falla el broadcast
+
     return out_dict
 
 
 @router.get("", response_model=List[BitacoraOut])
 async def list_bitacoras(
     student_id: Optional[int]  = None,
-    date_str:   Optional[str]  = None,   # formato YYYY-MM-DD
+    date_str:   Optional[str]  = None,
     limit:      Optional[int]  = 100,
     db:         AsyncSession   = Depends(get_db),
     me:         Student        = Depends(get_current_student),
 ):
     """
-    Instructor: ve todas las bitácoras (filtrable por student_id y/o fecha).
+    Instructor: ve todas las bitacoras (filtrable por student_id y/o fecha).
     Aprendiz: solo ve las suyas.
-    date_str: filtro por día exacto, formato YYYY-MM-DD.
+    date_str: filtro por dia exacto, formato YYYY-MM-DD.
     """
     filters = []
     if me.role == "student":
@@ -230,7 +244,7 @@ async def list_bitacoras(
             filters.append(Bitacora.created_at >= day_start)
             filters.append(Bitacora.created_at <  day_end)
         except ValueError:
-            pass  # fecha inválida → ignorar filtro
+            pass
 
     q = select(Bitacora).order_by(desc(Bitacora.created_at)).limit(limit)
     if filters:
@@ -239,7 +253,6 @@ async def list_bitacoras(
     result = await db.execute(q)
     bitacoras = result.scalars().all()
 
-    # Enriquecer con nombre del estudiante
     out_list = []
     for b in bitacoras:
         sr = await db.execute(select(Student).where(Student.id == b.student_id))
@@ -260,8 +273,7 @@ async def get_bitacora(
     result = await db.execute(select(Bitacora).where(Bitacora.id == bitacora_id))
     b = result.scalar_one_or_none()
     if not b:
-        raise HTTPException(status_code=404, detail="Bitácora no encontrada")
-    # Aprendiz solo puede ver las suyas
+        raise HTTPException(status_code=404, detail="Bitacora no encontrada")
     if me.role == "student" and b.student_id != me.id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
 
