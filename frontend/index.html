@@ -549,9 +549,9 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 </div>
 
 <!-- LOG VIEWER PANEL -->
-<div id="logsPanel" style="display:none;position:fixed;right:0;bottom:0;width:min(680px,96vw);height:min(440px,65vh);background:#18181b;border-top:2px solid #0ea5e9;border-left:2px solid #0ea5e9;border-top-left-radius:10px;z-index:250;box-shadow:-4px -4px 24px rgba(14,165,233,.22);display:flex;flex-direction:column;overflow:hidden;font-family:monospace">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0;gap:.5rem;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:.5rem">
+<div id="logsPanel" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(820px,96vw);height:min(520px,80vh);background:#18181b;border:2px solid #0ea5e9;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;font-family:monospace">
+  <div id="logsPanelHeader" style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0;gap:.5rem;flex-wrap:wrap;cursor:move;user-select:none">
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
       <span style="font-size:.82rem;font-weight:700;color:#38bdf8">&#x1F4C4; Logs</span>
       <select id="logsNodeSel" onchange="loadLogs()" style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#e4e4e7;font-size:.72rem;padding:2px 4px"></select>
       <select id="logsTypeSel" onchange="loadLogs()" style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#e4e4e7;font-size:.72rem;padding:2px 4px">
@@ -3187,14 +3187,45 @@ function toggleLogsPanel() {
   if (opening) {
     _populateLogsNodeSelect();
     loadLogs();
+    _makeLogsPanelDraggable();
   }
 }
 
+function _makeLogsPanelDraggable() {
+  const panel = document.getElementById('logsPanel');
+  const header = document.getElementById('logsPanelHeader');
+  if (header.dataset.dragInit) return;
+  header.dataset.dragInit = '1';
+  let dragging = false, startX, startY, startLeft, startTop;
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    dragging = true;
+    const rect = panel.getBoundingClientRect();
+    panel.style.transform = 'none';
+    panel.style.left = rect.left + 'px';
+    panel.style.top = rect.top + 'px';
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    panel.style.left = (startLeft + e.clientX - startX) + 'px';
+    panel.style.top = (startTop + e.clientY - startY) + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+}
+
+const LOGS_FALLBACK_NODES = ['WEB-01','WEB-02','DB-01','DB-02','APP-01','APP-02','LB-01','FW-01','RTR-EDGE','SW-CORE','SW-ACC-01','STORAGE-01'];
+
 function _populateLogsNodeSelect() {
   const sel = document.getElementById('logsNodeSel');
-  if (sel.options.length > 0) return;
-  const ids = Object.keys(window.allNodes || {});
-  sel.innerHTML = (ids.length ? ids : ['WEB-01']).map(id => `<option value="${id}">${id}</option>`).join('');
+  const ids = Object.keys(allNodes || {});
+  const list = ids.length ? ids : LOGS_FALLBACK_NODES;
+  if (sel.options.length === list.length) return;
+  const prev = sel.value;
+  sel.innerHTML = list.map(id => `<option value="${id}">${id}</option>`).join('');
+  if (prev && list.includes(prev)) sel.value = prev;
 }
 
 async function loadLogs() {
@@ -3203,8 +3234,7 @@ async function loadLogs() {
   const body = document.getElementById('logsBody');
   body.innerHTML = '<div style="color:#71717a">Cargando...</div>';
   try {
-    const resp = await apiFetch(`/api/logs/live?type=${type}&node_id=${node}&n=50`);
-    const data = await resp.json();
+    const data = await apiFetch(`/api/logs/live?type=${type}&node_id=${node}&n=50`);
     logsRawLines = data.lines || [];
     logsMarkedIoc = new Set();
     renderLogs();
