@@ -1,6 +1,6 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-07 (cierre — Sección 5 completada)
+## Última sesión: 2026-06-12 — COMPLETADA ✅ (reset BD estudiantil + fix main.py truncado + panel guiado a izquierda + roadmap V3)
 
 ---
 
@@ -45,6 +45,141 @@ docker/Dockerfile          — Imagen Docker para Render
 ---
 
 ## Historial de sesiones
+
+### Sesión 2026-06-12 — COMPLETADA ✅
+
+#### Panel guiado movido a la izquierda (`frontend/index.html`)
+- El panel de diagnóstico guiado cubría el mapa de red (estaba en la derecha)
+- Movido al lado izquierdo para que el aprendiz vea el mapa sin obstáculos
+- Cambios en `.guided-panel` CSS: `right:-105vw` → `left:-105vw`, `right:0` → `left:0`
+- Cambiados: `border-left→border-right`, `border-bottom-left-radius→border-bottom-right-radius`, `box-shadow:-4px→4px`
+- `_syncNotifSide()` actualizada: notificaciones siempre a la derecha (ya no conflicto)
+- Commit: `fix: panel guiado a la izquierda, notificaciones siempre a la derecha`
+
+#### Reset de actividad estudiantil — nuevo endpoint `/api/admin/reset-activity`
+- **Contexto**: Inicio de nueva etapa pedagógica — se necesitaba borrar toda la actividad conservando cuentas
+- **Archivo nuevo**: `backend/api/routes_admin.py`
+  - Endpoint `POST /api/admin/reset-activity` (requiere token instructor)
+  - Borra en orden de FK: bitácoras, eval_groups, sst_protocol_sessions, practice_sessions, guided_sessions, reports, mitigation_actions, alerts, incidents, sessions, metrics, sst_readings, ssl_certificates
+  - Resetea contadores acumulados de Student a cero (total_sessions, total_incidents, avg_mttd, avg_mttr, avg_score)
+  - Retorna JSON con conteo por tabla y total eliminado
+- **Registrado en main.py**: `from .api.routes_admin import router as admin_router` + `app.include_router(admin_router)`
+- **Resultado del reset ejecutado (2026-06-12)**:
+  - 288 bitácoras, 1975 incidentes, 355 sesiones, 19 reportes
+  - 732 métricas, 20910 lecturas SST, 4 diagnósticos guiados, 2 alertas, 5 SSL
+  - **Total: 24,291 registros eliminados** — 20 cuentas conservadas intactas
+
+#### Fix `backend/main.py` truncado — causa del deploy fallido
+- **Síntoma**: Deploy `7ce103c` falló con "Exited with status 1 — SyntaxError: '{' was never closed at line 355"
+- **Causa**: El archivo `main.py` estaba truncado desde una sesión anterior. La línea 360 terminaba en `"simulated_hour": ` sin valor ni cierre del dict
+- **Diagnóstico**: `python3 -m py_compile` en sandbox Linux confirmó el truncamiento; el Read tool (Windows) veía el archivo aparentemente completo por diferencia de sync entre mounts
+- **Fix**: Python script en sandbox reemplazó líneas 360+ con el contenido correcto:
+  ```python
+          "simulated_hour": sim_state.get_simulated_hour(),
+          "timestamp": datetime.utcnow().isoformat(),
+      }
+  ```
+- **Regla reforzada**: Antes de cualquier push, ejecutar `python3 -m py_compile backend/main.py` en el sandbox para verificar sintaxis
+- Commits: `7ce103c` (roto) → `5918462` (fix, deploy live ✅)
+
+#### Cómo ejecutar el reset desde PowerShell (para futuras etapas)
+```powershell
+# 1. Login instructor (form-urlencoded, NO json)
+$resp = Invoke-RestMethod -Uri "https://datacenter-simulator.onrender.com/api/auth/login" -Method POST -Body "username=instructor@datacenter.edu&password=Admin1234!" -ContentType "application/x-www-form-urlencoded"
+$token = $resp.access_token
+
+# 2. Ejecutar reset
+Invoke-RestMethod -Uri "https://datacenter-simulator.onrender.com/api/admin/reset-activity" -Method POST -Headers @{Authorization="Bearer $token"} | ConvertTo-Json
+```
+
+---
+
+### Sesión 2026-06-08 — COMPLETADA ✅
+
+#### Resumen
+Sesión larga con 3 bugs críticos encontrados y resueltos. Plataforma funcional al cierre (screenshots confirman "En vivo", 1 conectado, JS OK, lista de aprendices OK).
+
+#### `backend/simulation/scheduler.py` — Fix ssl_check_loop datetime ✅
+- Error: `Object of type datetime is not JSON serializable` cada 30s → loop crash → WS nunca conectaba → frontend stuck "Conectando..."
+- Fix: `"expires_at": expires_at.isoformat()` en línea 201
+- Commit `8fe19a3` — desplegado y verificado en producción
+
+#### `frontend/instructor.html` — Restauración completa (3818→3936 líneas) ✅
+- El Edit tool truncó el archivo a 3787 líneas (3ª vez que ocurre en este proyecto)
+- Síntomas: `switchTab is not defined`, `logout is not defined`, `initWebSocket is not defined` → todo el panel roto
+- Fix: `git show 47f296d:frontend/instructor.html` como base → Python string replacement (nunca más Edit tool en archivos grandes)
+- Re-aplicados 3 cambios:
+  1. Card HTML `#qualityCard` con donut chart y tabla de aprendices
+  2. Función `loadBitacoraQuality()` + `let anQualChart = null`
+  3. Wire en `loadAnalytics()`
+- Archivo final: 3936 líneas, termina `</script>\n</body>\n</html>`, todas las funciones presentes
+- Push exitoso desde PowerShell con `Remove-Item .git/index.lock -Force`
+
+#### `backend/api/routes_analytics.py` — Endpoint calidad bitácoras ✅
+- `GET /api/analytics/bitacora-quality` (requiere instructor)
+- Retorna: `{total, pct_alta, by_level, by_student}` ordenado por pct_alta desc
+- Lógica `_text_quality` inlineada para evitar import circular
+
+#### `backend/api/routes_reports.py` — Fix duplicado + null bytes ✅
+- Eliminado bloque `elif full_summary` duplicado (viejo simple de 32 líneas)
+- Limpiados null bytes introducidos por Edit tool
+- Verificado con `ast.parse`
+- `git show` confirmó que el fix ya estaba en commit `179d8f5` (no requirió nuevo push)
+
+#### Commits clave
+- `8fe19a3` — fix: expires_at.isoformat() en ssl_check_loop
+- `[fix instructor.html]` — restaurar instructor.html completo (truncado) + panel calidad bitácoras
+- `179d8f5` — feat: panel analítica calidad de bitácoras (incluye fix routes_reports)
+
+#### Regla establecida (anti-truncation)
+> **NUNCA usar Edit tool en archivos >500 líneas.** Siempre: `git show <commit>:archivo > /tmp/base` → Python string replacement → `cp` al destino.
+
+---
+
+### Sesión 2026-06-08 (panel analítica calidad de bitácoras + fix SSL informe)
+
+#### `backend/api/routes_analytics.py` — Nuevo endpoint de calidad
+- Agregado `GET /api/analytics/bitacora-quality` (requiere instructor)
+- Itera todas las bitácoras, aplica la misma lógica `_text_quality` de `routes_bitacoras.py` (inline)
+- Retorna: `{total, pct_alta, by_level: {alta, media, baja, muy_baja}, by_student: [...]}`
+- `by_student` incluye: nombre, total, conteo por nivel, avg_quality (0-1), pct_alta
+- Ordenado por `pct_alta` descendente
+
+#### `frontend/instructor.html` — Panel "🔬 Calidad Textual de Bitácoras"
+- Card nueva en `tab-analytics`, justo antes del cierre del tab, después del historial de incidentes
+- **Donut Chart.js** (140×140px): Alta verde / Media amarillo / Baja naranja / Basura rojo
+- **5 KPIs**: total bitácoras, % alta (coloreado según umbral), conteo Alta, Media, Baja+Basura
+- **Tabla por aprendiz**: nombre, total, barra de distribución visual (spans coloreados), calidad promedio /100, % alta
+- Leyenda inferior: A=Alta M=Media B=Baja X=Basura
+- Función `loadBitacoraQuality()` — async, maneja estado vacío y errores
+- Auto-carga al llamar `loadAnalytics()` (wired en el catch del ranking)
+- Botón "↻ Actualizar" independiente en el card header
+
+#### `backend/api/routes_reports.py` — Fix sección 8 SSL
+- Ambos bloques `ssl_data` ahora incluyen `is_valid`, `is_expired`, `domain`, `alert_message`
+- El primer bloque (línea ~243) usaba `getattr` como fallback; corregido
+- El segundo bloque (línea ~369) en `full_summary` completo también corregido
+- Resultado: sección 8 del PDF ya no muestra ❌ para todos los certificados
+
+#### Commits
+- `179d8f5` — feat: panel analítica calidad de bitácoras + fix sección 8 SSL informe
+- `[pendiente push]` — fix: eliminar bloque full_summary duplicado + null bytes en routes_reports
+
+#### Bug detectado en deploy Render
+- Deploy `179d8f5` falló con "Exited with status 1"
+- Causa: `routes_reports.py` tenía DOS bloques `elif report_type == "full_summary"` (el viejo simple de ~32 líneas no se eliminó al agregar el nuevo completo) + null bytes introducidos por el Edit tool
+- Fix aplicado: eliminado el bloque duplicado + `python3 -c "data.replace(b'\x00',b'')"` para limpiar null bytes
+- Syntax OK verificado localmente (`ast.parse` sin errores)
+- **Push pendiente** — el sandbox no puede borrar `.git/HEAD.lock`; ejecutar desde PowerShell:
+  ```powershell
+  Remove-Item D:\Documentos\Lubeto\datacenter-simulator\.git\HEAD.lock -Force
+  cd D:\Documentos\Lubeto\datacenter-simulator
+  git add backend\api\routes_reports.py
+  git commit -m "fix: eliminar bloque full_summary duplicado en routes_reports"
+  git push origin main
+  ```
+
+---
 
 ### Sesión 2026-06-07 (cierre — stats clase guiada + guía aprendiz + funciones JS)
 
@@ -219,72 +354,12 @@ docker/Dockerfile          — Imagen Docker para Render
 
 ## Estado pendiente (para próxima sesión)
 
-- [x] **Push pendiente**: cambios V2 pusheados a main ✅
-- [x] **Bug BRUTE_FORCE**: fix en engine.py (commit 252a720) ✅
-- [x] Probar "Informe Completo del Aprendiz" en producción ✅ (funciona, 2 páginas)
-- [x] Revisar `loadEvalReports()` — nombres correctos en producción ✅
-- [x] `instructor.html`: catches verificados en prod ✅
-- [x] Reporte de clase con análisis automático ✅
-- [x] Guía aprendiz `guia_aprendiz.html` ✅
-- [x] Stats de paso completado en clase guiada ✅
-- [x] Funciones JS clase guiada (addGuidedStep, startGuidedSession, handleGuidedWsEvent, etc.) ✅
+- [x] Panel guiado movido a la izquierda ✅ (commit 5918462)
+- [x] Endpoint reset actividad estudiantil `/api/admin/reset-activity` ✅
+- [x] Fix main.py truncado ✅ (commit 5918462, deploy live)
+- [x] Reset ejecutado: 24,291 registros borrados, 20 cuentas conservadas ✅
+- [ ] Verificar panel "🔬 Calidad Textual de Bitácoras" en tab Analytics (pendiente revisión visual)
 - [ ] Verificar penalización de calidad de bitácora en panel de resultados (estudiante)
-- [ ] Verificar sección 8 del reporte (página 2 del Informe Completo)
-- [ ] Panel analítica de calidad de texto para instructor
-- [ ] Migrar SQLite → PostgreSQL (Sección 1, baja prioridad)
-
----
-
-## V2 — Mejoras propuestas (estado de implementación)
-
-### ✅ Sección 4 — UX del aprendiz (completada)
-- [x] Mapa interactivo con zoom/pan (Ctrl+scroll)
-- [x] Selector de tema persistente (4 temas)
-- [x] Tabla de liderazgo anónima por sesión
-
-### ✅ Sección 2 — Pedagogía y evaluación (completada)
-- [x] Banco de preguntas por ataque (2-3 variantes por etapa/categoría)
-- [x] Tres niveles de dificultad (Guiado/Asistido/Experto)
-- [ ] Panel analítica de calidad de texto para instructor (pendiente)
-
-### ✅ Sección 3 — Monitoreo más realista (completada)
-- [x] Propagación de ataques en topología (nodos downstream en naranja)
-- [x] Correlación de alertas → alerta APT coordinado
-- [x] Línea de tiempo de sesión completa
-
-### 🔲 Sección 1 — Arquitectura y datos (pendiente)
-- [ ] Migrar SQLite → PostgreSQL en Render
-- [ ] Motor de simulación con escenarios predefinidos y progresión temporal realista
-
-### ✅ Sección 5 — Gestión del instructor (completada)
-- [x] Modo "clase guiada": secuencia de ataques programada por el instructor (commit f8200aa)
-  - Tab 🎓 Clase Guiada en instructor.html
-  - POST /api/attacks/guided/start|stop, GET /api/attacks/guided/status
-  - Loop async en scheduler, broadcast WS por paso
-  - Funciones JS: addGuidedStep, renderGuidedSteps, startGuidedSession, stopGuidedSession, refreshGuidedStatus, handleGuidedWsEvent
-- [x] Vista de monitoreo individual del aprendiz en tiempo real (commit b52cf97)
-  - Panel en tab Monitor con selector de aprendiz
-  - GET /api/sessions/student/{id}/live — score, bitácoras, diagnósticos, MTTD, auto-refresh 20s
-- [x] Reporte de clase con análisis automático
-  - GET /api/sessions/class-report?date_str=YYYY-MM-DD
-  - Abre ventana con resumen del día, tabla por aprendiz, análisis automático en lenguaje natural
-- [x] Stats por paso de clase guiada (guided_step_stats WS event)
-  - Al finalizar cada paso: muestra quién detectó, MTTD, cantidad de aprendices activos
-  - Tarjeta verde/amarilla en log del instructor según si hubo detección o no
-- [x] Guía aprendiz `frontend/guia_aprendiz.html` — doc educativo del proceso completo
-
----
-
-## Cómo correr localmente
-
-```powershell
-cd D:\Documentos\Lubeto\datacenter-simulator
-C:\Users\ASUS\AppData\Local\Python\bin\python3.exe -m uvicorn backend.main:app --reload --port 8000
-```
-
-Abrir: http://localhost:8000 (estudiante) | http://localhost:8000/instructor (instructor)
-
-**Nota**: Las dependencias deben estar instaladas en ese Python. Si falla con `ModuleNotFoundError`, instalar primero:
-```powershell
-C:\Users\ASUS\AppData\Local\Python\bin\python3.exe -m pip install -r backend/requirements.txt
-```
+- [ ] **V3 Fase 1** — Terminal Simulada (prioridad alta, ver roadmap abajo)
+- [ ] **V3 Fase 1** — Visor de Logs en Crudo
+- [ 
