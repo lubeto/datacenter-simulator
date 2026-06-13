@@ -576,7 +576,7 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 </div>
 
 <!-- TERMINAL PANEL -->
-<div id="terminalPanel" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(700px,96vw);height:min(440px,75vh);background:#18181b;border:2px solid #16a34a;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden">
+<div id="terminalPanel" style="display:none;position:fixed;left:calc(50% + 40px);top:calc(50% + 40px);transform:translate(-50%,-50%);width:min(700px,96vw);height:min(440px,75vh);background:#18181b;border:2px solid #16a34a;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden">
   <div id="terminalPanelHeader" style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0;cursor:move;user-select:none">
     <div style="display:flex;align-items:center;gap:.6rem">
       <span style="font-size:.82rem;font-weight:700;color:#4ade80">&#x1F5A5; Terminal</span>
@@ -3414,7 +3414,6 @@ async function _termRunCommand(cmd) {
     term.writeln('\x1b[31mError de conexión con el servidor\x1b[0m');
   }
   term.write(TERM_PROMPT());
-}
 }
 
 </script>
