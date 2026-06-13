@@ -357,4 +357,6 @@ async def api_status():
         "offline_nodes": len(sim_state.offline_nodes),
         "active_attacks": len(sim_state.active_attacks),
         "ws_clients": ws_manager.count,
-        "simulated_hour": 
+        "simulated_hour": sim_state.get_simulated_hour(),
+        "timestamp": datetime.utcnow().isoformat(),
+    }
