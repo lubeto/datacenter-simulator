@@ -6,6 +6,8 @@
 <title>DC Monitoring Simulator</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='7' fill='%232563eb'/><rect x='4' y='6' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='14' width='24' height='6' rx='1.5' fill='white'/><rect x='4' y='22' width='24' height='6' rx='1.5' fill='white' opacity='0.6'/><circle cx='24.5' cy='9' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='17' r='1.8' fill='%234ade80'/><circle cx='24.5' cy='25' r='1.8' fill='%23facc15'/><rect x='6' y='7.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='15.5' width='10' height='3' rx='1' fill='%2393c5fd'/><rect x='6' y='23.5' width='10' height='3' rx='1' fill='%23bfdbfe' opacity='0.6'/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
 <style>
 :root{--bg:#18181b;--card:#27272a;--card2:#2d2d30;--border:#3f3f46;--accent:#f59e0b;--accent2:#f97316;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a78bfa;--text:#fafafa;--muted:#a1a1aa;--font:'Segoe UI',sans-serif}
 /* TEMAS */
@@ -312,6 +314,7 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
     <a href="/analytics-page" class="btn btn-outline btn-sm">Analytics</a>
     <a href="/reports-page" class="btn btn-outline btn-sm">Reportes</a>
     <button id="labNavBtn" onclick="openLab()" style="background:#8b5cf6;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F9EA; Lab</button>
+    <button id="terminalNavBtn" onclick="toggleTerminal()" style="background:#16a34a;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F5A5; Terminal</button>
     <button id="sessionReportBtn" class="btn-session" onclick="generateSessionReport()" title="Reporte PDF completo de la sesión">📄 Sesión</button>
     <span id="evalNavBadge" style="display:none;align-items:center;gap:5px;background:rgba(34,197,94,.15);border:1px solid #16a34a;border-radius:20px;padding:3px 10px;font-size:.72rem;font-weight:700;color:#4ade80;white-space:nowrap">
       <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;display:inline-block;animation:pulse 1.2s infinite"></span>
@@ -545,6 +548,18 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
     <button id="guidedHintBtn" onclick="showGuidedHint()" style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#fbbf24;padding:.35rem .75rem;font-size:.76rem;cursor:pointer">💡 Pista (−10 pts)</button>
     <button id="guidedNextBtn" onclick="guidedNext()" style="display:none;background:#8b5cf6;border:none;border-radius:6px;color:white;padding:.35rem .75rem;font-size:.76rem;cursor:pointer;font-weight:700">Siguiente →</button>
   </div>
+</div>
+
+<!-- TERMINAL PANEL -->
+<div id="terminalPanel" style="display:none;position:fixed;right:0;bottom:0;width:min(620px,96vw);height:min(380px,60vh);background:#18181b;border-top:2px solid #16a34a;border-left:2px solid #16a34a;border-top-left-radius:10px;z-index:250;box-shadow:-4px -4px 24px rgba(22,163,74,.22);display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:.6rem">
+      <span style="font-size:.82rem;font-weight:700;color:#4ade80">&#x1F5A5; Terminal</span>
+      <select id="termNodeSel" style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#e4e4e7;font-size:.72rem;padding:2px 4px"></select>
+    </div>
+    <button onclick="toggleTerminal()" style="background:none;border:1px solid #52525b;border-radius:4px;color:#a1a1aa;cursor:pointer;padding:2px 8px;font-size:.78rem">✕</button>
+  </div>
+  <div id="xtermContainer" style="flex:1;overflow:hidden;padding:.3rem"></div>
 </div>
 
 <!-- NODE DETAIL MODAL -->
@@ -3147,6 +3162,116 @@ function _stopGuidedAutoClose() {
 
 function _cancelGuidedAutoClose() {
   _gpOnActivity(); // marcar actividad → cancela countdown
+}
+
+// ============================================================
+// TERMINAL SIMULADA (xterm.js)
+// ============================================================
+let term = null;
+let termFitDone = false;
+let termCmdHistory = [];
+let termHistIdx = -1;
+let termLineBuf = '';
+const TERM_PROMPT = () => `\x1b[32mroot@${(document.getElementById('termNodeSel')?.value || 'WEB-01').toLowerCase()}\x1b[0m:~# `;
+
+function toggleTerminal() {
+  const panel = document.getElementById('terminalPanel');
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'flex' : 'none';
+  if (opening) {
+    _populateTermNodeSelect();
+    if (!term) _initTerminal();
+    setTimeout(() => term && term.focus(), 50);
+  }
+}
+
+function _populateTermNodeSelect() {
+  const sel = document.getElementById('termNodeSel');
+  if (sel.options.length > 0) return;
+  const ids = Object.keys(window.allNodes || {});
+  if (!ids.length) { sel.innerHTML = '<option value="WEB-01">WEB-01</option>'; return; }
+  sel.innerHTML = ids.map(id => `<option value="${id}">${id}</option>`).join('');
+}
+
+function _initTerminal() {
+  term = new Terminal({
+    cursorBlink: true,
+    fontSize: 13,
+    fontFamily: 'monospace',
+    theme: { background: '#18181b', foreground: '#d4d4d8', cursor: '#4ade80' }
+  });
+  term.open(document.getElementById('xtermContainer'));
+  term.writeln('Terminal Simulada — escribe "help" para ver los comandos disponibles.');
+  term.write(TERM_PROMPT());
+
+  term.onData(data => {
+    const code = data.charCodeAt(0);
+    if (data === '\r') { // Enter
+      term.write('\r\n');
+      const cmd = termLineBuf.trim();
+      termLineBuf = '';
+      if (cmd) {
+        termCmdHistory.push(cmd);
+        termHistIdx = termCmdHistory.length;
+        _termRunCommand(cmd);
+      } else {
+        term.write(TERM_PROMPT());
+      }
+    } else if (code === 127) { // Backspace
+      if (termLineBuf.length > 0) {
+        termLineBuf = termLineBuf.slice(0, -1);
+        term.write('\b \b');
+      }
+    } else if (data === '\x1b[A') { // Up
+      if (termHistIdx > 0) {
+        termHistIdx--;
+        _termReplaceLine(termCmdHistory[termHistIdx]);
+      }
+    } else if (data === '\x1b[B') { // Down
+      if (termHistIdx < termCmdHistory.length - 1) {
+        termHistIdx++;
+        _termReplaceLine(termCmdHistory[termHistIdx]);
+      } else {
+        termHistIdx = termCmdHistory.length;
+        _termReplaceLine('');
+      }
+    } else if (data === '\t') { // Tab autocompletado básico
+      const candidates = ['netstat -an','ps aux','ping ','iptables -L','iptables -A','tail -f /var/log/syslog','systemctl status ','systemctl restart ','df -h','free -m','tcpdump -i eth0','help','clear'];
+      const match = candidates.find(c => c.startsWith(termLineBuf));
+      if (match) _termReplaceLine(match);
+    } else if (code >= 32) { // Caracter normal
+      termLineBuf += data;
+      term.write(data);
+    }
+  });
+}
+
+function _termReplaceLine(newLine) {
+  // Borra la línea actual y escribe una nueva
+  term.write('\r\x1b[K' + TERM_PROMPT() + newLine);
+  termLineBuf = newLine;
+}
+
+async function _termRunCommand(cmd) {
+  if (cmd === 'clear') {
+    term.clear();
+    term.write(TERM_PROMPT());
+    return;
+  }
+  try {
+    const nodeId = document.getElementById('termNodeSel').value || 'WEB-01';
+    const resp = await apiFetch('/api/terminal/exec', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ command: cmd, node_id: nodeId })
+    });
+    const data = await resp.json();
+    const output = (data.output || '').replace(/\n/g, '\r\n');
+    if (output) term.writeln(output);
+  } catch (e) {
+    term.writeln('\x1b[31mError de conexión con el servidor\x1b[0m');
+  }
+  term.write(TERM_PROMPT());
 }
 
 </script>
