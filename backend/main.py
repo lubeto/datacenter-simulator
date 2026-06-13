@@ -28,6 +28,7 @@ from .api.routes_reports  import router as reports_router
 from .api.routes_analytics import router as analytics_router
 from .api.routes_bitacoras import router as bitacoras_router
 from .api.routes_sessions  import router as sessions_router
+from .api.routes_admin     import router as admin_router
 from .api.websocket       import manager as ws_manager
 from .simulation.scheduler import scheduler
 from .simulation.engine   import generate_full_snapshot
@@ -212,6 +213,7 @@ app.include_router(reports_router)
 app.include_router(analytics_router)
 app.include_router(bitacoras_router)
 app.include_router(sessions_router)
+app.include_router(admin_router)
 
 
 # ============================================================
@@ -355,6 +357,4 @@ async def api_status():
         "offline_nodes": len(sim_state.offline_nodes),
         "active_attacks": len(sim_state.active_attacks),
         "ws_clients": ws_manager.count,
-        "simulated_hour": sim_state.get_simulated_hour(),
-        "timestamp": datetime.utcnow().isoformat(),
-    }
+        "simulated_hour": 
