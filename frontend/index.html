@@ -553,7 +553,7 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 </div>
 
 <!-- LOG VIEWER PANEL -->
-<div id="logsPanel" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(820px,96vw);height:min(520px,80vh);background:#18181b;border:2px solid #0ea5e9;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;font-family:monospace">
+<div id="logsPanel" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(820px,96vw);height:min(520px,80vh);background:#18181b;border:2px solid #0ea5e9;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);flex-direction:column;overflow:hidden;font-family:monospace">
   <div id="logsPanelHeader" style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0;gap:.5rem;flex-wrap:wrap;cursor:move;user-select:none">
     <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
       <span style="font-size:.82rem;font-weight:700;color:#38bdf8">&#x1F4C4; Logs</span>
@@ -577,7 +577,7 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 </div>
 
 <!-- TERMINAL PANEL -->
-<div id="terminalPanel" style="display:none;position:fixed;left:calc(50% + 40px);top:calc(50% + 40px);transform:translate(-50%,-50%);width:min(700px,96vw);height:min(440px,75vh);background:#18181b;border:2px solid #16a34a;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden">
+<div id="terminalPanel" style="display:none;position:fixed;left:calc(50% + 40px);top:calc(50% + 40px);transform:translate(-50%,-50%);width:min(700px,96vw);height:min(440px,75vh);background:#18181b;border:2px solid #16a34a;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);flex-direction:column;overflow:hidden">
   <div id="terminalPanelHeader" style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0;cursor:move;user-select:none">
     <div style="display:flex;align-items:center;gap:.6rem">
       <span style="font-size:.82rem;font-weight:700;color:#4ade80">&#x1F5A5; Terminal</span>
@@ -589,7 +589,7 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 </div>
 
 <!-- FIREWALL EDITOR PANEL -->
-<div id="firewallPanel" style="display:none;position:fixed;left:calc(50% - 40px);top:calc(50% - 40px);transform:translate(-50%,-50%);width:min(720px,96vw);height:min(500px,80vh);background:#18181b;border:2px solid #dc2626;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;font-family:monospace">
+<div id="firewallPanel" style="display:none;position:fixed;left:calc(50% - 40px);top:calc(50% - 40px);transform:translate(-50%,-50%);width:min(720px,96vw);height:min(500px,80vh);background:#18181b;border:2px solid #dc2626;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);flex-direction:column;overflow:hidden;font-family:monospace">
   <div id="firewallPanelHeader" style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0;gap:.5rem;flex-wrap:wrap;cursor:move;user-select:none">
     <span style="font-size:.82rem;font-weight:700;color:#f87171">&#x1F525; Editor de Reglas de Firewall (iptables)</span>
     <button onclick="toggleFirewallPanel()" style="background:none;border:1px solid #52525b;border-radius:4px;color:#a1a1aa;cursor:pointer;padding:2px 8px;font-size:.78rem">✕</button>
