@@ -726,7 +726,7 @@ function handleWSMessage(msg) {
     case 'attack_resolved':      handleAttackResolved(msg.data); break;
     case 'incident_resolved':    notify('✅ Resuelto', 'Incidente cerrado', 'ok'); loadIncidents(); break;
     case 'sst_alerts':           handleSSTAlert(msg.data); break;
-    case 'incident_escalated':   handleEscalation(msg.data); if(STUDENT&&STUDENT.role!=='instructor'&&!guidedState.active) startGuidedMode(msg.data); break;
+    case 'incident_escalated':   handleEscalation(msg.data); break;
     case 'incident_auto_detected': handleAutoDetect(msg.data); break;
     case 'apt_phase':            handleAPTPhase(msg.data); break;
     case 'practice_mode':        handlePracticeMode(msg.data); break;
