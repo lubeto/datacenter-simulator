@@ -627,7 +627,7 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
         <button onclick="clearBmDateFilter()" class="btn btn-outline btn-sm" title="Ver todos los días">✕ Fecha</button>
         <button onclick="loadBitacoras()" class="btn btn-outline btn-sm">↻</button>
         <button onclick="generateConsolidatedReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">📄 Consolidado</button>
-        <button onclick="generateClassReport()" class="btn btn-sm" style="background:#1d4ed8;border:none;color:white;font-weight:700">📊 Reporte del Día</button>
+        <button onclick="printDayReport()" class="btn btn-sm" style="background:#1d4ed8;border:none;color:white;font-weight:700">📊 Reporte del Día</button>
       </div>
     </div>
     <div class="card-body" style="padding:0;overflow-x:auto">
@@ -2311,8 +2311,9 @@ function printClassReport() {
       body{font-family:Arial,sans-serif;margin:2rem;color:#222;max-width:900px;margin:2rem auto}
       h1{color:#1e3a5f;margin-bottom:.3rem}
       table{width:100%;border-collapse:collapse;font-size:.85rem}
-      th,td{padding:8px 10px;border-bottom:1px solid #ddd;text-align:left}
-      th{background:#f1f5f9;color:#475569;text-transform:uppercase;font-size:.7rem;letter-spacing:.06em}
+      th,td{padding:8px 10px;border-bottom:1px solid #ddd;text-align:left;color:#1e293b !important;background:transparent !important}
+      th{background:#f1f5f9 !important;color:#475569 !important;text-transform:uppercase;font-size:.7rem;letter-spacing:.06em}
+      td span{color:inherit !important;background:transparent !important;font-weight:700}
       @media print{.no-print{display:none}}
     </style></head>
     <body>
@@ -2627,7 +2628,7 @@ function handleGuidedWsEvent(evt, data) {
   }
 }
 
-async function generateClassReport() {
+async function printDayReport() {
   const dateEl  = document.getElementById('bmFilterDate');
   const dateVal = dateEl?.value || new Date().toISOString().slice(0,10);
   try {
