@@ -26,6 +26,7 @@ from .api.routes_metrics  import router as metrics_router
 from .api.routes_attacks  import router as attacks_router
 from .api.routes_logs     import router as logs_router
 from .api.routes_terminal import router as terminal_router
+from .api.routes_firewall import router as firewall_router
 from .api.routes_reports  import router as reports_router
 from .api.routes_analytics import router as analytics_router
 from .api.routes_bitacoras import router as bitacoras_router
@@ -213,6 +214,7 @@ app.include_router(metrics_router)
 app.include_router(attacks_router)
 app.include_router(logs_router)
 app.include_router(terminal_router)
+app.include_router(firewall_router)
 app.include_router(reports_router)
 app.include_router(analytics_router)
 app.include_router(bitacoras_router)

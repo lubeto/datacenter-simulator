@@ -315,6 +315,7 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
     <a href="/reports-page" class="btn btn-outline btn-sm">Reportes</a>
     <button id="labNavBtn" onclick="openLab()" style="background:#8b5cf6;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F9EA; Lab</button>
     <button id="logsNavBtn" onclick="toggleLogsPanel()" style="background:#0ea5e9;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F4C4; Logs</button>
+    <button id="firewallNavBtn" onclick="toggleFirewallPanel()" style="background:#dc2626;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F525; Firewall</button>
     <button id="terminalNavBtn" onclick="toggleTerminal()" style="background:#16a34a;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F5A5; Terminal</button>
     <button id="sessionReportBtn" class="btn-session" onclick="generateSessionReport()" title="Reporte PDF completo de la sesión">📄 Sesión</button>
     <span id="evalNavBadge" style="display:none;align-items:center;gap:5px;background:rgba(34,197,94,.15);border:1px solid #16a34a;border-radius:20px;padding:3px 10px;font-size:.72rem;font-weight:700;color:#4ade80;white-space:nowrap">
@@ -585,6 +586,28 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
     <button onclick="toggleTerminal()" style="background:none;border:1px solid #52525b;border-radius:4px;color:#a1a1aa;cursor:pointer;padding:2px 8px;font-size:.78rem">✕</button>
   </div>
   <div id="xtermContainer" style="flex:1;overflow:hidden;padding:.3rem"></div>
+</div>
+
+<!-- FIREWALL EDITOR PANEL -->
+<div id="firewallPanel" style="display:none;position:fixed;left:calc(50% - 40px);top:calc(50% - 40px);transform:translate(-50%,-50%);width:min(720px,96vw);height:min(500px,80vh);background:#18181b;border:2px solid #dc2626;border-radius:10px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;font-family:monospace">
+  <div id="firewallPanelHeader" style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .8rem;background:#27272a;border-bottom:1px solid #3f3f46;flex-shrink:0;gap:.5rem;flex-wrap:wrap;cursor:move;user-select:none">
+    <span style="font-size:.82rem;font-weight:700;color:#f87171">&#x1F525; Editor de Reglas de Firewall (iptables)</span>
+    <button onclick="toggleFirewallPanel()" style="background:none;border:1px solid #52525b;border-radius:4px;color:#a1a1aa;cursor:pointer;padding:2px 8px;font-size:.78rem">✕</button>
+  </div>
+  <div style="padding:.6rem .8rem;border-bottom:1px solid #3f3f46;flex-shrink:0">
+    <div id="fwAttacksBox" style="font-size:.72rem;color:#a1a1aa;margin-bottom:.5rem"></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+      <input id="fwBlockIpInput" type="text" placeholder="IP a bloquear (ej: 203.0.113.45)"
+        style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#e4e4e7;font-size:.72rem;padding:4px 8px;width:190px">
+      <button onclick="fwBlockIp()" style="background:#dc2626;border:none;border-radius:6px;color:white;font-size:.72rem;padding:4px 10px;cursor:pointer">🚫 Bloquear IP</button>
+      <input id="fwBlockPortInput" type="number" placeholder="Puerto (ej: 22)"
+        style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#e4e4e7;font-size:.72rem;padding:4px 8px;width:110px">
+      <button onclick="fwBlockPort()" style="background:#dc2626;border:none;border-radius:6px;color:white;font-size:.72rem;padding:4px 10px;cursor:pointer">🚫 Bloquear puerto</button>
+      <button onclick="fwFlush()" style="background:#3f3f46;border:1px solid #52525b;border-radius:6px;color:#e4e4e7;font-size:.72rem;padding:4px 10px;cursor:pointer;margin-left:auto">🧹 Flush (limpiar todo)</button>
+      <button onclick="loadFirewall()" style="background:#0ea5e9;border:none;border-radius:6px;color:white;font-size:.72rem;padding:4px 10px;cursor:pointer">↻ Actualizar</button>
+    </div>
+  </div>
+  <div id="fwRulesBody" style="flex:1;overflow-y:auto;padding:.4rem .6rem;font-size:.72rem;line-height:1.6;color:#d4d4d8"></div>
 </div>
 
 <!-- NODE DETAIL MODAL -->
@@ -3414,6 +3437,121 @@ async function _termRunCommand(cmd) {
     term.writeln('\x1b[31mError de conexión con el servidor\x1b[0m');
   }
   term.write(TERM_PROMPT());
+}
+
+// ============================================================
+// EDITOR DE REGLAS DE FIREWALL
+// ============================================================
+function toggleFirewallPanel() {
+  const panel = document.getElementById('firewallPanel');
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'flex' : 'none';
+  if (opening) {
+    loadFirewall();
+    _makeDraggable('firewallPanel', 'firewallPanelHeader');
+  }
+}
+
+async function loadFirewall() {
+  const body = document.getElementById('fwRulesBody');
+  body.innerHTML = '<div style="color:#71717a">Cargando...</div>';
+  try {
+    const data = await apiFetch('/api/firewall/status');
+    renderFirewall(data);
+  } catch (e) {
+    body.innerHTML = '<div style="color:#f87171">Error al cargar reglas de firewall</div>';
+  }
+}
+
+function renderFirewall(data) {
+  const box = document.getElementById('fwAttacksBox');
+  const attacks = data.attacks || [];
+  if (!attacks.length) {
+    box.innerHTML = '<span style="color:#4ade80">✅ No hay ataques activos en este momento.</span>';
+  } else {
+    box.innerHTML = '⚠️ Ataques activos: ' + attacks.map(a =>
+      `<span style="color:${a.mitigated ? '#4ade80' : '#f87171'}">${a.node_id} (${a.name || a.type})${a.mitigated ? ' — mitigado ✅' : ' — sin mitigar'}</span>`
+    ).join(', ');
+  }
+
+  const body = document.getElementById('fwRulesBody');
+  const rules = data.rules || [];
+  if (!rules.length) {
+    body.innerHTML = '<div style="color:#71717a">Sin reglas activas (todo el tráfico permitido).</div>';
+    return;
+  }
+  body.innerHTML = rules.map((r, idx) => {
+    const isDrop = r.trim().startsWith('DROP');
+    const color = isDrop ? '#f87171' : '#a1a1aa';
+    const removable = idx >= 5; // las primeras 5 son reglas por defecto
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:2px 4px;color:${color};white-space:pre">
+      <span>${_escapeHtml(r)}</span>
+      ${removable ? `<button onclick="fwRemoveRule(${idx})" style="background:none;border:1px solid #52525b;border-radius:4px;color:#a1a1aa;cursor:pointer;padding:0 6px;font-size:.68rem">eliminar</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function fwBlockIp() {
+  const input = document.getElementById('fwBlockIpInput');
+  const ip = input.value.trim();
+  if (!ip) return;
+  try {
+    const data = await apiFetch('/api/firewall/rules', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'block_ip', ip })
+    });
+    renderFirewall(data);
+    notify('🔥 Regla aplicada', data.message, 'ok');
+    input.value = '';
+  } catch (e) {
+    notify('⚠️ Error', 'No se pudo aplicar la regla', 'warn');
+  }
+}
+
+async function fwBlockPort() {
+  const input = document.getElementById('fwBlockPortInput');
+  const port = parseInt(input.value, 10);
+  if (!port) return;
+  try {
+    const data = await apiFetch('/api/firewall/rules', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'block_port', port })
+    });
+    renderFirewall(data);
+    notify('🔥 Regla aplicada', data.message, 'ok');
+    input.value = '';
+  } catch (e) {
+    notify('⚠️ Error', 'No se pudo aplicar la regla', 'warn');
+  }
+}
+
+async function fwRemoveRule(index) {
+  try {
+    const data = await apiFetch('/api/firewall/rules', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'remove', index })
+    });
+    renderFirewall(data);
+  } catch (e) {
+    notify('⚠️ Error', 'No se pudo eliminar la regla', 'warn');
+  }
+}
+
+async function fwFlush() {
+  try {
+    const data = await apiFetch('/api/firewall/rules', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'flush' })
+    });
+    renderFirewall(data);
+    notify('🧹 Firewall', data.message, 'ok');
+  } catch (e) {
+    notify('⚠️ Error', 'No se pudo limpiar las reglas', 'warn');
+  }
 }
 
 </script>

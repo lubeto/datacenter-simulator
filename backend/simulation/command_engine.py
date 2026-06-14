@@ -189,6 +189,92 @@ def _cmd_ping(target: str) -> str:
     return "\n".join(lines)
 
 
+# Firmas de IP/puerto asociadas a cada tipo de ataque, usadas para detectar
+# si una regla de firewall mitiga el ataque activo en un nodo.
+ATTACK_SIGNATURES = {
+    "dos":        {"ip_prefix": "203.0.113."},
+    "ddos":       {"ip_prefix": "203.0.113."},
+    "syn_flood":  {"ip_prefix": "203.0.113."},
+    "brute_force": {"ip_prefix": "203.0.113.", "port": 22},
+    "port_scan":  {"ip_prefix": "198.51.100."},
+}
+
+
+def get_rules(student_id: int) -> List[str]:
+    return list(_iptables_rules.setdefault(student_id, list(DEFAULT_IPTABLES)))
+
+
+def add_block_ip(student_id: int, ip: str) -> str:
+    rules = _iptables_rules.setdefault(student_id, list(DEFAULT_IPTABLES))
+    rule = f"DROP       all  --  {ip}".ljust(40) + "0.0.0.0/0"
+    rules.append(rule)
+    apply_firewall_mitigation(student_id)
+    return f"Regla agregada: bloquear todo el tráfico desde {ip}"
+
+
+def add_block_port(student_id: int, port: int, proto: str = "tcp") -> str:
+    rules = _iptables_rules.setdefault(student_id, list(DEFAULT_IPTABLES))
+    rule = f"DROP       {proto}  --  0.0.0.0/0            0.0.0.0/0            {proto} dpt:{port}"
+    rules.append(rule)
+    apply_firewall_mitigation(student_id)
+    return f"Regla agregada: bloquear puerto {port}/{proto}"
+
+
+def remove_rule(student_id: int, index: int) -> str:
+    rules = _iptables_rules.setdefault(student_id, list(DEFAULT_IPTABLES))
+    if index < 0 or index >= len(rules):
+        raise ValueError("Índice de regla inválido")
+    removed = rules.pop(index)
+    apply_firewall_mitigation(student_id)
+    return f"Regla eliminada: {removed.strip()}"
+
+
+def flush_rules(student_id: int) -> str:
+    _iptables_rules[student_id] = []
+    apply_firewall_mitigation(student_id)
+    return "Todas las reglas eliminadas (flush)"
+
+
+def apply_firewall_mitigation(student_id: int) -> List[str]:
+    """Revisa las reglas del estudiante contra los ataques activos y marca
+    como mitigados aquellos cuya IP/puerto firma esté bloqueada.
+    Retorna la lista de node_id mitigados en esta pasada."""
+    rules = _iptables_rules.get(student_id, [])
+    rules_text = "\n".join(rules)
+    mitigated_nodes = []
+
+    for node_id, attack in sim_state.active_attacks.items():
+        atype = attack.get("type", "")
+        sig = ATTACK_SIGNATURES.get(atype)
+        if not sig:
+            continue
+
+        blocked = False
+        ip_prefix = sig.get("ip_prefix")
+        if ip_prefix and f"DROP" in rules_text:
+            for rule in rules:
+                if "DROP" in rule and ip_prefix in rule:
+                    blocked = True
+                    break
+        port = sig.get("port")
+        if not blocked and port:
+            for rule in rules:
+                if "DROP" in rule and f"dpt:{port}" in rule:
+                    blocked = True
+                    break
+
+        if blocked and not attack.get("mitigated"):
+            attack["mitigated"] = True
+            attack["original_intensity"] = attack.get("intensity", 0.5)
+            attack["intensity"] = attack["original_intensity"] * 0.15
+            mitigated_nodes.append(node_id)
+        elif not blocked and attack.get("mitigated"):
+            attack["mitigated"] = False
+            attack["intensity"] = attack.get("original_intensity", attack.get("intensity", 0.5))
+
+    return mitigated_nodes
+
+
 def _cmd_iptables(args: List[str], student_id: int) -> str:
     rules = _iptables_rules.setdefault(student_id, list(DEFAULT_IPTABLES))
 
@@ -199,13 +285,16 @@ def _cmd_iptables(args: List[str], student_id: int) -> str:
         rule_str = " ".join(args)
         if "DROP" in args and "-s" in args:
             ip = args[args.index("-s") + 1]
-            rules.append(f"DROP       all  --  {ip}".ljust(30) + "0.0.0.0/0            ")
+            rules.append(f"DROP       all  --  {ip}".ljust(40) + "0.0.0.0/0")
+            apply_firewall_mitigation(student_id)
             return f"Regla agregada: bloquear tráfico desde {ip}\n✅ iptables actualizado"
         rules.append(rule_str)
+        apply_firewall_mitigation(student_id)
         return f"Regla agregada: {rule_str}"
 
     if args[0] == "-F":
         _iptables_rules[student_id] = []
+        apply_firewall_mitigation(student_id)
         return "Todas las reglas eliminadas (flush)"
 
     return f"iptables: opción no soportada: {' '.join(args)}"
