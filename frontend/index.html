@@ -3218,9 +3218,20 @@ function _cancelGuidedAutoClose() {
 let logsRawLines = [];
 let logsMarkedIoc = new Set();
 
+// Cierra los demás paneles flotantes (logs/terminal/firewall) para que no se superpongan
+function _closeOtherFloatingPanels(exceptId) {
+  ['logsPanel', 'terminalPanel', 'firewallPanel'].forEach(id => {
+    if (id !== exceptId) {
+      const p = document.getElementById(id);
+      if (p) p.style.display = 'none';
+    }
+  });
+}
+
 function toggleLogsPanel() {
   const panel = document.getElementById('logsPanel');
   const opening = panel.style.display === 'none';
+  if (opening) _closeOtherFloatingPanels('logsPanel');
   panel.style.display = opening ? 'flex' : 'none';
   if (opening) {
     _populateLogsNodeSelect();
@@ -3340,6 +3351,7 @@ const TERM_PROMPT = () => `\x1b[32mroot@${(document.getElementById('termNodeSel'
 function toggleTerminal() {
   const panel = document.getElementById('terminalPanel');
   const opening = panel.style.display === 'none';
+  if (opening) _closeOtherFloatingPanels('terminalPanel');
   panel.style.display = opening ? 'flex' : 'none';
   if (opening) {
     _populateTermNodeSelect();
@@ -3445,6 +3457,7 @@ async function _termRunCommand(cmd) {
 function toggleFirewallPanel() {
   const panel = document.getElementById('firewallPanel');
   const opening = panel.style.display === 'none';
+  if (opening) _closeOtherFloatingPanels('firewallPanel');
   panel.style.display = opening ? 'flex' : 'none';
   if (opening) {
     loadFirewall();

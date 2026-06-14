@@ -2300,6 +2300,34 @@ async function loadClassReport() {
   }
 }
 
+function printClassReport() {
+  const body = document.getElementById('classReportBody');
+  const table = body && body.querySelector('table');
+  if (!table) { alert('Primero haz clic en "Actualizar" para cargar el reporte.'); return; }
+  const now = new Date().toLocaleString('es-CO');
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte de Clase</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:2rem;color:#222;max-width:900px;margin:2rem auto}
+      h1{color:#1e3a5f;margin-bottom:.3rem}
+      table{width:100%;border-collapse:collapse;font-size:.85rem}
+      th,td{padding:8px 10px;border-bottom:1px solid #ddd;text-align:left}
+      th{background:#f1f5f9;color:#475569;text-transform:uppercase;font-size:.7rem;letter-spacing:.06em}
+      @media print{.no-print{display:none}}
+    </style></head>
+    <body>
+      <div class="no-print" style="margin-bottom:1.2rem;display:flex;gap:.6rem">
+        <button onclick="window.print()" style="background:#1e3a5f;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-size:.85rem">🖨️ Imprimir / Guardar PDF</button>
+      </div>
+      <h1>Reporte de Clase</h1>
+      <p style="color:#555;font-size:.83rem">SENA · Programa: Análisis y Desarrollo de Software</p>
+      <p style="color:#555;font-size:.78rem">Generado: ${now}</p>
+      <hr style="margin:1rem 0">
+      ${table.outerHTML}
+    </body></html>`);
+  win.document.close();
+}
+
 async function generateConsolidatedReport() {
   const dateEl  = document.getElementById('bmFilterDate');
   const dateVal = dateEl?.value || '';
