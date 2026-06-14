@@ -3229,12 +3229,6 @@ let logsMarkedIoc = new Set();
 
 // Cierra los demás paneles flotantes (logs/terminal/firewall) para que no se superpongan
 function _closeOtherFloatingPanels(exceptId) {
-  ['logsPanel', 'terminalPanel', 'firewallPanel'].forEach(id => {
-    if (id !== exceptId) {
-      const p = document.getElementById(id);
-      if (p) p.style.display = 'none';
-    }
-  });
   // Recoger (minimizar) el panel de diagnóstico guiado para que no se superponga
   const guided = document.getElementById('guidedPanel');
   if (guided && guided.classList.contains('open') && !guided.classList.contains('minimized')) {
