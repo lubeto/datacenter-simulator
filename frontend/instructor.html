@@ -1038,17 +1038,24 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
               <tr style="border-bottom:1px solid #374151;color:#9ca3af;text-align:left">
                 <th style="padding:.5rem">#</th>
                 <th style="padding:.5rem">Aprendiz</th>
-                <th style="padding:.5rem;text-align:center">Bitácoras</th>
-                <th style="padding:.5rem;text-align:center">Diagnósticos</th>
-                <th style="padding:.5rem;text-align:center">Score Prom</th>
-                <th style="padding:.5rem;text-align:center">MTTD (s)</th>
-                <th style="padding:.5rem;text-align:center">Tiempo (min)</th>
-                <th style="padding:.5rem;text-align:center">Estado</th>
+                <th style="padding:.5rem;text-align:center" title="Cantidad de bitácoras de incidentes registradas durante el día">Bitácoras</th>
+                <th style="padding:.5rem;text-align:center" title="Cantidad de diagnósticos guiados completados">Diagnósticos</th>
+                <th style="padding:.5rem;text-align:center" title="Promedio de las calificaciones (0-100) obtenidas en las bitácoras">Score Prom</th>
+                <th style="padding:.5rem;text-align:center" title="MTTD = Mean Time To Detect: tiempo promedio (segundos) que tardó el aprendiz en detectar el incidente desde que fue generado">MTTD (s)</th>
+                <th style="padding:.5rem;text-align:center" title="Tiempo total acumulado en sesiones activas durante el día">Tiempo (min)</th>
+                <th style="padding:.5rem;text-align:center" title="Estado general de desempeño del aprendiz según los criterios anteriores">Estado</th>
               </tr>
             </thead>
             <tbody id="classStudentTbody"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- Leyenda de términos -->
+      <div style="margin-top:.6rem;font-size:.72rem;color:#6b7280;line-height:1.6">
+        💡 <strong>MTTD</strong> (Mean Time To Detect): tiempo promedio que tardó el aprendiz en detectar el incidente desde que se generó.
+        &nbsp;|&nbsp; <strong>Score Prom</strong>: promedio de las calificaciones (0-100) de las bitácoras del día.
+        &nbsp;|&nbsp; <strong>Estado</strong>: resumen del desempeño general del aprendiz en la jornada.
       </div>
 
     </div><!-- /classAnalysisPanel -->
@@ -1984,9 +1991,11 @@ async function _loadEvalStudentFilter() {
     // Para el selector individual: solo aprendices que NO tienen sesión activa
     // (para iniciarles una nueva). Para la evaluación en curso: loadActiveSessions() lo muestra.
     const all  = await apiFetch('/api/students/');
-    const active = await apiFetch('/api/sessions/active').catch(() => []);
+    // Solo excluimos aprendices con una sesión FORMAL activa (no práctica),
+    // ya que tener una sesión de práctica abierta no impide iniciar una evaluación formal.
+    const active = await apiFetch('/api/sessions/active?formal_only=true').catch(() => []);
     const activeIds = new Set((active||[]).map(s => s.student_id));
-    // Solo aprendices sin sesión activa aparecen disponibles para iniciar nueva
+    // Solo aprendices sin sesión FORMAL activa aparecen disponibles para iniciar nueva
     const available = all.filter(s => s.role === 'student' && !activeIds.has(s.id));
 
     const sel = document.getElementById('evalStudentSel');
@@ -2108,6 +2117,13 @@ async function loadActiveGroups() {
 }
 
 // ── BITÁCORAS ──────────────────────────────────────────────────
+// Escapa caracteres especiales para uso seguro dentro de atributos/contenido HTML
+function _escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
 const BM_LABELS = {
   dos:'Ataque DoS', ddos:'Ataque DDoS', brute_force:'Fuerza Bruta',
   sql_injection:'Inyección SQL', port_scan:'Escaneo de Puertos',
@@ -2163,10 +2179,10 @@ async function loadBitacoras() {
       }, 0) / 4;
       const qualLabel = avgQual>=0.75?'Alta':avgQual>=0.45?'Media':avgQual>=0.20?'Baja':'⚠️ Basura';
       const qualColor = avgQual>=0.75?'#4ade80':avgQual>=0.45?'#facc15':avgQual>=0.20?'#f97316':'#ef4444';
-      return `<tr onclick="showBitacoraDetail(${JSON.stringify(JSON.stringify(b)).slice(1,-1)})" style="cursor:pointer;border-bottom:1px solid #1e293b;transition:background .15s" onmouseover="this.style.background='#0f172a'" onmouseout="this.style.background=''">
-        <td style="padding:8px 12px;color:#e2e8f0;font-weight:600">${b.student_name||'—'}</td>
-        <td style="padding:8px 12px;color:#7dd3fc">${BM_LABELS[b.attack_type]||b.attack_type}</td>
-        <td style="padding:8px 12px;color:#94a3b8">${b.node_id}</td>
+      return `<tr onclick="showBitacoraDetail(${_escapeHtml(JSON.stringify(JSON.stringify(b)).slice(1,-1))})" style="cursor:pointer;border-bottom:1px solid #1e293b;transition:background .15s" onmouseover="this.style.background='#0f172a'" onmouseout="this.style.background=''">
+        <td style="padding:8px 12px;color:#e2e8f0;font-weight:600">${_escapeHtml(b.student_name)||'—'}</td>
+        <td style="padding:8px 12px;color:#7dd3fc">${_escapeHtml(BM_LABELS[b.attack_type]||b.attack_type)}</td>
+        <td style="padding:8px 12px;color:#94a3b8">${_escapeHtml(b.node_id)}</td>
         <td style="padding:8px 12px;text-align:center;font-weight:700;color:${scoreColor}">${(b.score||0).toFixed(1)}</td>
         <td style="padding:8px 12px;text-align:center">
           <span style="font-size:.72rem;font-weight:700;color:${qualColor}">${qualLabel}</span>
@@ -2205,19 +2221,19 @@ function showBitacoraDetail(bJson) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem">
       <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
         <div style="color:#f87171;font-weight:700;margin-bottom:.35rem">🔍 Síntomas Observados</div>
-        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.sintomas_observados||'—'}</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${_escapeHtml(b.sintomas_observados)||'—'}</div>
       </div>
       <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
         <div style="color:#facc15;font-weight:700;margin-bottom:.35rem">🧩 Causa Raíz</div>
-        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.causa_raiz||'—'}</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${_escapeHtml(b.causa_raiz)||'—'}</div>
       </div>
       <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
         <div style="color:#4ade80;font-weight:700;margin-bottom:.35rem">🛠️ Acciones Tomadas</div>
-        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.acciones_tomadas||'—'}</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${_escapeHtml(b.acciones_tomadas)||'—'}</div>
       </div>
       <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:.7rem .9rem">
         <div style="color:#60a5fa;font-weight:700;margin-bottom:.35rem">📚 Lecciones Aprendidas</div>
-        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${b.lecciones||'—'}</div>
+        <div style="color:#cbd5e1;line-height:1.6;white-space:pre-wrap">${_escapeHtml(b.lecciones)||'—'}</div>
       </div>
     </div>
     <div style="margin-top:.6rem;font-size:.75rem;color:#475569;display:flex;gap:1rem">
