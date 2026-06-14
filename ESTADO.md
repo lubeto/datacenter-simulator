@@ -1,6 +1,34 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-12 — COMPLETADA ✅ (reset BD estudiantil + fix main.py truncado + panel guiado a izquierda + roadmap V3)
+## Última sesión: 2026-06-13 — COMPLETADA ✅ (fixes reportes PDF, paneles flotantes Logs/Terminal/Firewall, MTTD, guiado bajo demanda)
+
+---
+
+### Sesión 2026-06-13 — COMPLETADA ✅
+
+Serie de bugs reportados por el instructor vía capturas de pantalla, todos corregidos y mergeados a `main`.
+
+#### `frontend/instructor.html`
+- `printClassReport()` — nueva función para el botón "Reporte de Clase" (tab Clase Guiada), abre ventana de impresión con la tabla `#classReportBody`
+- Renombrado el `generateClassReport()` duplicado (bitácoras) → `printDayReport()`; había colisión de nombres de función JS (la 2ª definición sobrescribía a la 1ª), por eso el botón "Reporte del Día" no hacía nada
+- CSS `!important` en ambas ventanas de impresión (`th,td,span{color:#1e293b !important;background:transparent !important}`) — el texto salía gris claro sobre blanco, illegible
+- Commits: `53b7809`, `0c6b1e6`
+
+#### `frontend/index.html` — Paneles flotantes (Logs / Terminal / Firewall)
+- **Bug crítico**: los 3 paneles tenían `display:none` Y `display:flex` en el mismo atributo `style` — la 2ª declaración ganaba, dejándolos visibles/vacíos desde el load y con el toggle invertido (por eso "Logs no funciona": `loadLogs()` nunca se ejecutaba). Eliminado el `display:flex` duplicado. Commit `[fix display duplicado]`
+- **Coexistencia**: antes, abrir un panel cerraba los otros dos (`_closeOtherFloatingPanels`). El instructor pidió poder tener Logs+Terminal+Firewall abiertos a la vez para mitigar — se quitó el cierre mutuo, solo se minimiza el panel de Diagnóstico guiado si está abierto. Commit `[fix paneles coexisten]`
+
+#### `frontend/index.html` — Panel de Diagnóstico guiado
+- Por decisión explícita del instructor: el panel guiado **ya NO se abre automáticamente** cuando escala un incidente (`incident_escalated`). Solo se abre bajo demanda (botones "Detectar"/"Investigar"). Commit `9ffdecf`
+- **Regla a preservar**: no reintroducir auto-apertura de `guidedPanel`/`startGuidedMode` por eventos pasivos
+
+#### MTTD en "Reporte de Clase" → tabla "Detalle por Aprendiz"
+- Causa: `_openGuidedPanel()` nunca seteaba `mttd_seconds` en `guidedState.incident`, así que las bitácoras se guardaban siempre con `mttd_seconds: null`
+- Fix: `_openGuidedPanel(incId, attackType, nodeId, mttdSeconds)` ahora recibe y guarda `mttd_seconds`; `detectIncident` y `ackAlert` calculan el MTTD vía `/api/attacks/incidents/detect` antes de abrir el panel. Commit `7041a17`
+
+#### Verificado por el instructor en producción
+- ✅ Logs ahora carga correctamente (select de nodo, access.log, búsqueda)
+- ✅ Logs + Terminal + Firewall pueden estar abiertos simultáneamente sin desaparecer
 
 ---
 
