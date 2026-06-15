@@ -369,6 +369,42 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
   </div>
 </div>
 
+<div id="missionWidget" style="display:none;position:fixed;bottom:80px;right:16px;width:240px;background:#0f172a;border:1px solid #1e3a8a;border-radius:8px;z-index:8000;font-size:.78rem;box-shadow:0 4px 24px rgba(0,0,0,.5)">
+  <div style="background:#1e3a8a;padding:6px 10px;border-radius:7px 7px 0 0;display:flex;align-items:center;justify-content:space-between">
+    <span style="color:#dbeafe;font-weight:600;font-size:.75rem">⚔️ MISIÓN ACTIVA</span>
+    <span id="missionTimer" style="color:#93c5fd;font-size:.7rem;font-family:monospace">0s</span>
+  </div>
+  <div style="padding:8px 10px">
+    <div id="mstep-0" class="mstep">
+      <span class="mstep-icon" id="micon-0">1</span>
+      <span>Investiga con la <strong>terminal</strong> (<code>netstat</code>, <code>top</code>…)</span>
+    </div>
+    <div id="mstep-1" class="mstep">
+      <span class="mstep-icon" id="micon-1">2</span>
+      <span>Marca IOC en los <strong>logs</strong> (<span id="mIocCount">0</span>/2)</span>
+    </div>
+    <div id="mstep-2" class="mstep">
+      <span class="mstep-icon" id="micon-2">3</span>
+      <span>Aplica regla en el <strong>firewall</strong></span>
+    </div>
+    <div id="mstep-3" class="mstep">
+      <span class="mstep-icon" id="micon-3">4</span>
+      <span>Verifica con <strong>terminal</strong> que bajó el ataque</span>
+    </div>
+    <div id="missionHint" style="margin-top:6px;color:#fbbf24;font-size:.7rem;min-height:1em"></div>
+  </div>
+</div>
+
+<style>
+.mstep{display:flex;align-items:flex-start;gap:6px;padding:4px 0;color:#64748b;border-bottom:0.5px solid #1e293b;font-size:.72rem}
+.mstep:last-child{border-bottom:none}
+.mstep.active{color:#fbbf24}
+.mstep.done{color:#4ade80}
+.mstep-icon{width:16px;height:16px;border-radius:50%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:.6rem;flex-shrink:0;color:#64748b;font-weight:700}
+.mstep.active .mstep-icon{background:#78350f;color:#fbbf24}
+.mstep.done .mstep-icon{background:#14532d;color:#4ade80}
+</style>
+
 <div class="container">
   <!-- SUMMARY CARDS -->
   <div class="summary-grid">
@@ -835,6 +871,91 @@ function _showDebriefModal(data) {
         </div>`).join('')
     : '<div style="color:#6b7280;font-size:.85rem;text-align:center">Sin datos de fases.</div>';
   modal.style.display = 'flex';
+}
+
+// ── MISIÓN ACTIVA ────────────────────────────────────────────
+let missionState = {active:false, step:0, termDone:false, iocDone:false, fwDone:false, verifyDone:false, fwApplied:false, mttd:0, timer:null, penalized:false};
+
+function _missionActivate(inc) {
+  missionState = {active:true, step:0, termDone:false, iocDone:false, fwDone:false, verifyDone:false, fwApplied:false, mttd:0, timer:null, penalized:false};
+  const w = document.getElementById('missionWidget');
+  if (w) w.style.display = 'block';
+  _missionRender();
+  missionState.timer = setInterval(() => {
+    if (!missionState.active) return;
+    missionState.mttd++;
+    const el = document.getElementById('missionTimer');
+    if (el) el.textContent = missionState.mttd + 's';
+    if (missionState.mttd > 90 && !missionState.penalized) {
+      missionState.penalized = true;
+      guidedState.score = Math.max(30, guidedState.score - 15);
+      _updateGuidedHUD();
+      _missionHint('⏱ +90s — penalización -15 pts');
+    }
+  }, 1000);
+}
+
+function _missionDeactivate() {
+  missionState.active = false;
+  clearInterval(missionState.timer);
+  const w = document.getElementById('missionWidget');
+  if (w) w.style.display = 'none';
+}
+
+function _missionRender() {
+  const steps = ['termDone','iocDone','fwDone','verifyDone'];
+  steps.forEach((key, i) => {
+    const el = document.getElementById('mstep-' + i);
+    const ic = document.getElementById('micon-' + i);
+    if (!el || !ic) return;
+    const done = missionState[key];
+    const active = !done && (i === 0 || missionState[steps[i-1]]);
+    el.className = 'mstep' + (done ? ' done' : active ? ' active' : '');
+    ic.textContent = done ? '✓' : (i + 1);
+  });
+  const iocEl = document.getElementById('mIocCount');
+  if (iocEl) iocEl.textContent = Math.min(logsMarkedIoc.size, 2);
+}
+
+function _missionHint(msg) {
+  const el = document.getElementById('missionHint');
+  if (el) { el.textContent = msg; setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000); }
+}
+
+function _missionTick(action) {
+  if (!missionState.active) return;
+  let changed = false;
+  if (action === 'term' && !missionState.termDone) {
+    missionState.termDone = true; changed = true;
+    _missionHint('Diagnóstico confirmado. Ahora marca IOC en Logs.');
+    guidedState.score = Math.min(100, guidedState.score + 5);
+    _updateGuidedHUD();
+  }
+  if (action === 'ioc' && !missionState.iocDone && logsMarkedIoc.size >= 2) {
+    missionState.iocDone = true; changed = true;
+    _missionHint('Evidencias marcadas. Abre el Firewall y aplica una regla.');
+  }
+  if (action === 'fw' && !missionState.fwDone) {
+    missionState.fwDone = true; missionState.fwApplied = true; changed = true;
+    _missionHint('Regla aplicada. Vuelve a la terminal para verificar.');
+    guidedState.score = Math.min(100, guidedState.score + 5);
+    _updateGuidedHUD();
+  }
+  if (action === 'verify' && missionState.fwApplied && !missionState.verifyDone) {
+    missionState.verifyDone = true; changed = true;
+    _missionHint('¡Incidente mitigado!');
+  }
+  if (changed) {
+    _missionRender();
+    if (missionState.termDone && missionState.iocDone && missionState.fwDone && missionState.verifyDone) {
+      setTimeout(_missionComplete, 800);
+    }
+  }
+}
+
+function _missionComplete() {
+  _missionDeactivate();
+  checkGuidedAnswer('mission_complete', 'mission_complete');
 }
 
 let _simPausedState = false;
@@ -2228,10 +2349,24 @@ const GUIDED_STAGES = [
   (inc) => _gBuildAnalyzeStage(inc),
   // STAGE 3: Clasificar — opciones específicas por categoría
   (inc) => _gBuildClassifyStage(inc),
-  // STAGE 4: Mitigar — opciones específicas por categoría
+  // STAGE 4: Mitigar — MISIÓN ACTIVA (terminal + logs + firewall)
   (inc) => {
-    const s = _gBuildMitigateOpts(inc);
-    return { q:s.q, ctx:s.ctx, opts:s.opts, correct:_gCorrectMitigate(inc), fb:['✅ ¡Excelente! Esa es la acción correcta como primera respuesta inmediata.','❌ Esa acción no ataca la raíz del problema. Piensa en qué detiene específicamente este tipo de incidente.'] };
+    const cat = _gCategory(inc);
+    const ctx = {
+      red:     'Usa la <strong>Terminal</strong> para investigar, marca líneas IOC en <strong>Logs</strong>, aplica una regla en el <strong>Firewall</strong> y verifica que el tráfico bajó.',
+      hardware:'Usa la <strong>Terminal</strong> para diagnosticar el proceso o disco, documenta en <strong>Logs</strong>, aplica la acción correcta en el <strong>Firewall</strong> o terminal, y verifica.',
+      ssl:     'Usa la <strong>Terminal</strong> para inspeccionar el certificado, documenta en <strong>Logs</strong>, aplica la corrección vía <strong>Firewall</strong> o reinicio, y verifica.',
+      sst:     'Usa la <strong>Terminal</strong> para revisar sensores, documenta en <strong>Logs</strong>, aplica el protocolo de aislamiento en el <strong>Firewall</strong> y verifica el estado.',
+    };
+    setTimeout(() => _missionActivate(inc), 100);
+    return {
+      q: '⚔️ Pon en práctica lo que identificaste — completa los 4 pasos de la misión (panel inferior derecho)',
+      ctx: ctx[cat] || ctx.red,
+      opts: [],
+      correct: 'mission_complete',
+      fb: ['✅ ¡Misión completada! Respondiste el incidente con herramientas reales.', ''],
+      isMission: true,
+    };
   },
 ];
 
@@ -2291,6 +2426,7 @@ function closeGuided(bySystem) {
   document.getElementById('guidedPanel').classList.remove('open', 'minimized');
   guidedState.active=false;
   guidedState.lastClosedAt=Date.now();
+  if (missionState.active) _missionDeactivate();
   _syncNotifSide();
   // Solo aplica penalidad si el estudiante cierra manualmente (no al fin de sesión/sistema)
   if (!bySystem) XSESSION.lock(12); // 12 min cooldown al cerrar sin completar
@@ -2318,12 +2454,18 @@ function renderGuidedStage(stage) {
     const timerEl = document.getElementById('guidedTimer');
     if(timerEl) timerEl.style.color = '#ef4444';
   }
-  const optH=stg.opts.map((o,i)=>
+  const optH = stg.isMission ? '' : stg.opts.map((o,i)=>
     `<button class="guided-option" id="gopt-${i}" data-val="${o.value}" onclick="checkGuidedAnswer('${o.value}','${stg.correct}')">${o.label}</button>`
   ).join('');
+  const missionBanner = stg.isMission
+    ? `<div style="margin-top:.75rem;background:#0f172a;border:1px solid #1e3a8a;border-radius:6px;padding:.6rem .8rem;font-size:.78rem;color:#93c5fd">
+         ⚔️ Sigue los 4 pasos en el <strong>panel de misión</strong> (abajo a la derecha).<br>
+         Abre: <strong>Terminal</strong> → <strong>Logs</strong> → <strong>Firewall</strong> → verifica de nuevo en <strong>Terminal</strong>.
+       </div>` : '';
   document.getElementById('guidedBody').innerHTML=`
     <div class="guided-question">${stg.q}</div>
     <div class="guided-context">${stg.ctx}</div>
+    ${missionBanner}
     <div class="guided-options">${optH}</div>
     <div class="guided-feedback" id="guidedFeedback"></div>
     <div class="guided-hint" id="guidedHint"></div>`;
@@ -2343,7 +2485,7 @@ function showGuidedHint() {
 
 function checkGuidedAnswer(val,correct) {
   document.querySelectorAll('.guided-option').forEach(b=>{b.disabled=true;b.style.pointerEvents='none';});
-  const isOK=val===correct;
+  const isOK = (val === correct) || (correct === 'mission_complete' && val === 'mission_complete');
   if(!isOK) {
     guidedState.score=Math.max(30,guidedState.score-15); _updateGuidedHUD();
     // Modo Guiado: mostrar pista automáticamente tras error
@@ -3500,6 +3642,7 @@ function toggleIoc(idx) {
   if (logsMarkedIoc.has(idx)) logsMarkedIoc.delete(idx);
   else logsMarkedIoc.add(idx);
   renderLogs();
+  if (missionState.active) _missionTick('ioc');
 }
 
 function _escapeHtml(s) {
@@ -3631,6 +3774,10 @@ async function _termRunCommand(cmd) {
     term.writeln('\x1b[31mError de conexión con el servidor\x1b[0m');
   }
   term.write(TERM_PROMPT());
+  const diag = ['netstat','tcpdump','ps aux','top','ss -','iptables -L'];
+  if (missionState.active && diag.some(d => cmd.toLowerCase().startsWith(d.split(' ')[0]))) {
+    _missionTick(missionState.fwApplied ? 'verify' : 'term');
+  }
 }
 
 // ============================================================
@@ -3699,6 +3846,7 @@ async function fwBlockIp() {
     renderFirewall(data);
     notify('🔥 Regla aplicada', data.message, 'ok');
     input.value = '';
+    if (missionState.active) _missionTick('fw');
   } catch (e) {
     notify('⚠️ Error', 'No se pudo aplicar la regla', 'warn');
   }
@@ -3717,6 +3865,7 @@ async function fwBlockPort() {
     renderFirewall(data);
     notify('🔥 Regla aplicada', data.message, 'ok');
     input.value = '';
+    if (missionState.active) _missionTick('fw');
   } catch (e) {
     notify('⚠️ Error', 'No se pudo aplicar la regla', 'warn');
   }
