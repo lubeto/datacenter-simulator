@@ -388,6 +388,55 @@ Sesión larga con 3 bugs críticos encontrados y resueltos. Plataforma funcional
 - [x] Reset ejecutado: 24,291 registros borrados, 20 cuentas conservadas ✅
 - [ ] Verificar panel "🔬 Calidad Textual de Bitácoras" en tab Analytics (pendiente revisión visual)
 - [ ] Verificar penalización de calidad de bitácora en panel de resultados (estudiante)
-- [ ] **V3 Fase 1** — Terminal Simulada (prioridad alta, ver roadmap abajo)
-- [ ] **V3 Fase 1** — Visor de Logs en Crudo
-- [ 
+- [x] **V3 Fase 1 — COMPLETA** ✅ (verificado en producción 2026-06-13): Terminal Simulada, Visor de Logs en Crudo, Editor de Reglas de Firewall — los 3 paneles funcionan y pueden coexistir abiertos
+- [ ] **V3 Fase 2 — Contexto** (próxima etapa, ver roadmap completo abajo): Escenarios Narrativos + Modo Clase en Vivo
+
+---
+
+## Roadmap V3 (completo)
+
+Fuente: conversación Cowork "ESTADO.md V2 suggestions" + `dc_simulator_v3_roadmap.html`.
+
+### Fase 1 — Inmersión ✅ COMPLETA
+> El aprendiz empieza a hacer, no solo a ver. Usa el stack actual sin cambiar infraestructura.
+
+- **🖥️ Terminal Simulada** (medio, 2-3 ses.) ✅
+  - xterm.js, `POST /api/terminal/exec`, `command_engine.py`, acceso a `sim_state`
+  - Comandos: `netstat`, `ping`, `ps aux`, `top`, `iptables`, `tail -f`, `systemctl`, `df -h`, `free -m`, `tcpdump`
+- **📄 Visor de Logs en Crudo** (bajo, 1 ses.) ✅
+  - `log_generator.py`, `GET /api/logs/live?type=access|auth|system&node_id=X`
+  - Filtro/búsqueda tipo grep, marcar líneas como IOC, "Agregar a evidencias"
+- **🔒 Editor de Reglas de Firewall** (medio, 2 ses.) ✅
+  - `command_engine.py` (add_block_ip/port, flush, remove), `POST /api/firewall/rules`
+  - Sintaxis: BLOCK IP/PORT, RATE_LIMIT, ALLOW ONLY PORT, ISOLATE NODE
+
+### Fase 2 — Contexto (PRÓXIMA)
+> Escenarios reales, no eventos aleatorios. Requiere reestructurar `scheduler.py` para manejar fases (no reescritura total). El modo clase en vivo aprovecha el WebSocket que ya existe.
+
+- **🎬 Escenarios Narrativos** (medio, 2-3 ses.)
+  - Estructura JSON: `id, nombre, descripción, phases: [{trigger, attacks, duration, briefing}], victory_conditions (MTTD < X min), failure_conditions (N nodos caídos)`
+  - Backend: `scenario_engine.py` (state machine de fases), `POST /api/scenarios/launch`, integración con `attack_manager`, tabla `scenario_sessions`
+  - Frontend instructor: selector de escenario + descripción, botón Lanzar/Detener, indicador de fase actual
+  - Frontend aprendiz: briefing inicial, indicador "Fase 1/3", debriefing al terminar
+  - Ejemplos de escenarios: Black Friday, Insider Threat, Ransomware lateral
+
+- **📡 Modo Clase en Vivo** (medio, 2 ses.)
+  - Backend (WebSocket ya existe): comandos broadcast `pause_sim`, `reveal_solution`, `push_notification`; `GET /api/instructor/live-status`
+  - Panel instructor: vista de estudiantes conectados en vivo, indicador quién detectó/quién no, botón Pausar Simulación global, botón Revelar Solución
+
+### Fase 3 — Colaboración (futuro)
+> Trabajo en equipo como en un SOC real. La sala colaborativa es la más compleja — necesita estado compartido entre sesiones; ahí SQLite empieza a doler y conviene evaluar PostgreSQL (Render lo ofrece nativamente).
+
+- **👥 Sala de Crisis Colaborativa** (alto, 4-5 ses.)
+  - WebSocket "rooms", `role_manager.py`, tablas `collab_sessions` + `collab_actions`, estado compartido por room
+  - Roles: Analista T1 (dashboard+alertas), Analista T2 (diagnóstico guiado), Responder (terminal+firewall), Comunicador (status updates)
+  - Frontend: selector de sala/código de grupo, chat interno, vista según rol, score grupal en tiempo real
+  - ⚠️ Consideraciones: SQLite con contención → evaluar PostgreSQL; límite de conexiones WS en Render Starter
+
+- **📋 Playbook del Aprendiz** (bajo, 1 ses.)
+  - Tabla `playbooks` (student_id, scenario_type, content, rating), editor Markdown post-incidente
+  - Panel instructor: lista + botón "Publicar como referencia", sección pública "Playbooks de la Clase"
+
+- **🏅 Badges y Certificaciones** (bajo, 1 ses.)
+  - Criterios en JSON `{id, nombre, condicion, icono}`, `badge_engine.py` evalúa al completar sesión
+  - Tabla `student_badges` (student_id, badge_id, earned_at), panel de perfil con colección, exportar SVG/PNG

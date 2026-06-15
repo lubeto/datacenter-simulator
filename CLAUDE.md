@@ -45,27 +45,15 @@ from ..simulation.engine import state as sim_state
 - `SECRET_KEY`, `ADMIN_PASSWORD`, `ALLOWED_ORIGINS`
 - NO hardcodear valores en código
 
-## V3 en desarrollo — Fase 1
+## V3 — Fase 1 completa ✅, en desarrollo Fase 2
 
-### Terminal Simulada (prioridad actual)
-Archivos a crear:
-- `backend/simulation/command_engine.py` — parser + respuestas dinámicas
-- `backend/api/routes_terminal.py` — `POST /api/terminal/exec`
-- Panel en `frontend/index.html` usando `xterm.js` (CDN)
+Fase 1 (Terminal Simulada, Visor de Logs, Editor de Firewall) está implementada y verificada en producción.
 
-Comandos a implementar: `netstat`, `ping`, `ps aux`, `top`, `iptables`, `tail -f`, `systemctl`, `df -h`, `free -m`, `tcpdump`
+### Fase 2 — Contexto (actual)
+- **Escenarios Narrativos**: `scenario_engine.py` (state machine de fases), `POST /api/scenarios/launch`, tabla `scenario_sessions`, integración con `attack_manager`
+- **Modo Clase en Vivo**: aprovechar WebSocket existente — broadcast `pause_sim`, `reveal_solution`, `push_notification`; `GET /api/instructor/live-status`
 
-El output de cada comando debe ser dinámico según `sim_state` (si hay DDoS activo, `netstat` muestra miles de conexiones).
-
-### Visor de Logs en Crudo
-- `backend/simulation/log_generator.py`
-- `GET /api/logs/live?type=access|auth|system&node_id=X`
-
-### Editor de Reglas de Firewall
-- `backend/simulation/rule_engine.py`
-- `POST /api/firewall/rules`
-
-Ver `ESTADO.md` → sección "Roadmap V3" para detalles completos de cada feature.
+Ver `ESTADO.md` → sección "Roadmap V3 (completo)" para detalles de Fase 2 y 3.
 
 ## Cómo correr localmente
 ```powershell
