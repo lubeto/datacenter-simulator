@@ -446,6 +446,11 @@ Fuente: conversación Cowork "ESTADO.md V2 suggestions" + `dc_simulator_v3_roadm
   - Backend (WebSocket ya existe): comandos broadcast `pause_sim`, `reveal_solution`, `push_notification`; `GET /api/instructor/live-status`
   - Panel instructor: vista de estudiantes conectados en vivo, indicador quién detectó/quién no, botón Pausar Simulación global, botón Revelar Solución
 
+- **📝 Feedback IA de Bitácora** (medio, 1-2 ses.) — pendiente, propuesto 2026-06-14
+  - Endpoint que envía el texto de la bitácora del aprendiz (causa raíz, acciones, notas) a un LLM con prompt de evaluación: claridad, completitud (qué pasó/por qué/qué se hizo), uso de terminología técnica, + 2-3 sugerencias concretas de mejora
+  - Feedback mostrado antes/después de guardar, sin bloquear el envío
+  - Objetivo: que el aprendiz mejore su redacción técnica de incidentes con el tiempo
+
 ### Fase 3 — Colaboración (futuro)
 > Trabajo en equipo como en un SOC real. La sala colaborativa es la más compleja — necesita estado compartido entre sesiones; ahí SQLite empieza a doler y conviene evaluar PostgreSQL (Render lo ofrece nativamente).
 
