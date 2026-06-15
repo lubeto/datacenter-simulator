@@ -390,6 +390,7 @@ Sesión larga con 3 bugs críticos encontrados y resueltos. Plataforma funcional
 - [ ] Verificar penalización de calidad de bitácora en panel de resultados (estudiante)
 - [x] **V3 Fase 1 — COMPLETA** ✅ (verificado en producción 2026-06-13): Terminal Simulada, Visor de Logs en Crudo, Editor de Reglas de Firewall — los 3 paneles funcionan y pueden coexistir abiertos
 - [x] **V3 Fase 2 — Contexto — COMPLETA** ✅ (2026-06-15): Escenarios Narrativos + Modo Clase en Vivo (ver detalle en sesiones de abajo)
+- [x] **Misión Activa (Stage 4)** (`feat-mision-activa`): Stage 4 del panel guiado reemplazado por misión procedimental real — 4 pasos secuenciales: investigar con terminal (netstat/tcpdump/top/ps), marcar 2+ IOC en logs, aplicar regla en firewall, verificar con terminal. Widget flotante `#missionWidget` (inferior derecho) muestra progreso en tiempo real con penalización de -15 pts si supera 90s. Al completar los 4 pasos se auto-cierra con `checkGuidedAnswer('mission_complete')`. Hooks añadidos en `_termRunCommand`, `toggleIoc`, `fwBlockIp`, `fwBlockPort`. La misión se cancela limpiamente si el panel guiado se cierra manualmente.
 
 ### Sesión 2026-06-14 — Auditoría panel guiado + Modo Clase en Vivo
 - [x] Fix dropdown "Monitor en Vivo" instructor: usaba `/api/students/list` (no existe) → ahora `/api/students/`
