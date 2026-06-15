@@ -391,6 +391,17 @@ Sesión larga con 3 bugs críticos encontrados y resueltos. Plataforma funcional
 - [x] **V3 Fase 1 — COMPLETA** ✅ (verificado en producción 2026-06-13): Terminal Simulada, Visor de Logs en Crudo, Editor de Reglas de Firewall — los 3 paneles funcionan y pueden coexistir abiertos
 - [ ] **V3 Fase 2 — Contexto** (próxima etapa, ver roadmap completo abajo): Escenarios Narrativos + Modo Clase en Vivo
 
+### Sesión 2026-06-14 — Auditoría panel guiado + Modo Clase en Vivo
+- [x] Fix dropdown "Monitor en Vivo" instructor: usaba `/api/students/list` (no existe) → ahora `/api/students/`
+- [x] Fix 500 en `/api/sessions/student/{id}/live`: accedía a `stu.level` que no existe en el modelo `Student` → ahora valor fijo "Principiante"
+- [x] Auditoría preguntas panel guiado por categoría (ssl/sst/hardware/red): SST y hardware son deterministas (OK); categoría 'red' usa métricas reales (OK)
+- [x] Fix `arp_spoofing`: no generaba ningún efecto en métricas (`engine.py`), pero el panel guiado pedía identificar "tráfico de red anómalo" → ahora genera aumento de net_in/net_out/latencia/pkt_loss
+- [x] Modo Clase en Vivo: `/api/instructor/live-status` ahora incluye `active_attacks` con `detected_count`/`detected_names` por incidente, vía `Incident.detected_at` + `Session.student_id`
+- [x] Fix: `_escalation_loop` (auto-detección/escalamiento cada 10s) no respetaba `sim_state.is_paused` → seguía reabriendo el panel guiado y notificando aunque la simulación estuviera pausada. Ahora hace `continue` si `is_paused`.
+- [x] **Pausa total para el aprendiz**: al pausar, se muestra `#pauseOverlay` (overlay de pantalla completa, bloquea clicks) sobre todo el dashboard del estudiante hasta que el instructor reanude. `handleMetrics` sincroniza el overlay con `data.paused` (silencioso); `sim_paused`/`sim_resumed` notifican el cambio. Dedup con `_simPausedState` para no notificar en cada tick de métricas (2s).
+  - **Pendiente de verificar**: que el overlay cubra visualmente el `guidedPanel` (z-index 9000) y no permita ninguna interacción (clicks, teclado) mientras esté activo. Falta probar en producción tras el deploy.
+  - **Posible mejora futura**: bloquear también a nivel backend los endpoints de detección/mitigación/guiado cuando `is_paused=True` (actualmente solo es un bloqueo visual en frontend).
+
 ---
 
 ## Roadmap V3 (completo)

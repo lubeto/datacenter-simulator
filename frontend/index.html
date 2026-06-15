@@ -348,6 +348,12 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
   <span style="color:#fef3c7;font-size:.75rem">El instructor pausó la clase. La simulación se reanudará en breve.</span>
 </div>
 
+<div id="pauseOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,14,26,0.6);z-index:9000;backdrop-filter:blur(2px);align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:12px">
+  <div style="font-size:3rem">⏸</div>
+  <div style="font-size:1.3rem;font-weight:700;color:#fde68a">Simulación en pausa</div>
+  <div style="font-size:.9rem;color:#fef3c7;max-width:360px">El instructor pausó la clase. No puedes interactuar con el panel mientras dure la pausa.</div>
+</div>
+
 <div class="container">
   <!-- SUMMARY CARDS -->
   <div class="summary-grid">
@@ -749,11 +755,17 @@ function handleSslStatus(data) {
   (data.certs || []).forEach(cert => { sslCertsData[cert.node_id] = cert; });
 }
 
-function setPauseBar(active) {
+let _simPausedState = false;
+function setPauseBar(active, silent){
   const bar = document.getElementById('pauseBar');
   if (bar) bar.style.display = active ? 'flex' : 'none';
-  if (active) notify('⏸ Simulación pausada', 'El instructor pausó la clase', 'warn');
-  else notify('▶️ Simulación reanudada', 'La clase continúa', 'ok');
+  const overlay = document.getElementById('pauseOverlay');
+  if (overlay) overlay.style.display = active ? 'flex' : 'none';
+  if (!silent && active !== _simPausedState) {
+    if (active) notify('⏸ Simulación pausada', 'El instructor pausó la clase', 'warn');
+    else notify('▶️ Simulación reanudada', 'La clase continúa', 'ok');
+  }
+  _simPausedState = active;
 }
 
 function handleRevealSolution(data) {
@@ -818,6 +830,7 @@ function handleEvalSession(data) {
 // ── METRICS HANDLER ─────────────────────────────────────────
 function handleMetrics(data) {
   allNodes = data.nodes || {};
+  setPauseBar(!!data.paused, true);
 
   // Construir mapa de ataques activos desde los nodos (el backend lo pone en has_attack/attack_type)
   const activeAttacksMap = {};
