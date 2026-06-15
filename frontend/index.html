@@ -748,11 +748,35 @@ function handleWSMessage(msg) {
     case 'reveal_solution':       handleRevealSolution(msg.data); break;
     case 'instructor_notification': notify('📢 Instructor', msg.data.message, 'info'); break;
     case 'ssl_status':            handleSslStatus(msg.data); break;
+    case 'guided_session_started': handleScenarioStarted(msg.data); break;
+    case 'guided_step_countdown':  handleScenarioCountdown(msg.data); break;
+    case 'guided_step_launched':   handleScenarioPhase(msg.data); break;
+    case 'guided_session_stopped':
+    case 'guided_session_completed': handleScenarioEnded(msg.data); break;
   }
 }
 
 function handleSslStatus(data) {
   (data.certs || []).forEach(cert => { sslCertsData[cert.node_id] = cert; });
+}
+
+// ── ESCENARIOS NARRATIVOS (Clase Guiada) ────────────────────────────────
+function handleScenarioStarted(data) {
+  notify(`🎬 ${data.name || 'Escenario'} iniciado`, `${data.total_steps} fase(s) programadas. Mantente atento al mapa de red.`, 'info');
+}
+
+function handleScenarioCountdown(data) {
+  notify(`⏳ Próxima fase ${data.step_num}/${data.total_steps}`,
+    `En ${data.delay_before_sec}s: incidente en ${data.node_id}`, 'warn');
+}
+
+function handleScenarioPhase(data) {
+  notify(`🎬 Fase ${data.step_num}/${data.total_steps}: ${data.attack_name}`,
+    `Nuevo incidente en <strong>${data.node_id}</strong> — investígalo.`, 'crit');
+}
+
+function handleScenarioEnded(data) {
+  notify('🏁 Escenario finalizado', data.message || 'La secuencia de incidentes ha terminado.', 'ok');
 }
 
 let _simPausedState = false;
