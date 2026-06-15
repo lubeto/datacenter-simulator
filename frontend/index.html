@@ -653,6 +653,7 @@ if (STUDENT.role === 'instructor') {
 const MAX_HISTORY = 60;
 const nodeHistory = {}; // node_id → {cpu:[], ram:[], net_in:[], net_out:[], latency:[], labels:[]}
 let allNodes = {};
+let sslCertsData = {}; // node_id -> ssl cert info (de evento ssl_status)
 let selectedChartNode = null;
 let selectedNetNode = null;
 let mainChart = null;
@@ -740,7 +741,12 @@ function handleWSMessage(msg) {
     case 'sim_resumed':          setPauseBar(false); break;
     case 'reveal_solution':       handleRevealSolution(msg.data); break;
     case 'instructor_notification': notify('📢 Instructor', msg.data.message, 'info'); break;
+    case 'ssl_status':            handleSslStatus(msg.data); break;
   }
+}
+
+function handleSslStatus(data) {
+  (data.certs || []).forEach(cert => { sslCertsData[cert.node_id] = cert; });
 }
 
 function setPauseBar(active) {
@@ -1713,14 +1719,31 @@ function _gBuildAnalyzeStage(inc){
   const col = (v,t)=>v>t?'color:#ef4444':'color:#22c55e';
 
   if(cat === 'ssl'){
-    const days  = ssl.days_to_expire !== undefined ? ssl.days_to_expire : '—';
-    const proto = ssl.tls_version||'TLS 1.2';
-    const issuer= ssl.issuer||'Let\'s Encrypt';
-    const expDate = ssl.expires_at ? new Date(ssl.expires_at).toLocaleDateString('es-CO') : '—';
+    const real = sslCertsData[id] || ssl || {};
+    const t = _gAttType(inc);
+    const issuer = real.issuer || 'Let\'s Encrypt';
+    let days, proto, expDate;
+
+    if (t.includes('tls') || t.includes('downgrade')) {
+      // Forzar una versión TLS insegura coherente con la respuesta correcta
+      proto = (real.tls_version === 'TLSv1.0' || real.tls_version === 'TLSv1.1') ? real.tls_version : 'TLSv1.0';
+      days  = real.days_to_expire !== undefined ? real.days_to_expire : 120;
+    } else if (t.includes('expired')) {
+      proto = real.tls_version || 'TLSv1.3';
+      days  = 0;
+    } else if (t.includes('expir') || t.includes('soon')) {
+      proto = real.tls_version || 'TLSv1.3';
+      days  = (real.days_to_expire !== undefined && real.days_to_expire < 30 && real.days_to_expire > 0) ? real.days_to_expire : 15;
+    } else {
+      proto = real.tls_version || 'TLSv1.3';
+      days  = real.days_to_expire !== undefined ? real.days_to_expire : 120;
+    }
+    expDate = new Date(Date.now() + days*86400000).toLocaleDateString('es-CO');
+
     return {
       q:`${_getQVariant('analyze','ssl')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
       ctx:`Estado SSL/TLS del nodo <strong>${id}</strong>:<br>
-        &bull; Versión TLS: <strong style="${proto==='TLS 1.0'||proto==='TLS 1.1'?'color:#ef4444':'color:#22c55e'}">${proto}</strong><br>
+        &bull; Versión TLS: <strong style="${proto==='TLSv1.0'||proto==='TLSv1.1'?'color:#ef4444':'color:#22c55e'}">${proto}</strong><br>
         &bull; Días para vencer: <strong style="${days<30?'color:#ef4444':days<60?'color:#eab308':'color:#22c55e'}">${days} días</strong><br>
         &bull; Fecha de expiración: <strong>${expDate}</strong><br>
         &bull; Emisor: <strong>${issuer}</strong>`,
