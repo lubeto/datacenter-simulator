@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database.db import get_db
-from ..database.models import Bitacora, GuidedSession, Student
+from ..database.models import Incident, Session as EvalSession, Student
 from ..simulation.engine import state as sim_state
 from ..simulation.attacks import ATTACK_CATALOG
 from ..api.routes_students import require_instructor
@@ -84,21 +84,17 @@ async def live_status(db: AsyncSession = Depends(get_db), _=Depends(require_inst
         except (TypeError, ValueError):
             started_at = datetime.utcnow()
 
-        g_q = await db.execute(
-            select(GuidedSession.student_id).where(
-                GuidedSession.node_id == node_id,
-                GuidedSession.attack_type == a.get("type"),
-                GuidedSession.completed_at >= started_at,
+        d_q = await db.execute(
+            select(EvalSession.student_id).join(
+                Incident, Incident.session_id == EvalSession.id
+            ).where(
+                Incident.node_affected == node_id,
+                Incident.incident_type == a.get("type"),
+                Incident.detected_at.isnot(None),
+                Incident.detected_at >= started_at,
             )
         )
-        b_q = await db.execute(
-            select(Bitacora.student_id).where(
-                Bitacora.node_id == node_id,
-                Bitacora.attack_type == a.get("type"),
-                Bitacora.created_at >= started_at,
-            )
-        )
-        detected_ids = set(g_q.scalars().all()) | set(b_q.scalars().all())
+        detected_ids = set(d_q.scalars().all())
 
         detected_names = []
         if detected_ids:
