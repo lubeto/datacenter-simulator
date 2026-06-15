@@ -886,11 +886,12 @@ function _missionActivate(inc) {
     missionState.mttd++;
     const el = document.getElementById('missionTimer');
     if (el) el.textContent = missionState.mttd + 's';
-    if (missionState.mttd > 90 && !missionState.penalized) {
-      missionState.penalized = true;
-      guidedState.score = Math.max(30, guidedState.score - 15);
-      _updateGuidedHUD();
-      _missionHint('⏱ +90s — penalización -15 pts');
+    if (missionState.mttd === 120 && !missionState.hint120) {
+      missionState.hint120 = true;
+      if (!missionState.termDone)  _missionHint('💡 Abre la Terminal y corre netstat o top');
+      else if (!missionState.iocDone) _missionHint('💡 Abre Logs y marca líneas sospechosas como IOC');
+      else if (!missionState.fwDone)  _missionHint('💡 Abre el Firewall y aplica una regla de bloqueo');
+      else                             _missionHint('💡 Vuelve a la Terminal y verifica que bajó el tráfico');
     }
   }, 1000);
 }
