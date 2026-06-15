@@ -343,6 +343,10 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
         <button class="btn btn-primary btn-sm" onclick="sendLiveNotification()">📢 Enviar a todos</button>
       </div>
       <div style="font-size:.7rem;color:var(--muted);margin-top:.5rem">💡 Usa "Revelar" en la tarjeta de Ataques Activos para mostrar la solución de un incidente a toda la clase.</div>
+      <div style="margin-top:.6rem">
+        <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:.3rem">QUIÉN HA DETECTADO CADA INCIDENTE</div>
+        <div id="liveDetectionStatus" style="max-height:140px;overflow-y:auto"></div>
+      </div>
     </div>
   </div>
 
@@ -1682,6 +1686,21 @@ async function loadLiveStatus() {
     const status = document.getElementById('livePauseStatus');
     if (btn) btn.textContent = liveSimPaused ? '▶️ Reanudar Simulación' : '⏸ Pausar Simulación';
     if (status) status.textContent = liveSimPaused ? '⏸ Simulación en pausa' : '';
+
+    const det = document.getElementById('liveDetectionStatus');
+    if (det) {
+      if (!r.active_attacks.length) {
+        det.innerHTML = '<span style="color:#6b7280;font-size:.78rem">Sin incidentes activos</span>';
+      } else {
+        det.innerHTML = r.active_attacks.map(a => {
+          const names = a.detected_names.length ? a.detected_names.join(', ') : '<span style="color:#6b7280">nadie aún</span>';
+          return `<div style="font-size:.78rem;padding:.25rem 0;border-bottom:1px solid #1f2937">
+            <strong style="color:#fbbf24">${a.node_id}</strong> — ${a.name || a.type}:
+            <span style="color:#22c55e">${a.detected_count} detectó</span> · ${names}
+          </div>`;
+        }).join('');
+      }
+    }
   } catch(e) {}
 }
 

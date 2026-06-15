@@ -8,7 +8,11 @@ from typing import Optional, Literal
 
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..database.db import get_db
+from ..database.models import Bitacora, GuidedSession, Student
 from ..simulation.engine import state as sim_state
 from ..simulation.attacks import ATTACK_CATALOG
 from ..api.routes_students import require_instructor
@@ -65,19 +69,54 @@ async def broadcast_command(req: BroadcastRequest, _=Depends(require_instructor)
 
 
 @router.get("/live-status")
-async def live_status(_=Depends(require_instructor)):
-    """Estado en vivo de la clase: conectados y simulación pausada/activa."""
+async def live_status(db: AsyncSession = Depends(get_db), _=Depends(require_instructor)):
+    """Estado en vivo de la clase: conectados, simulación pausada/activa y quién ha detectado cada incidente."""
     students = [
         {"id": s.get("id"), "email": s.get("email"), "role": s.get("role")}
         for s in ws_manager.get_connected_students()
         if s and s.get("role") != "instructor"
     ]
+
+    active_attacks = []
+    for node_id, a in sim_state.active_attacks.items():
+        try:
+            started_at = datetime.fromisoformat(a.get("started_at"))
+        except (TypeError, ValueError):
+            started_at = datetime.utcnow()
+
+        g_q = await db.execute(
+            select(GuidedSession.student_id).where(
+                GuidedSession.node_id == node_id,
+                GuidedSession.attack_type == a.get("type"),
+                GuidedSession.completed_at >= started_at,
+            )
+        )
+        b_q = await db.execute(
+            select(Bitacora.student_id).where(
+                Bitacora.node_id == node_id,
+                Bitacora.attack_type == a.get("type"),
+                Bitacora.created_at >= started_at,
+            )
+        )
+        detected_ids = set(g_q.scalars().all()) | set(b_q.scalars().all())
+
+        detected_names = []
+        if detected_ids:
+            s_q = await db.execute(select(Student.name).where(Student.id.in_(detected_ids)))
+            detected_names = [n for n in s_q.scalars().all()]
+
+        active_attacks.append({
+            "node_id": node_id,
+            "type": a.get("type"),
+            "name": a.get("name"),
+            "started_at": a.get("started_at"),
+            "detected_count": len(detected_ids),
+            "detected_names": detected_names,
+        })
+
     return {
         "connected_count": len(students),
         "connected_students": students,
         "paused": sim_state.is_paused,
-        "active_attacks": [
-            {"node_id": node_id, "type": a.get("type"), "name": a.get("name")}
-            for node_id, a in sim_state.active_attacks.items()
-        ],
+        "active_attacks": active_attacks,
     }
