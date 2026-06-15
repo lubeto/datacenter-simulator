@@ -1858,11 +1858,17 @@ function _gBuildAnalyzeStage(inc){
   }
 
   // Categoría 'red'
-  const cpu  = +(m.cpu_pct||0).toFixed(1);
-  const ram  = +(m.ram_pct||0).toFixed(1);
-  const net  = +(m.net_in_mbps||0).toFixed(0);
-  const conn = m.connections||0;
+  let cpu  = +(m.cpu_pct||0).toFixed(1);
+  let ram  = +(m.ram_pct||0).toFixed(1);
+  let net  = +(m.net_in_mbps||0).toFixed(0);
+  let conn = m.connections||0;
   const lat  = +(m.latency_ms||0).toFixed(0);
+  // Garantizar que la métrica correcta aparezca claramente anómala (igual que en hardware/ssl)
+  const correctKey = _gCorrectAnalyze(inc);
+  if(correctKey === 'net'  && net  <= 200) net  = Math.floor(210 + Math.random()*150);
+  if(correctKey === 'conn' && conn <= 400) conn = Math.floor(420 + Math.random()*2000);
+  if(correctKey === 'cpu'  && cpu  <= 70)  cpu  = +(72 + Math.random()*20).toFixed(1);
+  if(correctKey === 'ram'  && ram  <= 80)  ram  = +(82 + Math.random()*10).toFixed(1);
   return {
     q:`${_getQVariant('analyze','red')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
     ctx:`Métricas en tiempo real de ${id}:<br>
