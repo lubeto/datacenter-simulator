@@ -409,6 +409,10 @@ Sesión larga con 3 bugs críticos encontrados y resueltos. Plataforma funcional
 - [ ] **Pendiente**: catálogo de escenarios con nombre+briefing+descripción reutilizando `start_guided_session` (ej. "Black Friday", "Insider Threat", "Ransomware lateral" del roadmap), expuesto en el tab "🎓 Clase Guiada" del instructor con un selector en lugar de tener que armar los `steps` manualmente. Las tarjetas actuales de "🎯 Escenarios Predefinidos" (`runScenario`) son un mecanismo DISTINTO y más simple (inyección instantánea sin fases/briefing) — no confundir ambos sistemas al añadir el catálogo.
 - [ ] Pendiente: indicador visual permanente de "Fase X/N" en el dashboard del aprendiz (no solo el toast), y un panel de debriefing más completo (resumen de qué pasó en cada fase, quién detectó qué).
 
+### Sesión 2026-06-14 (cont. 2) — Coherencia respuestas/pistas panel guiado
+- [x] **Fix `fix-red-stage2-coherencia`**: en categoría 'red', Stage 2 (analizar), cuando `_gCorrectAnalyze` cae en el fallback por tipo de ataque (ninguna métrica supera su umbral realmente), ahora se fuerza a que la métrica esperada como correcta (net/conn/cpu/ram) supere claramente su umbral en el contexto mostrado — igual que ya se hacía en hardware/SSL. Antes el aprendiz veía todo "normal" pero el sistema exigía identificar "tráfico anormal".
+- [x] **Fix `fix-hints-por-categoria`**: `GUIDED_HINTS` era un único array genérico orientado a ataques de red (firewall, fail2ban, etc.) usado para TODAS las categorías. En incidentes SST/SSL/hardware las pistas no tenían relación con la pregunta (ej. alerta de Sobrecalentamiento mostraba "Para ataques de red: rate limiting..."). Se creó `CATEGORY_HINTS` con pistas propias para `sst`/`ssl`/`hardware`/`red`, seleccionadas según `_gCategory(guidedState.incident)` en `showGuidedHint()`.
+
 ---
 
 ## Roadmap V3 (completo)
