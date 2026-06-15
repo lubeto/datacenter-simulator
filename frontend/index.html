@@ -1653,6 +1653,33 @@ const GUIDED_HINTS = [
   ['Para ataques de red: rate limiting o firewall. Para brute force: fail2ban. Para memory leak: reiniciar el proceso afectado.','Abre el Lab de Mitigación para practicar el procedimiento completo paso a paso.'],
 ];
 
+const CATEGORY_HINTS = {
+  sst: [
+    ['Observa el mapa de red: los nodos en rojo están en estado crítico.','El nodo afectado es el que tiene la alerta física activa. Haz clic en el rojo del mapa.'],
+    ['Revisa el sensor físico (temperatura, humo, energía o acceso) que disparó la alerta.','El valor del sensor fuera de rango es el indicador clave, no las métricas de CPU/red.'],
+    ['Sobrecalentamiento: falla CRAC/refrigeración. Humo: posible incendio. Corte eléctrico: falla UPS/generador.','Clasifica según el tipo de sensor, no según el tipo de tráfico de red.'],
+    ['Los incidentes SST activan protocolos físicos de seguridad: proteger equipo y personal primero.','Piensa qué acción detiene específicamente la causa física (refrigeración, energía, evacuación), no medidas de red como firewall o fail2ban.'],
+  ],
+  ssl: [
+    ['Observa el mapa de red: el nodo afectado muestra una alerta de certificado/SSL.','Revisa el panel de estado SSL para identificar el nodo con el certificado problemático.'],
+    ['Revisa la fecha de expiración y la versión TLS del certificado en el panel SST.','El indicador clave es el estado del certificado, no las métricas de CPU/RAM/red.'],
+    ['Certificado expirado, por vencer pronto, o versión TLS insegura son las clasificaciones posibles.','Lee de nuevo los detalles del certificado mostrados en el contexto.'],
+    ['La solución actúa directamente sobre el certificado (renovar, reemplazar) según su problema específico.','Reiniciar el servidor o solo notificar no resuelve un problema de certificado.'],
+  ],
+  hardware: [
+    ['Observa el mapa de red: los nodos en rojo están en estado crítico.','El nodo atacado es el que tiene las métricas más altas. Haz clic en el rojo del mapa.'],
+    ['Busca la métrica con una tendencia anormal sostenida (no un pico puntual): RAM creciendo sin liberarse, disco con I/O elevado, etc.','Esa métrica sostenida es la pista de la falla de hardware.'],
+    ['Memory Leak: RAM alta y creciente. Falla de disco: I/O o latencia de disco elevada.','Estas son fallas internas del servidor, no ataques externos desde la red.'],
+    ['La mitigación correcta ataca la causa raíz interna (reiniciar el proceso, reemplazar el disco), no medidas de red.','Apagar el servidor por completo suele ser el último recurso, no la primera acción.'],
+  ],
+  red: [
+    ['Observa el mapa de red: los nodos en rojo están en estado crítico.','El nodo atacado es el que tiene las métricas más altas. Haz clic en el rojo del mapa.'],
+    ['Compara cada valor con el umbral: CPU>70% crítico, Net IN>200 Mbps puede ser DDoS, conexiones>400 puede ser brute force.','La métrica que supera MÁS su límite es la clave del diagnóstico.'],
+    ['DDoS/SYN/Flood: tráfico de red elevado. Brute Force/Port Scan: muchas conexiones. ARP/MITM: tráfico anómalo.','El tipo de ataque real lo puedes inferir del recurso más afectado.'],
+    ['Para ataques de red: rate limiting o firewall. Para brute force: fail2ban. Para memory leak: reiniciar el proceso afectado.','Piensa en qué mecanismo detiene específicamente este tipo de ataque, no una solución genérica.'],
+  ],
+};
+
 // ── DIAGNÓSTICO GUIADO — SISTEMA POR CATEGORÍA DE INCIDENTE ──────────────────
 // Categorías: 'red' | 'hardware' | 'sst' | 'ssl'
 // Cada categoría tiene Stage 2 (analizar) y Stage 3 (clasificar) propias.
@@ -2246,7 +2273,8 @@ function renderGuidedStage(stage) {
 
 function showGuidedHint() {
   if(!guidedState.active) return;
-  const hints=GUIDED_HINTS[guidedState.stage]||[];
+  const cat = guidedState.incident ? _gCategory(guidedState.incident) : 'red';
+  const hints=(CATEGORY_HINTS[cat]||GUIDED_HINTS)[guidedState.stage]||[];
   const idx=Math.min(guidedState.hintsUsed,hints.length-1);
   guidedState.hintsUsed++;
   guidedState.score=Math.max(30,guidedState.score-10);
