@@ -3747,7 +3747,7 @@ let _liveRefreshTimer = null;
 
 async function populateLiveStudentSel() {
   try {
-    const students = await apiFetch('/api/students/list');
+    const students = await apiFetch('/api/students/');
     const sel = document.getElementById('liveStudentSel');
     if (!sel) return;
     const opts = students
