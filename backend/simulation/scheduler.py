@@ -64,8 +64,10 @@ class EventScheduler:
         _db_tick = 0
         while self._running:
             try:
-                tick_attacks()
+                if not sim_state.is_paused:
+                    tick_attacks()
                 snapshot = generate_full_snapshot()
+                snapshot["paused"] = sim_state.is_paused
 
                 if self._broadcast_cb:
                     await self._broadcast_cb("metrics", snapshot)
@@ -108,6 +110,9 @@ class EventScheduler:
                 break
 
             if not auto_enabled or not self._auto_attacks:
+                continue
+
+            if sim_state.is_paused:
                 continue
 
             if _has_manual_attack():

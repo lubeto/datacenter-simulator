@@ -343,6 +343,11 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
   <span style="color:#a7f3d0;font-size:.75rem">Los paneles de diagnóstico se activarán automáticamente con cada incidente</span>
 </div>
 
+<div id="pauseBar" style="display:none;background:linear-gradient(90deg,#78350f,#92400e);padding:6px 24px;align-items:center;gap:12px;font-size:.8rem;color:#fde68a;position:sticky;top:60px;z-index:150">
+  <span style="font-weight:700">⏸ SIMULACIÓN EN PAUSA</span>
+  <span style="color:#fef3c7;font-size:.75rem">El instructor pausó la clase. La simulación se reanudará en breve.</span>
+</div>
+
 <div class="container">
   <!-- SUMMARY CARDS -->
   <div class="summary-grid">
@@ -731,7 +736,24 @@ function handleWSMessage(msg) {
     case 'apt_phase':            handleAPTPhase(msg.data); break;
     case 'practice_mode':        handlePracticeMode(msg.data); break;
     case 'eval_session':         handleEvalSession(msg.data); break;
+    case 'sim_paused':           setPauseBar(true); break;
+    case 'sim_resumed':          setPauseBar(false); break;
+    case 'reveal_solution':       handleRevealSolution(msg.data); break;
+    case 'instructor_notification': notify('📢 Instructor', msg.data.message, 'info'); break;
   }
+}
+
+function setPauseBar(active) {
+  const bar = document.getElementById('pauseBar');
+  if (bar) bar.style.display = active ? 'flex' : 'none';
+  if (active) notify('⏸ Simulación pausada', 'El instructor pausó la clase', 'warn');
+  else notify('▶️ Simulación reanudada', 'La clase continúa', 'ok');
+}
+
+function handleRevealSolution(data) {
+  const steps = (data.mitigation_steps || []).map(s => `• ${s}`).join('<br>');
+  notify(`💡 Solución revelada: ${data.name || data.attack_type}`,
+    `Nodo ${data.node_id}<br>${data.description || ''}<br>${steps}`, 'info');
 }
 
 function handleEvalSession(data) {

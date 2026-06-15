@@ -327,6 +327,25 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     </div>
   </div>
 
+  <!-- MODO CLASE EN VIVO -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header" style="justify-content:space-between">
+      <span class="card-title">📡 Modo Clase en Vivo</span>
+      <span style="font-size:.7rem;color:var(--muted)" id="liveConnectedCount">— conectados</span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-warn btn-sm" id="livePauseBtn" onclick="toggleSimPause()">⏸ Pausar Simulación</button>
+        <span id="livePauseStatus" style="font-size:.78rem;color:var(--muted)"></span>
+        <div style="flex:1"></div>
+        <input id="liveNotifInput" type="text" placeholder="Mensaje para todos los aprendices..."
+          style="flex:2;min-width:220px;background:#0a0e1a;border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.4rem .6rem;font-size:.8rem">
+        <button class="btn btn-primary btn-sm" onclick="sendLiveNotification()">📢 Enviar a todos</button>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:.5rem">💡 Usa "Revelar" en la tarjeta de Ataques Activos para mostrar la solución de un incidente a toda la clase.</div>
+    </div>
+  </div>
+
   <!-- ROW 2: Students monitoring + Timeline + Scenarios -->
   <div class="grid-3">
 
@@ -1643,10 +1662,54 @@ async function loadActiveAttacks() {
             <span style="font-size:.65rem;color:var(--muted)">${a.remaining_sec||'?'}s</span>
           </div>
         </div>
+        <button class="btn btn-outline btn-sm" onclick="revealSolution('${a.node_id}')">💡 Revelar</button>
         <button class="btn btn-success btn-sm" onclick="resolveNodeAttack('${a.node_id}')">Resolver</button>
       </div>`;
     }).join('');
   } catch(e) {}
+}
+
+// ── MODO CLASE EN VIVO ──────────────────────────────────────────
+let liveSimPaused = false;
+
+async function loadLiveStatus() {
+  try {
+    const r = await apiFetch('/api/instructor/live-status');
+    liveSimPaused = r.paused;
+    const cnt = document.getElementById('liveConnectedCount');
+    if (cnt) cnt.textContent = `${r.connected_count} aprendiz(es) conectado(s)`;
+    const btn = document.getElementById('livePauseBtn');
+    const status = document.getElementById('livePauseStatus');
+    if (btn) btn.textContent = liveSimPaused ? '▶️ Reanudar Simulación' : '⏸ Pausar Simulación';
+    if (status) status.textContent = liveSimPaused ? '⏸ Simulación en pausa' : '';
+  } catch(e) {}
+}
+
+async function toggleSimPause() {
+  try {
+    const cmd = liveSimPaused ? 'resume_sim' : 'pause_sim';
+    await apiFetch('/api/instructor/broadcast', {method:'POST', body: JSON.stringify({cmd})});
+    await loadLiveStatus();
+    notify(liveSimPaused ? '⏸ Simulación pausada' : '▶️ Simulación reanudada', '', 'ok');
+  } catch(e) { notify('Error', e.message, 'crit'); }
+}
+
+async function sendLiveNotification() {
+  const input = document.getElementById('liveNotifInput');
+  const message = (input.value || '').trim();
+  if (!message) { notify('Escribe un mensaje', '', 'warn'); return; }
+  try {
+    await apiFetch('/api/instructor/broadcast', {method:'POST', body: JSON.stringify({cmd: 'notification', message})});
+    notify('📢 Notificación enviada', message, 'ok');
+    input.value = '';
+  } catch(e) { notify('Error', e.message, 'crit'); }
+}
+
+async function revealSolution(nodeId) {
+  try {
+    const r = await apiFetch('/api/instructor/broadcast', {method:'POST', body: JSON.stringify({cmd: 'reveal_solution', node_id: nodeId})});
+    notify('💡 Solución revelada', `${r.solution.name} — enviado a toda la clase`, 'ok');
+  } catch(e) { notify('Error', e.message, 'crit'); }
 }
 
 async function resolveAttack() {
@@ -3974,8 +4037,11 @@ setInterval(() => {
   loadActiveSessions();
   loadActiveGroups();
   loadBitacoras();
+  loadLiveStatus();
   if (currentTab === 'monitor') { loadMonitor(); loadRecentActivity(); }
 }, 30000);
+
+loadLiveStatus();
 
 </script>
 </body>
