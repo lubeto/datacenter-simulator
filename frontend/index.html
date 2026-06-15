@@ -354,6 +354,21 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
   <div style="font-size:.9rem;color:#fef3c7;max-width:360px">El instructor pausó la clase. No puedes interactuar con el panel mientras dure la pausa.</div>
 </div>
 
+<div id="scenarioBar" style="display:none;background:linear-gradient(90deg,#1e3a8a,#312e81);padding:6px 24px;align-items:center;gap:12px;font-size:.8rem;color:#dbeafe;position:sticky;top:60px;z-index:140">
+  <span style="font-weight:700">🎬 <span id="scenarioBarName">Escenario</span></span>
+  <span id="scenarioBarPhase" style="color:#bfdbfe;font-size:.75rem">Fase 0/0</span>
+</div>
+
+<div id="debriefModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9500;align-items:center;justify-content:center">
+  <div style="background:#111827;border:1px solid #374151;border-radius:10px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;padding:1.25rem">
+    <div style="font-size:1.2rem;font-weight:700;color:#dbeafe;margin-bottom:.25rem">🏁 Debriefing del escenario</div>
+    <div id="debriefSummary" style="font-size:.85rem;color:#9ca3af;margin-bottom:.75rem"></div>
+    <div id="debriefSteps" style="display:flex;flex-direction:column;gap:.5rem"></div>
+    <button onclick="document.getElementById('debriefModal').style.display='none'"
+      style="margin-top:1rem;width:100%;padding:.5rem;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Cerrar</button>
+  </div>
+</div>
+
 <div class="container">
   <!-- SUMMARY CARDS -->
   <div class="summary-grid">
@@ -751,6 +766,7 @@ function handleWSMessage(msg) {
     case 'guided_session_started': handleScenarioStarted(msg.data); break;
     case 'guided_step_countdown':  handleScenarioCountdown(msg.data); break;
     case 'guided_step_launched':   handleScenarioPhase(msg.data); break;
+    case 'guided_step_stats':      handleScenarioStepStats(msg.data); break;
     case 'guided_session_stopped':
     case 'guided_session_completed': handleScenarioEnded(msg.data); break;
   }
@@ -761,23 +777,64 @@ function handleSslStatus(data) {
 }
 
 // ── ESCENARIOS NARRATIVOS (Clase Guiada) ────────────────────────────────
+let _scenarioState = {active:false, name:'', stepStats:[]};
+
+function _updateScenarioBar(stepNum, totalSteps) {
+  const bar = document.getElementById('scenarioBar');
+  if (!bar) return;
+  document.getElementById('scenarioBarName').textContent = _scenarioState.name || 'Escenario';
+  document.getElementById('scenarioBarPhase').textContent = `Fase ${stepNum}/${totalSteps}`;
+  bar.style.display = 'flex';
+}
+
 function handleScenarioStarted(data) {
   const briefing = data.briefing ? `${data.briefing} — ` : '';
   notify(`🎬 ${data.name || 'Escenario'} iniciado`, `${briefing}${data.total_steps} fase(s) programadas. Mantente atento al mapa de red.`, 'info');
+  _scenarioState = {active:true, name:data.name || 'Escenario', stepStats:[]};
+  _updateScenarioBar(0, data.total_steps || 0);
 }
 
 function handleScenarioCountdown(data) {
   notify(`⏳ Próxima fase ${data.step_num}/${data.total_steps}`,
     `En ${data.delay_before_sec}s: incidente en ${data.node_id}`, 'warn');
+  _updateScenarioBar(data.step_num - 1, data.total_steps);
 }
 
 function handleScenarioPhase(data) {
   notify(`🎬 Fase ${data.step_num}/${data.total_steps}: ${data.attack_name}`,
     `Nuevo incidente en <strong>${data.node_id}</strong> — investígalo.`, 'crit');
+  _updateScenarioBar(data.step_num, data.total_steps);
+}
+
+function handleScenarioStepStats(data) {
+  _scenarioState.stepStats.push(data);
 }
 
 function handleScenarioEnded(data) {
   notify('🏁 Escenario finalizado', data.message || 'La secuencia de incidentes ha terminado.', 'ok');
+  const bar = document.getElementById('scenarioBar');
+  if (bar) bar.style.display = 'none';
+  _showDebriefModal(data);
+  _scenarioState = {active:false, name:'', stepStats:[]};
+}
+
+function _showDebriefModal(data) {
+  const modal = document.getElementById('debriefModal');
+  if (!modal) return;
+  const steps = _scenarioState.stepStats.slice().sort((a,b)=>a.step_num-b.step_num);
+  const detectedCount = steps.filter(s=>s.was_detected).length;
+  document.getElementById('debriefSummary').textContent =
+    `${_scenarioState.name || data.name || 'Escenario'} — ${detectedCount}/${steps.length || (data.total_steps||0)} fase(s) detectadas.`;
+  document.getElementById('debriefSteps').innerHTML = steps.length
+    ? steps.map(s => `
+        <div style="background:#1f2937;border-left:3px solid ${s.was_detected?'#22c55e':'#6b7280'};border-radius:4px;padding:.5rem .75rem">
+          <div style="font-weight:600;color:#e5e7eb;font-size:.85rem">Fase ${s.step_num}: ${s.attack_name} — ${s.node_id}</div>
+          <div style="font-size:.78rem;color:#9ca3af;margin-top:.15rem">
+            ${s.was_detected ? `✅ Detectado por ${s.detected_by || '—'} (MTTD ${s.mttd_seconds!=null?s.mttd_seconds.toFixed(1)+'s':'--'})` : '⚪ No detectado'}
+          </div>
+        </div>`).join('')
+    : '<div style="color:#6b7280;font-size:.85rem;text-align:center">Sin datos de fases.</div>';
+  modal.style.display = 'flex';
 }
 
 let _simPausedState = false;
