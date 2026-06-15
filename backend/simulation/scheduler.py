@@ -281,6 +281,8 @@ class EventScheduler:
         while self._running:
             try:
                 await asyncio.sleep(10)
+                if sim_state.is_paused:
+                    continue
                 async with AsyncSessionLocal() as db:
                     q = select(Incident).where(
                         Incident.status == "active",
