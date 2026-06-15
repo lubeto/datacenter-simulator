@@ -991,7 +991,7 @@ async def student_live_monitor(
             "id":    stu.id,
             "name":  stu.name,
             "email": stu.email,
-            "level": stu.level or "Principiante",
+            "level": "Principiante",
             "total_score": stu.avg_score or 0.0,
             "total_sessions": stu.total_sessions or 0,
         },
