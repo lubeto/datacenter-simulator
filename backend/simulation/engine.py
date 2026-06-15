@@ -152,6 +152,13 @@ def generate_node_metrics(node: Node) -> Dict[str, Any]:
         elif atype == "thermal":
             cpu      = _clamp(cpu * (1 - 0.3 * ramp), 0, 100)  # throttling
 
+        elif atype == "arp_spoofing":
+            # Tráfico ARP/broadcast anómalo y latencia por redirección de paquetes
+            net_in   = _clamp(net_in  + node.bandwidth_mbps * 0.25 * intensity * ramp, 0, node.bandwidth_mbps)
+            net_out  = _clamp(net_out + node.bandwidth_mbps * 0.20 * intensity * ramp, 0, node.bandwidth_mbps)
+            latency  = _clamp(latency + 250 * intensity * ramp, 0, 9999)
+            pkt_loss = _clamp(pkt_loss + 8 * ramp, 0, 100)
+
     # Flags de ataque para el diagnóstico guiado
     smart_errors = 0
     access_alert = False
