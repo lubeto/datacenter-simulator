@@ -305,6 +305,51 @@ class GuidedSessionRequest(BaseModel):
     name: str = "Clase guiada"
     steps: list[GuidedStep]
     auto_attacks_off: bool = True  # desactivar ataques auto durante la sesión
+    briefing: str = ""  # mensaje de contexto inicial para el aprendiz
+
+
+def _build_scenario_catalog():
+    """Convierte ATTACK_CHAINS (mitigation.py) en escenarios narrativos listos
+    para 'Clase Guiada': cada fase se traduce a un GuidedStep con
+    delay_before_sec relativo a la fase anterior."""
+    from ..simulation.mitigation import ATTACK_CHAINS
+
+    # mitigation.py usa "tls_downgrade" pero ATTACK_CATALOG (attacks.py) define "ssl_tls_downgrade"
+    ATTACK_TYPE_ALIASES = {"tls_downgrade": "ssl_tls_downgrade"}
+
+    catalog = {}
+    for key, chain in ATTACK_CHAINS.items():
+        phases = chain["phases"]
+        total = chain.get("total_duration_sec", 300)
+        steps = []
+        for i, p in enumerate(phases):
+            prev_delay = phases[i - 1]["delay_sec"] if i > 0 else 0
+            next_delay = phases[i + 1]["delay_sec"] if i + 1 < len(phases) else total
+            steps.append({
+                "attack_type": ATTACK_TYPE_ALIASES.get(p["attack_type"], p["attack_type"]),
+                "node_id": p["node"],
+                "intensity": p["intensity"],
+                "duration_sec": max(60, next_delay - p["delay_sec"]),
+                "delay_before_sec": max(5, p["delay_sec"] - prev_delay),
+                "desc": p.get("desc", ""),
+            })
+        catalog[key] = {
+            "name": chain["name"],
+            "description": chain["description"],
+            "briefing": chain["description"],
+            "total_steps": len(steps),
+            "steps": steps,
+        }
+    return catalog
+
+
+SCENARIO_CATALOG = _build_scenario_catalog()
+
+
+@router.get("/guided/catalog")
+async def get_guided_catalog(_=Depends(require_instructor)):
+    """Catálogo de escenarios narrativos predefinidos para Clase Guiada."""
+    return SCENARIO_CATALOG
 
 
 @router.post("/guided/start")
@@ -325,6 +370,7 @@ async def start_guided_session(
 
     await ws_manager.broadcast("guided_session_started", {
         "name": req.name,
+        "briefing": req.briefing,
         "total_steps": len(req.steps),
         "timestamp": datetime.utcnow().isoformat(),
         "message": f"🎓 Sesión guiada '{req.name}' iniciada — {len(req.steps)} ataques programados",

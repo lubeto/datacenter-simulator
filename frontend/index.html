@@ -762,7 +762,8 @@ function handleSslStatus(data) {
 
 // ── ESCENARIOS NARRATIVOS (Clase Guiada) ────────────────────────────────
 function handleScenarioStarted(data) {
-  notify(`🎬 ${data.name || 'Escenario'} iniciado`, `${data.total_steps} fase(s) programadas. Mantente atento al mapa de red.`, 'info');
+  const briefing = data.briefing ? `${data.briefing} — ` : '';
+  notify(`🎬 ${data.name || 'Escenario'} iniciado`, `${briefing}${data.total_steps} fase(s) programadas. Mantente atento al mapa de red.`, 'info');
 }
 
 function handleScenarioCountdown(data) {

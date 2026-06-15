@@ -968,6 +968,13 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
           <span class="card-title">🎓 Nueva Sesión Guiada</span>
         </div>
         <div style="padding:1rem">
+          <label style="display:block;margin-bottom:.5rem;font-size:.85rem;color:#d1d5db">Escenario narrativo</label>
+          <select id="guidedScenarioSelect" onchange="applyGuidedScenario(this.value)"
+            style="width:100%;padding:.5rem;background:#111;border:1px solid #374151;border-radius:4px;color:#f9fafb;margin-bottom:.5rem;box-sizing:border-box">
+            <option value="">-- Personalizado (armar manualmente) --</option>
+          </select>
+          <div id="guidedScenarioDesc" style="font-size:.78rem;color:#9ca3af;margin-bottom:1rem;min-height:1em"></div>
+
           <label style="display:block;margin-bottom:.5rem;font-size:.85rem;color:#d1d5db">Nombre de la sesión</label>
           <input id="guidedName" type="text" value="Clase guiada" placeholder="ej. Práctica APT — Grupo A"
             style="width:100%;padding:.5rem;background:#111;border:1px solid #374151;border-radius:4px;color:#f9fafb;margin-bottom:1rem;box-sizing:border-box">
@@ -3140,6 +3147,7 @@ function switchTab(tab) {
   if (tab === 'analytics') loadAnalytics();
   if (tab === 'reportes')    { loadEvalReportsTab(); loadRepBmStudentFilter(); loadSessionHistory(); }
   if (tab === 'classreport') initClassReportDate();
+  if (tab === 'guided') loadGuidedCatalog();
 }
 
 // ── MONITOR EN VIVO ────────────────────────────────────────
@@ -3856,6 +3864,40 @@ async function loadStudentLive() {
 // ══ MODO CLASE GUIADA ════════════════════════════════════════
 
 let guidedSteps = [];   // [{attack_type, node_id, intensity, duration_sec, delay_before_sec}]
+let guidedCatalog = {};
+let guidedBriefing = '';
+
+async function loadGuidedCatalog() {
+  try {
+    guidedCatalog = await apiFetch('/api/attacks/guided/catalog');
+    const sel = document.getElementById('guidedScenarioSelect');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">-- Personalizado (armar manualmente) --</option>' +
+      Object.entries(guidedCatalog).map(([k, v]) =>
+        `<option value="${k}">🎬 ${v.name} (${v.total_steps} fases)</option>`).join('');
+    sel.value = current;
+  } catch(e) { /* catálogo opcional, no bloquear la pestaña */ }
+}
+
+function applyGuidedScenario(key) {
+  const desc = document.getElementById('guidedScenarioDesc');
+  if (!key) {
+    guidedBriefing = '';
+    if (desc) desc.textContent = '';
+    return;
+  }
+  const sc = guidedCatalog[key];
+  if (!sc) return;
+  document.getElementById('guidedName').value = sc.name;
+  guidedBriefing = sc.briefing || sc.description || '';
+  if (desc) desc.textContent = sc.description || '';
+  guidedSteps = sc.steps.map(s => ({
+    attack_type: s.attack_type, node_id: s.node_id, intensity: s.intensity,
+    duration_sec: s.duration_sec, delay_before_sec: s.delay_before_sec,
+  }));
+  renderGuidedSteps();
+}
 
 function addGuidedStep() {
   const idx = guidedSteps.length;
@@ -3935,7 +3977,7 @@ async function startGuidedSession() {
   try {
     await apiFetch('/api/attacks/guided/start', {
       method: 'POST',
-      body: JSON.stringify({ name, steps: guidedSteps, auto_attacks_off: disableAuto })
+      body: JSON.stringify({ name, steps: guidedSteps, auto_attacks_off: disableAuto, briefing: guidedBriefing })
     });
     showNotif(`✅ Sesión '${name}' iniciada`, 'success');
     guidedLogAdd(`▶ Sesión '${name}' iniciada (${guidedSteps.length} pasos)`);
