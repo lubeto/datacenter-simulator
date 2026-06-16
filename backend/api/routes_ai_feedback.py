@@ -6,7 +6,7 @@ import httpx
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from ..api.routes_students import get_current_student
+from .routes_students import get_current_student
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
