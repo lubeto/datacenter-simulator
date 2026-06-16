@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía del Simulador DC Monitoring</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; line-height: 1.6; }
+  h1 { font-size: 1.5rem; font-weight: 600; color: #38bdf8; margin-bottom: .4rem; }
+  h2 { font-size: 1.1rem; font-weight: 600; color: #7dd3fc; margin: 2rem 0 1rem; border-bottom: 1px solid #1e3a5f; padding-bottom: .4rem; }
+  h3 { font-size: .82rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
+  p  { font-size: .88rem; color: #94a3b8; margin-bottom: 1rem; }
+  .subtitle { color: #475569; font-size: .82rem; margin-bottom: 2rem; }
+
+  /* Cards */
+  .card { background: #1e293b; border: 1px solid #1e3a5f; border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+
+  /* Comando row */
+  .cmd-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.5fr); gap: 10px; margin-bottom: 8px; align-items: start; }
+  code { font-family: 'Cascadia Code','Consolas',monospace; font-size: .78rem; background: #0f172a; border: 1px solid #334155; border-radius: 5px; padding: 3px 8px; color: #7dd3fc; white-space: nowrap; }
+  .desc { font-size: .8rem; color: #94a3b8; line-height: 1.5; padding-top: 3px; }
+  .desc code { font-size: .74rem; padding: 1px 5px; color: #fbbf24; }
+
+  /* Flujo */
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 1.5rem; }
+  .flow-step { display: flex; align-items: center; gap: 6px; background: #1e293b; border: 1px solid #1e3a5f; border-radius: 8px; padding: 7px 12px; font-size: .8rem; font-weight: 500; }
+  .flow-arrow { color: #334155; font-size: 1.1rem; }
+
+  /* Ataque cards */
+  .atk { background: #1e293b; border: 1px solid #1e3a5f; border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+  .atk-header { display: flex; align-items: center; gap: 10px; margin-bottom: .9rem; }
+  .atk-name { font-size: .95rem; font-weight: 600; color: #e2e8f0; }
+  .badge { font-size: .7rem; padding: 2px 9px; border-radius: 4px; font-weight: 600; }
+  .badge-red { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+  .badge-hw  { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+
+  .step { display: flex; gap: 10px; margin-bottom: 7px; align-items: start; }
+  .step-num { min-width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .num-info { background: rgba(56,189,248,.2); color: #38bdf8; border: 1px solid rgba(56,189,248,.3); }
+  .num-act  { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+  .step-text { font-size: .82rem; color: #94a3b8; line-height: 1.5; }
+  .step-text strong { color: #cbd5e1; }
+  .step-text code { font-size: .74rem; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 1px 5px; color: #7dd3fc; }
+
+  .clue { font-size: .78rem; margin-top: .75rem; padding: 7px 12px; border-radius: 6px; border-left: 3px solid; }
+  .clue-warn { background: rgba(251,191,36,.08); border-color: #fbbf24; color: #fbbf24; }
+  .clue-ok   { background: rgba(74,222,128,.08); border-color: #4ade80; color: #4ade80; }
+
+  /* Tabla de diferencias */
+  table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .5rem; }
+  th { text-align: left; color: #475569; font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; padding: 6px 10px; border-bottom: 1px solid #1e3a5f; }
+  td { padding: 7px 10px; border-bottom: 1px solid #0f172a; color: #94a3b8; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { color: #e2e8f0; font-weight: 500; }
+  .ip-red  { color: #f87171; font-family: monospace; }
+  .ip-blue { color: #38bdf8; font-family: monospace; }
+  .ip-yellow { color: #fbbf24; font-family: monospace; }
+  .ip-green  { color: #4ade80; font-family: monospace; }
+
+  /* Separador */
+  hr { border: none; border-top: 1px solid #1e3a5f; margin: 2.5rem 0; }
+
+  @media (max-width: 600px) {
+    .cmd-row { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🖥 Guía del Simulador DC Monitoring</h1>
+<p class="subtitle">Referencia rápida de comandos y procedimientos para investigar ataques — versión imprimible</p>
+
+<!-- ══════════════════════════════════════════════ -->
+<h2>Parte 1 — Comandos de la Terminal</h2>
+
+<div style="margin-bottom:1.2rem">
+  <p>Flujo de investigación:</p>
+  <div class="flow">
+    <div class="flow-step"><span style="color:#38bdf8">🖥</span> Terminal — detectar</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><span style="color:#38bdf8">📄</span> Logs — confirmar IOC</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><span style="color:#f87171">🔥</span> Firewall — bloquear</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><span style="color:#4ade80">✔</span> Terminal — verificar</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>🖥 Terminal — investigación y detección</h3>
+  <div class="cmd-row"><code>netstat -an</code><span class="desc">Lista todas las conexiones activas. Busca IPs desconocidas, muchas <code>SYN_RECV</code> = DDoS.</span></div>
+  <div class="cmd-row"><code>tcpdump -i eth0</code><span class="desc">Captura paquetes en tiempo real. Paquetes SYN masivos desde la misma IP = ataque de flood.</span></div>
+  <div class="cmd-row"><code>ps aux</code><span class="desc">Lista procesos. Si ves <code>flood.sh</code>, <code>hydra</code> o <code>nmap</code> = proceso malicioso activo.</span></div>
+  <div class="cmd-row"><code>free -m</code><span class="desc">Uso de memoria en MB. RAM &gt;85% puede indicar memory leak o proceso malicioso.</span></div>
+  <div class="cmd-row"><code>df -h</code><span class="desc">Uso de disco. &gt;90% puede indicar un ataque de llenado de logs o fallo de disco.</span></div>
+  <div class="cmd-row"><code>tail -f /var/log/syslog</code><span class="desc">Últimas líneas del log del sistema. Muestra errores del kernel y eventos de seguridad.</span></div>
+  <div class="cmd-row"><code>systemctl status nginx</code><span class="desc">Estado de un servicio (nginx, sshd, haproxy…). Muestra si está activo o caído.</span></div>
+  <div class="cmd-row"><code>systemctl restart nginx</code><span class="desc">Reinicia el servicio. Útil para recuperar servicios caídos por sobrecarga.</span></div>
+  <div class="cmd-row"><code>ping WEB-01</code><span class="desc">Prueba conectividad a un nodo. Timeout = nodo offline. Latencia alta = saturación.</span></div>
+  <div class="cmd-row"><code>iptables -L</code><span class="desc">Lista las reglas del firewall desde la terminal. Confirma si tu bloqueo está aplicado.</span></div>
+  <div class="cmd-row"><code>iptables -A INPUT -s 203.0.113.45 -j DROP</code><span class="desc">Bloquea una IP específica desde la terminal (alternativa al panel Firewall).</span></div>
+</div>
+
+<div class="card">
+  <h3>📄 Logs — qué buscar según el ataque</h3>
+  <table>
+    <tr><th>Ataque</th><th>Log</th><th>Qué buscar</th></tr>
+    <tr><td>DDoS / SYN Flood</td><td>access.log</td><td>Cientos de líneas desde la misma IP en estado <code>SYN_RECV</code></td></tr>
+    <tr><td>Brute Force SSH</td><td>auth.log</td><td><code>Failed password for root from X.X.X.X</code> repetido</td></tr>
+    <tr><td>Port Scan</td><td>syslog</td><td><code>nf_conntrack: table full, dropping packet from X.X.X.X</code></td></tr>
+    <tr><td>Memory Leak</td><td>syslog</td><td><code>Killed process (leaky_app)</code> — el SO mató el proceso por RAM</td></tr>
+    <tr><td>Sobrecalentamiento</td><td>syslog</td><td><code>CPU0: Core temperature above threshold</code></td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3>🔥 Firewall — IPs por tipo de ataque (varían por incidente)</h3>
+  <table>
+    <tr><th>Ataque</th><th>Rango IP atacante</th><th>Qué bloquear</th></tr>
+    <tr><td>DDoS / SYN Flood</td><td><span class="ip-red">203.0.113.X</span></td><td>La IP exacta que aparece en netstat/logs</td></tr>
+    <tr><td>Brute Force SSH</td><td><span class="ip-yellow">198.51.100.X</span></td><td>La IP exacta + opcionalmente puerto 22</td></tr>
+    <tr><td>Port Scan</td><td><span class="ip-yellow">198.51.100.X</span></td><td>La IP exacta del escáner</td></tr>
+    <tr><td>Acceso no autorizado</td><td><span class="ip-green">185.220.101.X</span></td><td>La IP exacta</td></tr>
+    <tr><td>SSL/TLS Downgrade</td><td><span class="ip-blue">91.108.4.X</span></td><td>La IP exacta</td></tr>
+    <tr><td>Memory Leak / Thermal</td><td colspan="2" style="color:#475569">No hay IP — problema interno, no externo</td></tr>
+  </table>
+  <p style="font-size:.74rem;color:#475569;margin-top:.6rem;margin-bottom:0">⚠ La X cambia en cada incidente — debes leerla en netstat o logs, no la adivines.</p>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════ -->
+<h2>Parte 2 — Procedimiento por tipo de ataque</h2>
+
+<!-- DDoS -->
+<div class="atk">
+  <div class="atk-header">
+    <span style="font-size:1.4rem">🌊</span>
+    <div>
+      <div class="atk-name">DDoS / SYN Flood</div>
+      <span class="badge badge-red">Red — Ataque externo</span>
+    </div>
+  </div>
+  <div class="step"><div class="step-num num-info">1</div><div class="step-text"><strong>Terminal:</strong> <code>netstat -an</code> — busca cientos de conexiones en estado <code>SYN_RECV</code> desde IPs <code>203.0.113.X</code></div></div>
+  <div class="step"><div class="step-num num-info">2</div><div class="step-text"><strong>Terminal:</strong> <code>tcpdump -i eth0</code> — confirma paquetes SYN masivos desde la misma IP</div></div>
+  <div class="step"><div class="step-num num-info">3</div><div class="step-text"><strong>Logs:</strong> <code>access.log</code> — marca como IOC las líneas con esa IP. Usa el botón "→ FW" para copiarla</div></div>
+  <div class="step"><div class="step-num num-act">4</div><div class="step-text"><strong>Firewall:</strong> bloquea la IP exacta. El nodo cambia a verde en el mapa</div></div>
+  <div class="step"><div class="step-num num-info">5</div><div class="step-text"><strong>Verificar:</strong> <code>netstat -an</code> de nuevo — el número de conexiones debe haber bajado</div></div>
+  <div class="clue clue-warn">Pista clave: más de 500 conexiones activas + estado SYN_RECV = DDoS en progreso</div>
+</div>
+
+<!-- Brute Force -->
+<div class="atk">
+  <div class="atk-header">
+    <span style="font-size:1.4rem">🔑</span>
+    <div>
+      <div class="atk-name">Brute Force SSH</div>
+      <span class="badge badge-red">Red — Ataque externo</span>
+    </div>
+  </div>
+  <div class="step"><div class="step-num num-info">1</div><div class="step-text"><strong>Logs:</strong> abre <code>auth.log</code> — busca líneas con <code>Failed password for root</code> repetidas desde la misma IP <code>198.51.100.X</code></div></div>
+  <div class="step"><div class="step-num num-info">2</div><div class="step-text"><strong>Terminal:</strong> <code>netstat -an</code> — verás muchas conexiones ESTABLISHED en el puerto <code>22</code> desde esa IP</div></div>
+  <div class="step"><div class="step-num num-info">3</div><div class="step-text"><strong>Terminal:</strong> <code>ps aux</code> — puede aparecer el proceso <code>hydra</code> marcado como sospechoso</div></div>
+  <div class="step"><div class="step-num num-act">4</div><div class="step-text"><strong>Firewall:</strong> bloquea la IP atacante. Opcionalmente bloquea el puerto <code>22</code> si el ataque persiste</div></div>
+  <div class="clue clue-warn">Pista clave: decenas de "Failed password" en auth.log = alguien está probando contraseñas automáticamente</div>
+</div>
+
+<!-- Port Scan -->
+<div class="atk">
+  <div class="atk-header">
+    <span style="font-size:1.4rem">🔍</span>
+    <div>
+      <div class="atk-name">Port Scan</div>
+      <span class="badge badge-red">Red — Reconocimiento</span>
+    </div>
+  </div>
+  <div class="step"><div class="step-num num-info">1</div><div class="step-text"><strong>Terminal:</strong> <code>tail -f /var/log/syslog</code> — busca <code>nf_conntrack: table full</code>, señal de escaneo masivo</div></div>
+  <div class="step"><div class="step-num num-info">2</div><div class="step-text"><strong>Terminal:</strong> <code>tcpdump -i eth0</code> — verás SYN a decenas de puertos distintos desde la misma IP <code>198.51.100.X</code></div></div>
+  <div class="step"><div class="step-num num-info">3</div><div class="step-text"><strong>Terminal:</strong> <code>ps aux</code> — puede aparecer proceso <code>nmap</code> como sospechoso</div></div>
+  <div class="step"><div class="step-num num-act">4</div><div class="step-text"><strong>Firewall:</strong> bloquea la IP del escáner</div></div>
+  <div class="clue clue-warn">Pista clave: conexiones a muchos puertos distintos desde una sola IP = alguien mapea tu red</div>
+</div>
+
+<!-- Memory Leak -->
+<div class="atk">
+  <div class="atk-header">
+    <span style="font-size:1.4rem">🧠</span>
+    <div>
+      <div class="atk-name">Memory Leak</div>
+      <span class="badge badge-hw">Hardware / Software interno</span>
+    </div>
+  </div>
+  <div class="step"><div class="step-num num-info">1</div><div class="step-text"><strong>Terminal:</strong> <code>free -m</code> — RAM usada &gt;85%, poca memoria libre</div></div>
+  <div class="step"><div class="step-num num-info">2</div><div class="step-text"><strong>Terminal:</strong> <code>ps aux</code> — proceso <code>leaky_app</code> con CPU y RAM desproporcionados</div></div>
+  <div class="step"><div class="step-num num-info">3</div><div class="step-text"><strong>Logs:</strong> <code>syslog</code> — línea <code>Killed process (leaky_app)</code>: el SO mató el proceso</div></div>
+  <div class="step"><div class="step-num num-act">4</div><div class="step-text"><strong>Terminal:</strong> <code>systemctl restart</code> del servicio afectado para recuperar el nodo</div></div>
+  <div class="clue clue-ok">No hay IP que bloquear — es un problema del software, no un atacante externo</div>
+</div>
+
+<!-- Sobrecalentamiento -->
+<div class="atk">
+  <div class="atk-header">
+    <span style="font-size:1.4rem">🌡️</span>
+    <div>
+      <div class="atk-name">Sobrecalentamiento (SST)</div>
+      <span class="badge badge-hw">Hardware / Físico</span>
+    </div>
+  </div>
+  <div class="step"><div class="step-num num-info">1</div><div class="step-text"><strong>Panel SST:</strong> sensor de temperatura en rojo (&gt;35°C pasillo frío, &gt;45°C rack)</div></div>
+  <div class="step"><div class="step-num num-info">2</div><div class="step-text"><strong>Logs:</strong> <code>syslog</code> — <code>CPU0: Core temperature above threshold, cpu clock throttled</code></div></div>
+  <div class="step"><div class="step-num num-act">3</div><div class="step-text"><strong>Acción:</strong> reportar en el panel guiado. Escalar a mantenimiento físico</div></div>
+  <div class="clue clue-ok">No hay IP que bloquear — causa física: fallo de enfriamiento o ventiladores</div>
+</div>
+
+<hr>
+<p style="font-size:.75rem;color:#334155;text-align:center">DC Monitoring Simulator · Guía de Referencia · 2026</p>
+
+</body>
+</html>

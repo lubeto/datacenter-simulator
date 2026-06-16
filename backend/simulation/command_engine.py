@@ -62,13 +62,13 @@ ATTACK_SYSLOG = {
     "dos": "kernel: [{t}] possible SYN flood on eth0. Sending cookies.",
     "ddos": "kernel: [{t}] possible SYN flood on eth0. Sending cookies.",
     "syn_flood": "kernel: [{t}] possible SYN flood on eth0. Sending cookies.",
-    "brute_force": "sshd[{pid}]: Failed password for root from 203.0.113.45 port {port} ssh2",
-    "port_scan": "kernel: [{t}] nf_conntrack: table full, dropping packet",
+    "brute_force": "sshd[{pid}]: Failed password for root from {attacker_ip} port {port} ssh2",
+    "port_scan": "kernel: [{t}] nf_conntrack: table full, dropping packet from {attacker_ip}",
     "memory_leak": "kernel: [{t}] Out of memory: Killed process {pid} (leaky_app)",
     "disk_failure": "kernel: [{t}] sd 2:0:0:0: [sda] tag#{pid} FAILED Result: hostbyte=DID_OK driverbyte=DRIVER_SENSE",
     "thermal": "kernel: [{t}] CPU0: Core temperature above threshold, cpu clock throttled",
-    "unauthorized_access": "PAM[{pid}]: unauthorized access attempt detected on door RACK-A",
-    "unauth_access": "PAM[{pid}]: unauthorized access attempt detected on door RACK-A",
+    "unauthorized_access": "PAM[{pid}]: unauthorized access attempt from {attacker_ip} detected on door RACK-A",
+    "unauth_access": "PAM[{pid}]: unauthorized access attempt from {attacker_ip} detected on door RACK-A",
 }
 
 HELP_TEXT = """Comandos disponibles:
@@ -106,16 +106,23 @@ def _cmd_netstat(node_id: str) -> str:
     conns = metrics["connections"]
     attack = sim_state.active_attacks.get(node_id, {})
     atype = attack.get("type", "")
+    attacker_ip = attack.get("attacker_ip")
 
     lines = ["Proto Recv-Q Send-Q Local Address           Foreign Address         State"]
     n_lines = min(conns, 25)
     for i in range(n_lines):
         if atype in ("dos", "ddos", "syn_flood") and i < n_lines - 3:
-            foreign = f"203.0.113.{random.randint(1,254)}:{random.randint(1024,65000)}"
+            src_ip = attacker_ip or f"203.0.113.{random.randint(1,254)}"
+            foreign = f"{src_ip}:{random.randint(1024,65000)}"
             local_state = "SYN_RECV"
         elif atype == "brute_force" and i < n_lines - 3:
-            foreign = f"198.51.100.{random.randint(1,254)}:{random.randint(1024,65000)}"
+            src_ip = attacker_ip or f"198.51.100.{random.randint(1,254)}"
+            foreign = f"{src_ip}:{random.randint(1024,65000)}"
             local_state = "ESTABLISHED"
+        elif atype == "port_scan" and i < n_lines - 3:
+            src_ip = attacker_ip or f"198.51.100.{random.randint(1,254)}"
+            foreign = f"{src_ip}:{random.randint(1,1024)}"
+            local_state = "SYN_SENT"
         else:
             foreign = f"10.0.{random.randint(1,5)}.{random.randint(2,250)}:{random.randint(1024,65000)}"
             local_state = "ESTABLISHED"
@@ -126,8 +133,12 @@ def _cmd_netstat(node_id: str) -> str:
     lines.append(f"Total de conexiones activas: {conns}")
     if atype in ("dos", "ddos", "syn_flood"):
         lines.append(f"⚠ {conns} conexiones es anormalmente alto (umbral normal < 500)")
-    if atype == "brute_force":
-        lines.append("⚠ múltiples intentos ESTABLISHED desde la misma subred 198.51.100.0/24")
+        if attacker_ip:
+            lines.append(f"⚠ IP más frecuente: {attacker_ip} — considera bloquearla en el firewall")
+    if atype == "brute_force" and attacker_ip:
+        lines.append(f"⚠ múltiples intentos ESTABLISHED desde {attacker_ip} (puerto 22/SSH)")
+    if atype == "port_scan" and attacker_ip:
+        lines.append(f"⚠ escaneo de puertos desde {attacker_ip} — actividad de reconocimiento")
     return "\n".join(lines)
 
 
@@ -240,28 +251,39 @@ def apply_firewall_mitigation(student_id: int) -> List[str]:
     como mitigados aquellos cuya IP/puerto firma esté bloqueada.
     Retorna la lista de node_id mitigados en esta pasada."""
     rules = _iptables_rules.get(student_id, [])
-    rules_text = "\n".join(rules)
     mitigated_nodes = []
 
     for node_id, attack in sim_state.active_attacks.items():
         atype = attack.get("type", "")
+        attacker_ip = attack.get("attacker_ip")
         sig = ATTACK_SIGNATURES.get(atype)
         if not sig:
             continue
 
         blocked = False
-        ip_prefix = sig.get("ip_prefix")
-        if ip_prefix and f"DROP" in rules_text:
+
+        # Primero intentar coincidir con la IP específica del incidente
+        if attacker_ip:
             for rule in rules:
-                if "DROP" in rule and ip_prefix in rule:
+                if "DROP" in rule and attacker_ip in rule:
                     blocked = True
                     break
-        port = sig.get("port")
-        if not blocked and port:
-            for rule in rules:
-                if "DROP" in rule and f"dpt:{port}" in rule:
-                    blocked = True
-                    break
+        # Fallback: coincidir con prefijo de subred (compatibilidad)
+        if not blocked:
+            ip_prefix = sig.get("ip_prefix")
+            if ip_prefix:
+                for rule in rules:
+                    if "DROP" in rule and ip_prefix in rule:
+                        blocked = True
+                        break
+        # También aceptar bloqueo por puerto
+        if not blocked:
+            port = sig.get("port")
+            if port:
+                for rule in rules:
+                    if "DROP" in rule and f"dpt:{port}" in rule:
+                        blocked = True
+                        break
 
         if blocked and not attack.get("mitigated"):
             attack["mitigated"] = True
@@ -305,6 +327,7 @@ def _cmd_syslog(node_id: str) -> str:
     lines = []
     attack = sim_state.active_attacks.get(node_id, {})
     atype = attack.get("type", "")
+    attacker_ip = attack.get("attacker_ip", "203.0.113.1")
 
     for i in range(8):
         t = (now - timedelta(seconds=(8 - i) * random.randint(1, 5))).strftime("%b %d %H:%M:%S")
@@ -312,7 +335,12 @@ def _cmd_syslog(node_id: str) -> str:
             template = ATTACK_SYSLOG[atype]
         else:
             template = random.choice(SYSLOG_TEMPLATES)
-        msg = template.format(t=t, pid=random.randint(1000, 9999), ip=random.randint(2, 250), port=random.randint(40000, 60000))
+        msg = template.format(
+            t=t, pid=random.randint(1000, 9999),
+            ip=random.randint(2, 250),
+            port=random.randint(40000, 60000),
+            attacker_ip=attacker_ip,
+        )
         lines.append(f"{t} {node_id.lower()} {msg}")
     return "\n".join(lines)
 
@@ -380,9 +408,9 @@ def _cmd_free(node_id: str) -> str:
 
 
 def _cmd_tcpdump(node_id: str) -> str:
-    metrics = _node_metrics(node_id)
     attack = sim_state.active_attacks.get(node_id, {})
     atype = attack.get("type", "")
+    attacker_ip = attack.get("attacker_ip")
     node = DC_NODES[node_id]
 
     lines = [f"tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes"]
@@ -391,18 +419,18 @@ def _cmd_tcpdump(node_id: str) -> str:
     for i in range(n):
         t = (now - timedelta(milliseconds=(n - i) * random.randint(1, 50))).strftime("%H:%M:%S.%f")[:-3]
         if atype in ("dos", "ddos", "syn_flood"):
-            src = f"203.0.113.{random.randint(1,254)}"
+            src = attacker_ip or f"203.0.113.{random.randint(1,254)}"
             lines.append(f"{t} IP {src}.{random.randint(1024,65000)} > {node.ip}.443: Flags [S], seq {random.randint(10**8,10**9)}, win 65535, length 0")
         elif atype == "port_scan":
-            src = f"198.51.100.{random.randint(1,254)}"
+            src = attacker_ip or f"198.51.100.{random.randint(1,254)}"
             lines.append(f"{t} IP {src}.{random.randint(1024,65000)} > {node.ip}.{random.randint(1,1024)}: Flags [S], seq {random.randint(10**8,10**9)}, win 1024, length 0")
         else:
             src = f"10.0.{random.randint(1,5)}.{random.randint(2,250)}"
             lines.append(f"{t} IP {src}.{random.randint(1024,65000)} > {node.ip}.443: Flags [P.], seq {random.randint(10**8,10**9)}, ack {random.randint(10**8,10**9)}, win 502, length 64")
 
-    if atype in ("dos", "ddos", "syn_flood", "port_scan"):
+    if atype in ("dos", "ddos", "syn_flood", "port_scan") and attacker_ip:
         lines.append("")
-        lines.append("⚠ patrón anómalo detectado: alto volumen de paquetes SYN desde una sola subred")
+        lines.append(f"⚠ patrón anómalo: alto volumen de paquetes desde {attacker_ip} — bloquear en firewall")
     return "\n".join(lines)
 
 

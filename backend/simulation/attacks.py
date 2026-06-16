@@ -283,6 +283,16 @@ class AttackManager:
 
         duration = duration_sec or catalog["default_duration_sec"]
 
+        # IP atacante única por incidente para que el aprendiz la identifique en logs/netstat
+        _ATTACKER_RANGES = {
+            "dos": "203.0.113", "ddos": "203.0.113", "syn_flood": "203.0.113",
+            "brute_force": "198.51.100", "port_scan": "198.51.100",
+            "unauthorized_access": "185.220.101", "unauth_access": "185.220.101",
+            "ssl_tls_downgrade": "91.108.4", "tls_downgrade": "91.108.4",
+        }
+        base = _ATTACKER_RANGES.get(attack_type)
+        attacker_ip = f"{base}.{random.randint(2, 254)}" if base else None
+
         attack_info = {
             "type": attack_type,
             "name": catalog["name"],
@@ -297,6 +307,7 @@ class AttackManager:
             "mitigation_steps": catalog["mitigation_steps"],
             "indicators": catalog["indicators"],
             "description": catalog["description"],
+            "attacker_ip": attacker_ip,
         }
 
         sim_state.active_attacks[node_id] = attack_info
