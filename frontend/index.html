@@ -1833,7 +1833,7 @@ function renderNetworkMap() {
     ${links}${nodes}
 
     <!-- panel lateral derecho -->
-    <rect x="908" y="10" width="182" height="280" rx="5" fill="#07090f" stroke="#1e293b" stroke-width="0.8"/>
+    <rect x="908" y="10" width="182" height="252" rx="5" fill="#07090f" stroke="#1e293b" stroke-width="0.8"/>
     <text x="918" y="26" fill="#94a3b8" font-size="8" font-family="monospace" font-weight="700">ESTADO DE LA RED</text>
     <line x1="912" y1="31" x2="1086" y2="31" stroke="#1e293b" stroke-width="0.5"/>
     ${panelItems || '<text x="922" y="46" fill="#334155" font-size="8" font-family="monospace">Sin incidentes activos</text>'}
@@ -1841,21 +1841,24 @@ function renderNetworkMap() {
     <text x="918" y="174" fill="#475569" font-size="7.5" font-family="monospace">Nodos en línea</text>
     <text x="918" y="189" fill="#38bdf8" font-size="16" font-weight="700" font-family="monospace">${onlineCount} / ${Object.keys(allNodes).length}</text>
 
-    <!-- leyenda dentro del panel -->
-    <line x1="912" y1="210" x2="1086" y2="210" stroke="#1e293b" stroke-width="0.5"/>
-    <text x="918" y="223" fill="#475569" font-size="7.5" font-family="monospace">LEYENDA</text>
-    <circle cx="922" cy="235" r="5" fill="#06111f" stroke="#38bdf8" stroke-width="1.5"/>
-    <text x="932"  y="239" fill="#94a3b8" font-size="8" font-family="monospace">Normal</text>
-    <circle cx="922" cy="251" r="5" fill="#0f0d01" stroke="#fbbf24" stroke-width="1.5"/>
-    <text x="932"  y="255" fill="#94a3b8" font-size="8" font-family="monospace">Warning</text>
-    <circle cx="922" cy="267" r="5" fill="#140307" stroke="#ef4444" stroke-width="2"/>
-    <text x="932"  y="271" fill="#94a3b8" font-size="8" font-family="monospace">Ataque</text>
-    <circle cx="1000" cy="235" r="5" fill="#031209" stroke="#4ade80" stroke-width="1.5"/>
-    <text x="1010" y="239" fill="#94a3b8" font-size="8" font-family="monospace">Mitigado</text>
-    <circle cx="1000" cy="251" r="5" fill="#08090b" stroke="#334155" stroke-width="1.2"/>
-    <text x="1010" y="255" fill="#94a3b8" font-size="8" font-family="monospace">Offline</text>
-    <circle cx="1000" cy="267" r="5" fill="#1a1000" stroke="#f59e0b" stroke-width="2"/>
-    <text x="1010" y="271" fill="#94a3b8" font-size="8" font-family="monospace">Análisis</text>`;
+    <!-- leyenda dentro del panel — 2 filas x 3 items -->
+    <line x1="912" y1="204" x2="1086" y2="204" stroke="#1e293b" stroke-width="0.5"/>
+    <text x="918" y="216" fill="#475569" font-size="7" font-family="monospace" letter-spacing="1">LEYENDA</text>
+    <!-- fila 1 -->
+    <circle cx="920" cy="228" r="5" fill="#0a1a2e" stroke="#7dd3fc" stroke-width="2.5"/>
+    <text x="929" y="232" fill="#cbd5e1" font-size="8" font-family="monospace">Normal</text>
+    <circle cx="979" cy="228" r="5" fill="#0f0d01" stroke="#fbbf24" stroke-width="2"/>
+    <text x="988" y="232" fill="#cbd5e1" font-size="8" font-family="monospace">Warning</text>
+    <!-- fila 2 -->
+    <circle cx="920" cy="244" r="5" fill="#1a0608" stroke="#f87171" stroke-width="2.5"/>
+    <text x="929" y="248" fill="#cbd5e1" font-size="8" font-family="monospace">Ataque</text>
+    <circle cx="979" cy="244" r="5" fill="#031209" stroke="#4ade80" stroke-width="2"/>
+    <text x="988" y="248" fill="#cbd5e1" font-size="8" font-family="monospace">Mitigado</text>
+    <!-- fila 3 -->
+    <circle cx="920" cy="260" r="5" fill="#0d0d0d" stroke="#475569" stroke-width="1.5"/>
+    <text x="929" y="264" fill="#cbd5e1" font-size="8" font-family="monospace">Offline</text>
+    <circle cx="979" cy="260" r="5" fill="#1a1000" stroke="#f59e0b" stroke-width="2"/>
+    <text x="988" y="264" fill="#cbd5e1" font-size="8" font-family="monospace">Análisis</text>`;
 }
 
 function updateNetworkMapAttacks(activeAttacks) {
