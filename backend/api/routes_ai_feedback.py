@@ -3,10 +3,8 @@ DC Monitoring Simulator - Feedback IA de Bitácora via Gemini
 """
 import os
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from pydantic import BaseModel
-
-from .routes_students import get_current_student
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -49,10 +47,7 @@ class FeedbackRequest(BaseModel):
 
 
 @router.post("/bitacora-feedback")
-async def get_bitacora_feedback(
-    req: FeedbackRequest,
-    current=Depends(get_current_student)
-):
+async def get_bitacora_feedback(req: FeedbackRequest):
     if not GEMINI_API_KEY:
         return {"error": "GEMINI_API_KEY no configurada", "available": False}
 
