@@ -231,7 +231,7 @@ async def resolve_incident(db: AsyncSession, incident_id: int,
 
 
 async def detect_incident(db: AsyncSession, incident_id: int,
-                          session_id: int) -> Optional[Incident]:
+                          session_id: Optional[int]) -> Optional[Incident]:
     result = await db.execute(select(Incident).where(Incident.id == incident_id))
     incident = result.scalar_one_or_none()
     if incident and incident.detected_at is None:

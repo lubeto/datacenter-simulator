@@ -301,12 +301,12 @@ class EventScheduler:
                         auto_t     = ESCALATION_CONFIG["auto_detect_after_sec"]
 
                         if elapsed > 900:
-                            await crud.detect_incident(db, inc.id, 0)
+                            await crud.detect_incident(db, inc.id, None)
                             await db.commit()
                             continue
 
                         if elapsed >= auto_t and self._broadcast_cb:
-                            await crud.detect_incident(db, inc.id, 0)
+                            await crud.detect_incident(db, inc.id, None)
                             await db.commit()
                             await self._broadcast_cb("incident_auto_detected", {
                                 "incident_id": inc.id,
