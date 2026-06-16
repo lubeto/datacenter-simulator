@@ -3342,6 +3342,77 @@ function _checkBitacoraQuality() {
   return { avg, warnCount, results };
 }
 
+async function reviewBitacoraWithAI() {
+  const parts = [
+    document.getElementById('bmSintomas')?.value.trim(),
+    document.getElementById('bmCausa')?.value.trim(),
+    document.getElementById('bmAcciones')?.value.trim(),
+    document.getElementById('bmLecciones')?.value.trim(),
+  ].filter(Boolean);
+
+  if (parts.every(p => p.length < 10)) {
+    const panel = document.getElementById('bmAiFeedback');
+    panel.style.display = 'block';
+    document.getElementById('bmAiError').style.display = 'block';
+    document.getElementById('bmAiError').textContent = 'Escribe al menos un campo antes de revisar con IA.';
+    return;
+  }
+
+  const texto = `Síntomas: ${parts[0] || '—'}\nCausa raíz: ${parts[1] || '—'}\nAcciones: ${parts[2] || '—'}\nLecciones: ${parts[3] || '—'}`;
+
+  const btn = document.getElementById('bmAiBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analizando con IA...';
+
+  const panel = document.getElementById('bmAiFeedback');
+  panel.style.display = 'block';
+  document.getElementById('bmAiError').style.display = 'none';
+  document.getElementById('bmAiSugerencias').innerHTML = '';
+  document.getElementById('bmAiResumen').textContent = '';
+  ['bmBarClaridad','bmBarCompletitud','bmBarTermino'].forEach(id => {
+    document.getElementById(id).style.width = '0%';
+  });
+  ['bmValClaridad','bmValCompletitud','bmValTermino'].forEach(id => {
+    document.getElementById(id).textContent = '…';
+  });
+
+  try {
+    const token = localStorage.getItem('dc_token');
+    const resp = await fetch('/api/ai/bitacora-feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ texto })
+    });
+    const data = await resp.json();
+
+    if (!data.available) {
+      document.getElementById('bmAiError').style.display = 'block';
+      document.getElementById('bmAiError').textContent = data.error || 'Servicio IA no disponible.';
+    } else {
+      const set = (barId, valId, score) => {
+        document.getElementById(barId).style.width = (score / 5 * 100) + '%';
+        document.getElementById(valId).textContent = score + '/5';
+      };
+      set('bmBarClaridad', 'bmValClaridad', data.claridad);
+      set('bmBarCompletitud', 'bmValCompletitud', data.completitud);
+      set('bmBarTermino', 'bmValTermino', data.terminologia);
+      document.getElementById('bmAiResumen').textContent = data.resumen || '';
+      const ul = document.getElementById('bmAiSugerencias');
+      (data.sugerencias || []).forEach(s => {
+        const li = document.createElement('li');
+        li.textContent = s;
+        ul.appendChild(li);
+      });
+    }
+  } catch (e) {
+    document.getElementById('bmAiError').style.display = 'block';
+    document.getElementById('bmAiError').textContent = 'Error de conexión con el servicio IA.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Revisar con IA de nuevo';
+  }
+}
+
 async function submitBitacora() {
   const fields = [
     { id: 'bmSintomas',  cnt: 'bmC1' },
@@ -4183,8 +4254,41 @@ async function fwFlush() {
         <div class="bm-char" id="bmC4">0 / mín. 30 caracteres</div>
       </div>
       <div class="bm-err" id="bmErr">⚠️ Completa todos los campos con al menos 30 caracteres.</div>
+
+      <!-- Panel feedback IA -->
+      <div id="bmAiFeedback" style="display:none;margin-top:12px;background:#18181b;border:1.5px solid #7c3aed;border-radius:12px;padding:14px 16px;font-size:.83rem;color:#e4e4e7">
+        <div style="font-weight:700;color:#a78bfa;margin-bottom:10px">✨ Evaluación IA de tu bitácora</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:130px">
+            <div style="color:#94a3b8;font-size:.75rem;margin-bottom:3px">Claridad</div>
+            <div style="background:#27272a;border-radius:6px;height:8px;overflow:hidden">
+              <div id="bmBarClaridad" style="height:8px;background:#38bdf8;width:0%;transition:width .5s;border-radius:6px"></div>
+            </div>
+            <div id="bmValClaridad" style="font-size:.78rem;color:#38bdf8;margin-top:2px">—/5</div>
+          </div>
+          <div style="flex:1;min-width:130px">
+            <div style="color:#94a3b8;font-size:.75rem;margin-bottom:3px">Completitud</div>
+            <div style="background:#27272a;border-radius:6px;height:8px;overflow:hidden">
+              <div id="bmBarCompletitud" style="height:8px;background:#4ade80;width:0%;transition:width .5s;border-radius:6px"></div>
+            </div>
+            <div id="bmValCompletitud" style="font-size:.78rem;color:#4ade80;margin-top:2px">—/5</div>
+          </div>
+          <div style="flex:1;min-width:130px">
+            <div style="color:#94a3b8;font-size:.75rem;margin-bottom:3px">Terminología técnica</div>
+            <div style="background:#27272a;border-radius:6px;height:8px;overflow:hidden">
+              <div id="bmBarTermino" style="height:8px;background:#f59e0b;width:0%;transition:width .5s;border-radius:6px"></div>
+            </div>
+            <div id="bmValTermino" style="font-size:.78rem;color:#f59e0b;margin-top:2px">—/5</div>
+          </div>
+        </div>
+        <div id="bmAiResumen" style="font-style:italic;color:#a1a1aa;margin-bottom:10px"></div>
+        <div style="color:#94a3b8;font-size:.76rem;font-weight:600;margin-bottom:5px">Sugerencias para mejorar:</div>
+        <ul id="bmAiSugerencias" style="margin:0;padding-left:18px;color:#d4d4d8;line-height:1.8;font-size:.82rem"></ul>
+        <div id="bmAiError" style="display:none;color:#f87171;font-size:.8rem;margin-top:6px"></div>
+      </div>
     </div>
-    <div class="bm-footer">
+    <div class="bm-footer" style="gap:8px;display:flex;flex-direction:column">
+      <button id="bmAiBtn" onclick="reviewBitacoraWithAI()" style="width:100%;background:#4c1d95;border:1.5px solid #7c3aed;border-radius:10px;color:#c4b5fd;padding:10px;font-size:.85rem;cursor:pointer;font-weight:600;letter-spacing:.02em">✨ Revisar con IA antes de guardar</button>
       <button class="bm-btn-submit" id="bmSubmitBtn" onclick="submitBitacora()">✅ Guardar bitácora y ver resultado</button>
     </div>
   </div>

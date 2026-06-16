@@ -6,60 +6,60 @@
 <title>Guía del Simulador DC Monitoring</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; line-height: 1.6; }
-  h1 { font-size: 1.5rem; font-weight: 600; color: #38bdf8; margin-bottom: .4rem; }
-  h2 { font-size: 1.1rem; font-weight: 600; color: #7dd3fc; margin: 2rem 0 1rem; border-bottom: 1px solid #1e3a5f; padding-bottom: .4rem; }
-  h3 { font-size: .82rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
-  p  { font-size: .88rem; color: #94a3b8; margin-bottom: 1rem; }
-  .subtitle { color: #475569; font-size: .82rem; margin-bottom: 2rem; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #1e293b; padding: 2rem; line-height: 1.6; }
+  h1 { font-size: 1.5rem; font-weight: 600; color: #0f172a; margin-bottom: .4rem; }
+  h2 { font-size: 1.1rem; font-weight: 600; color: #0f172a; margin: 2rem 0 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: .4rem; }
+  h3 { font-size: .82rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
+  p  { font-size: .88rem; color: #64748b; margin-bottom: 1rem; }
+  .subtitle { color: #94a3b8; font-size: .82rem; margin-bottom: 2rem; }
 
   /* Cards */
-  .card { background: #1e293b; border: 1px solid #1e3a5f; border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+  .card { background: #ffffff; border: 0.5px solid #e2e8f0; border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 
   /* Comando row */
-  .cmd-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.5fr); gap: 10px; margin-bottom: 8px; align-items: start; }
-  code { font-family: 'Cascadia Code','Consolas',monospace; font-size: .78rem; background: #0f172a; border: 1px solid #334155; border-radius: 5px; padding: 3px 8px; color: #7dd3fc; white-space: nowrap; }
-  .desc { font-size: .8rem; color: #94a3b8; line-height: 1.5; padding-top: 3px; }
-  .desc code { font-size: .74rem; padding: 1px 5px; color: #fbbf24; }
+  .cmd-row { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1.5fr); gap: 10px; margin-bottom: 8px; align-items: start; }
+  code { font-family: 'Cascadia Code','Consolas',monospace; font-size: .78rem; background: #f1f5f9; border: 0.5px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; color: #1e293b; white-space: pre-wrap; word-break: break-all; display: block; }
+  .desc { font-size: .8rem; color: #64748b; line-height: 1.5; padding-top: 4px; }
+  .desc code { display: inline; font-size: .74rem; padding: 1px 5px; color: #92400e; background: #fffbeb; border-color: #fde68a; white-space: normal; word-break: normal; }
 
   /* Flujo */
   .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 1.5rem; }
-  .flow-step { display: flex; align-items: center; gap: 6px; background: #1e293b; border: 1px solid #1e3a5f; border-radius: 8px; padding: 7px 12px; font-size: .8rem; font-weight: 500; }
-  .flow-arrow { color: #334155; font-size: 1.1rem; }
+  .flow-step { display: flex; align-items: center; gap: 6px; background: #ffffff; border: 0.5px solid #e2e8f0; border-radius: 8px; padding: 7px 12px; font-size: .8rem; font-weight: 500; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .flow-arrow { color: #cbd5e1; font-size: 1.1rem; }
 
   /* Ataque cards */
-  .atk { background: #1e293b; border: 1px solid #1e3a5f; border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+  .atk { background: #ffffff; border: 0.5px solid #e2e8f0; border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .atk-header { display: flex; align-items: center; gap: 10px; margin-bottom: .9rem; }
-  .atk-name { font-size: .95rem; font-weight: 600; color: #e2e8f0; }
+  .atk-name { font-size: .95rem; font-weight: 600; color: #0f172a; }
   .badge { font-size: .7rem; padding: 2px 9px; border-radius: 4px; font-weight: 600; }
-  .badge-red { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
-  .badge-hw  { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+  .badge-red { background: #fef2f2; color: #dc2626; border: 0.5px solid #fecaca; }
+  .badge-hw  { background: #fffbeb; color: #b45309; border: 0.5px solid #fde68a; }
 
   .step { display: flex; gap: 10px; margin-bottom: 7px; align-items: start; }
   .step-num { min-width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
-  .num-info { background: rgba(56,189,248,.2); color: #38bdf8; border: 1px solid rgba(56,189,248,.3); }
-  .num-act  { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
-  .step-text { font-size: .82rem; color: #94a3b8; line-height: 1.5; }
-  .step-text strong { color: #cbd5e1; }
-  .step-text code { font-size: .74rem; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 1px 5px; color: #7dd3fc; }
+  .num-info { background: #eff6ff; color: #1d4ed8; border: 0.5px solid #bfdbfe; }
+  .num-act  { background: #fef2f2; color: #dc2626; border: 0.5px solid #fecaca; }
+  .step-text { font-size: .82rem; color: #475569; line-height: 1.5; }
+  .step-text strong { color: #1e293b; }
+  .step-text code { display:inline; font-size: .74rem; background: #f1f5f9; border: 0.5px solid #e2e8f0; border-radius: 4px; padding: 1px 6px; color: #1e293b; white-space: normal; word-break: normal; }
 
   .clue { font-size: .78rem; margin-top: .75rem; padding: 7px 12px; border-radius: 6px; border-left: 3px solid; }
-  .clue-warn { background: rgba(251,191,36,.08); border-color: #fbbf24; color: #fbbf24; }
-  .clue-ok   { background: rgba(74,222,128,.08); border-color: #4ade80; color: #4ade80; }
+  .clue-warn { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+  .clue-ok   { background: #f0fdf4; border-color: #22c55e; color: #166534; }
 
-  /* Tabla de diferencias */
+  /* Tabla */
   table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .5rem; }
-  th { text-align: left; color: #475569; font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; padding: 6px 10px; border-bottom: 1px solid #1e3a5f; }
-  td { padding: 7px 10px; border-bottom: 1px solid #0f172a; color: #94a3b8; vertical-align: top; }
+  th { text-align: left; color: #94a3b8; font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f8fafc; color: #64748b; vertical-align: top; }
   tr:last-child td { border-bottom: none; }
-  td:first-child { color: #e2e8f0; font-weight: 500; }
-  .ip-red  { color: #f87171; font-family: monospace; }
-  .ip-blue { color: #38bdf8; font-family: monospace; }
-  .ip-yellow { color: #fbbf24; font-family: monospace; }
-  .ip-green  { color: #4ade80; font-family: monospace; }
+  td:first-child { color: #1e293b; font-weight: 500; }
+  .ip-red    { color: #dc2626; font-family: monospace; font-weight: 600; }
+  .ip-blue   { color: #2563eb; font-family: monospace; font-weight: 600; }
+  .ip-yellow { color: #b45309; font-family: monospace; font-weight: 600; }
+  .ip-green  { color: #16a34a; font-family: monospace; font-weight: 600; }
 
   /* Separador */
-  hr { border: none; border-top: 1px solid #1e3a5f; margin: 2.5rem 0; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
 
   @media (max-width: 600px) {
     .cmd-row { grid-template-columns: 1fr; }
