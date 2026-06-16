@@ -4,6 +4,41 @@
 
 ---
 
+## FASE 3 — Sala Colaborativa (PENDIENTE — inicio estimado 2026-06-16 noche)
+
+### Plan acordado (8 iteraciones — 2 días)
+
+**Día 1 — Backend + DB**
+- Iter 1: modelos + migración (tablas `collab_rooms`, `collab_members`, `collab_actions`)
+- Iter 2: CRUD + rutas `/api/collab/`
+- Iter 3: WebSocket rooms (join/leave/broadcast por sala — extender ws_manager existente)
+
+**Día 2 — Frontend + Roles**
+- Iter 4: modal crear sala (instructor asigna estudiantes y roles)
+- Iter 5: UI estudiante → ver sala asignada + rol propio
+- Iter 6: chat en tiempo real por sala ✅ (mantener — los aprendices deben poder coordinarse con mensajes)
+- Iter 7: vistas diferenciadas por rol (T1=métricas, T2=logs, Responder=firewall, Comunicador=resumen)
+- Iter 8: bitácora individual con campo `collab_room_id` (sin tabla nueva — ahorra complejidad)
+
+**Iter 9 (reducida) — Reporte instructor:**
+Tabla simple por sala: miembros | acciones tomadas | tiempo de respuesta grupal (MTTR). Sin gráficas.
+
+### Roles definidos
+| Rol | Panel principal |
+|---|---|
+| T1-Monitor | Métricas en tiempo real |
+| T2-Analista | Logs + Terminal |
+| Responder | Firewall + Terminal |
+| Comunicador | Resumen del incidente + chat |
+
+### Decisiones técnicas
+- Chat: WebSocket broadcast filtrado por `room_id` (no canal global)
+- Bitácora: reutilizar tabla `bitacoras` existente + campo `collab_room_id` (nullable)
+- Instructor crea sala desde `instructor.html`, asigna roles manualmente
+- Roles no bloquean acceso a otras pestañas — solo definen el panel que se muestra por defecto
+
+---
+
 ### Sesión 2026-06-15 — Parte 2 (tarde)
 
 #### Manual del Estudiante (`frontend/manual-estudiante.html`)
