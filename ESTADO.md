@@ -1,6 +1,61 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-13 — COMPLETADA ✅ (fixes reportes PDF, paneles flotantes Logs/Terminal/Firewall, MTTD, guiado bajo demanda)
+## Última sesión: 2026-06-15 — COMPLETADA ✅ (Rediseño mapa red, drawer unificado Logs/Terminal/Firewall, IP única por atacante, botón → FW, Feedback IA Gemini)
+
+---
+
+### Sesión 2026-06-15 — COMPLETADA ✅
+
+#### Mapa de red — fixes visuales (`frontend/index.html`)
+- Leyenda movida del SVG al panel derecho (rect height 252px) — ya no solapa nodos ACCESS
+- Etiquetas de capas (PERIMETER/ROUTING/CORE/DISTRIBUTION/ACCESS): color `#7dd3fc` opacity 0.75 — antes invisibles con fondo oscuro
+- Panel derecho reducido a `height=252` para no tapar STORAGE-01
+
+#### Drawer unificado Logs/Terminal/Firewall (`frontend/index.html`)
+- **Reemplazados 3 paneles flotantes** (se solapaban y eran difíciles de mover) por un **único `#toolsDrawer`** anclado en la parte inferior con tabs
+- Altura 240px, handle de resize (drag), botón minimizar (▬) y cerrar (✕) separados
+- Al abrir el drawer, `#missionWidget` sube dinámicamente para no quedar tapado
+- Funciones clave: `_openToolsDrawer(tab)`, `_switchToolTab(tab)`, `_minimizeDrawer()`, `_restoreDrawer()`, `_collapseDrawer()`, `_applyDrawerOpen(h)`, `_initDrawerResize()`
+- Tab colors: Logs=azul, Terminal=verde, Firewall=rojo
+
+#### IP única por atacante (`backend/simulation/attacks.py`, `command_engine.py`)
+- Cada incidente genera un `attacker_ip` único aleatorio según el tipo de ataque
+- Rangos: DoS/DDoS→203.0.113.x, Brute Force→198.51.100.x, Unauth→185.220.101.x, SSL→91.108.4.x
+- `netstat`, `syslog`, `tcpdump` usan la misma IP consistentemente
+- `apply_firewall_mitigation()` valida la IP específica primero, luego fallback por prefijo/puerto
+
+#### Botón "→ FW" en Logs
+- Al marcar una línea IOC con IP de atacante, aparece botón `🔥 IP → FW`
+- `_sendIpToFirewall(ip)`: abre tab Firewall con la IP pre-cargada en el campo de bloqueo
+- `_extractIp(line)`: regex que detecta las 4 rangos de IPs atacantes
+
+#### Feedback IA de Bitácora — Gemini (`backend/api/routes_ai_feedback.py`)
+- **NUEVO archivo**: endpoint `POST /api/ai/bitacora-feedback`
+- Llama a `gemini-2.0-flash` via httpx con prompt en español
+- Evalúa: Claridad (1-5), Completitud (1-5), Terminología técnica (1-5) + 3 sugerencias + resumen
+- Registrado en `main.py`: `from .api.routes_ai_feedback import router as ai_feedback_router`
+- **Frontend**: botón "✨ Revisar con IA antes de guardar" en modal bitácora
+- Panel inline con 3 barras de progreso animadas + lista de sugerencias
+- Cooldown de 30s entre solicitudes (contador regresivo en el botón)
+- `GEMINI_API_KEY` configurada en Render Dashboard → Environment
+- **Tier gratuito**: 1,500 req/día — suficiente para 20 aprendices × 1 día de clase
+- Bugs resueltos durante implementación: 401 (quitar auth dependency), 404 (modelo 1.5-flash→2.0-flash), 429 (cuota gratuita durante pruebas — resuelto con cooldown)
+
+#### guia-simulador.html (NUEVO archivo)
+- Guía standalone con tema claro (fondo `#f8fafc`, tarjetas blancas)
+- Tabla de referencia de comandos + procedimientos por tipo de ataque
+- `code` blocks con `word-break:break-all` y color `#1e293b` para legibilidad
+
+#### Commits sesión
+- `90c55b0` — feat: Gemini AI feedback for bitácora + guia-simulador.html
+- `8b0ffa5` — fix: correct import path in routes_ai_feedback
+- `28ced21` — fix: remove auth dependency from AI feedback endpoint (401 error)
+- `fb9afb3` — fix: update Gemini model to gemini-2.0-flash
+- `e7964ba` — fix: better error messages for Gemini 429/404
+- `c61fb2b` — feat: add 30s cooldown between AI feedback requests
+
+#### Variables de entorno añadidas
+- `GEMINI_API_KEY` — clave Google AI Studio (tier gratuito, 1500 req/día)
 
 ---
 
@@ -434,7 +489,7 @@ Fuente: conversación Cowork "ESTADO.md V2 suggestions" + `dc_simulator_v3_roadm
   - `command_engine.py` (add_block_ip/port, flush, remove), `POST /api/firewall/rules`
   - Sintaxis: BLOCK IP/PORT, RATE_LIMIT, ALLOW ONLY PORT, ISOLATE NODE
 
-### Fase 2 — Contexto (PRÓXIMA)
+### Fase 2 — Contexto ✅ COMPLETA (2026-06-15)
 > Escenarios reales, no eventos aleatorios. Requiere reestructurar `scheduler.py` para manejar fases (no reescritura total). El modo clase en vivo aprovecha el WebSocket que ya existe.
 
 - **🎬 Escenarios Narrativos** (medio, 2-3 ses.)
@@ -448,10 +503,10 @@ Fuente: conversación Cowork "ESTADO.md V2 suggestions" + `dc_simulator_v3_roadm
   - Backend (WebSocket ya existe): comandos broadcast `pause_sim`, `reveal_solution`, `push_notification`; `GET /api/instructor/live-status`
   - Panel instructor: vista de estudiantes conectados en vivo, indicador quién detectó/quién no, botón Pausar Simulación global, botón Revelar Solución
 
-- **📝 Feedback IA de Bitácora** (medio, 1-2 ses.) — pendiente, propuesto 2026-06-14
-  - Endpoint que envía el texto de la bitácora del aprendiz (causa raíz, acciones, notas) a un LLM con prompt de evaluación: claridad, completitud (qué pasó/por qué/qué se hizo), uso de terminología técnica, + 2-3 sugerencias concretas de mejora
-  - Feedback mostrado antes/después de guardar, sin bloquear el envío
-  - Objetivo: que el aprendiz mejore su redacción técnica de incidentes con el tiempo
+- **📝 Feedback IA de Bitácora** ✅ COMPLETA (2026-06-15)
+  - `POST /api/ai/bitacora-feedback` → Gemini 2.0 Flash, evalúa claridad/completitud/terminología
+  - Panel inline con barras de progreso + sugerencias, cooldown 30s entre solicitudes
+  - `GEMINI_API_KEY` en Render Environment, tier gratuito suficiente para uso en clase
 
 ### Fase 3 — Colaboración (futuro)
 > Trabajo en equipo como en un SOC real. La sala colaborativa es la más compleja — necesita estado compartido entre sesiones; ahí SQLite empieza a doler y conviene evaluar PostgreSQL (Render lo ofrece nativamente).
