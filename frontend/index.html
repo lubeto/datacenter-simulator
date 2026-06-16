@@ -615,24 +615,28 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 </div>
 
 <!-- TOOLS DRAWER (Logs / Terminal / Firewall) — panel inferior con pestañas -->
-<div id="toolsDrawer" style="display:none;position:fixed;bottom:0;left:0;right:0;height:360px;background:#18181b;border-top:2px solid #3f3f46;z-index:9500;flex-direction:column;font-family:monospace;box-shadow:0 -4px 24px rgba(0,0,0,.7)">
+<div id="toolsDrawer" style="display:none;position:fixed;bottom:0;left:0;right:0;height:240px;background:#18181b;border-top:2px solid #3f3f46;z-index:9500;flex-direction:column;font-family:monospace;box-shadow:0 -4px 24px rgba(0,0,0,.7)">
+  <!-- Handle para redimensionar arrastrando -->
+  <div id="drawerResizeHandle" style="position:absolute;top:-4px;left:0;right:0;height:8px;cursor:ns-resize;z-index:1"></div>
   <!-- Barra de pestañas -->
-  <div style="display:flex;align-items:stretch;background:#1c1c1f;border-bottom:1px solid #3f3f46;flex-shrink:0;height:36px">
+  <div style="display:flex;align-items:stretch;background:#1c1c1f;border-bottom:1px solid #3f3f46;flex-shrink:0;height:34px">
     <button id="tabBtnLogs" onclick="_switchToolTab('logs')"
-      style="background:transparent;border:none;border-right:1px solid #3f3f46;color:#71717a;font-size:.78rem;font-weight:700;padding:0 18px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px">
+      style="background:transparent;border:none;border-right:1px solid #3f3f46;color:#71717a;font-size:.76rem;font-weight:700;padding:0 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px">
       📄 Logs
     </button>
     <button id="tabBtnTerm" onclick="_switchToolTab('term')"
-      style="background:transparent;border:none;border-right:1px solid #3f3f46;color:#71717a;font-size:.78rem;font-weight:700;padding:0 18px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px">
+      style="background:transparent;border:none;border-right:1px solid #3f3f46;color:#71717a;font-size:.76rem;font-weight:700;padding:0 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px">
       🖥 Terminal
     </button>
     <button id="tabBtnFw" onclick="_switchToolTab('fw')"
-      style="background:transparent;border:none;border-right:1px solid #3f3f46;color:#71717a;font-size:.78rem;font-weight:700;padding:0 18px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px">
+      style="background:transparent;border:none;border-right:1px solid #3f3f46;color:#71717a;font-size:.76rem;font-weight:700;padding:0 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px">
       🔥 Firewall
     </button>
     <div style="flex:1"></div>
-    <button onclick="_collapseDrawer()"
-      style="background:transparent;border:none;border-left:1px solid #3f3f46;color:#71717a;font-size:.82rem;padding:0 14px;cursor:pointer" title="Cerrar panel">▼ Cerrar</button>
+    <button onclick="_minimizeDrawer()" title="Minimizar"
+      style="background:transparent;border:none;border-left:1px solid #3f3f46;color:#71717a;font-size:.8rem;padding:0 12px;cursor:pointer">▬</button>
+    <button onclick="_collapseDrawer()" title="Cerrar"
+      style="background:transparent;border:none;border-left:1px solid #3f3f46;color:#71717a;font-size:.8rem;padding:0 12px;cursor:pointer">✕</button>
   </div>
 
   <!-- Pane: Logs -->
@@ -3653,8 +3657,12 @@ function _closeOtherFloatingPanels(exceptId) {
 
 // ── TOOLS DRAWER (panel inferior con pestañas) ───────────────
 const _TAB_COLORS = { logs:'#38bdf8', term:'#4ade80', fw:'#f87171' };
+let _currentDrawerTab = null;
 
 function _switchToolTab(tab) {
+  if (_drawerMinimized) {
+    _applyDrawerOpen(parseInt(document.getElementById('toolsDrawer').style.height) || 240);
+  }
   ['logs','term','fw'].forEach(t => {
     const pane = document.getElementById(t==='logs'?'logsPanel':t==='term'?'terminalPanel':'firewallPanel');
     const btn  = document.getElementById('tabBtn'+(t==='logs'?'Logs':t==='term'?'Term':'Fw'));
@@ -3670,6 +3678,7 @@ function _switchToolTab(tab) {
   btn.style.color = _TAB_COLORS[tab];
   btn.style.borderBottom = `2px solid ${_TAB_COLORS[tab]}`;
   btn.style.background = 'rgba(255,255,255,.04)';
+  _currentDrawerTab = tab;
 
   if (tab === 'logs') { _populateLogsNodeSelect(); loadLogs(); }
   else if (tab === 'term') {
@@ -3679,23 +3688,87 @@ function _switchToolTab(tab) {
   } else if (tab === 'fw') { loadFirewall(); }
 }
 
+let _drawerMinimized = false;
+
+function _drawerHeight() {
+  return parseInt(document.getElementById('toolsDrawer').style.height) || 240;
+}
+
+function _applyDrawerOpen(h) {
+  const drawer = document.getElementById('toolsDrawer');
+  drawer.style.height = h + 'px';
+  document.body.style.paddingBottom = (h + 4) + 'px';
+  const mw = document.getElementById('missionWidget');
+  if (mw) mw.style.bottom = (h + 16) + 'px';
+  _drawerMinimized = false;
+}
+
 function _openToolsDrawer(tab) {
   const drawer = document.getElementById('toolsDrawer');
-  const alreadyOpen = drawer.style.display !== 'none';
+  const isOpen = drawer.style.display !== 'none';
   const paneId = tab==='logs'?'logsPanel':tab==='term'?'terminalPanel':'firewallPanel';
   const paneVisible = document.getElementById(paneId).style.display !== 'none';
-  // Si ya está abierto en esta pestaña, colapsar
-  if (alreadyOpen && paneVisible) { _collapseDrawer(); return; }
+  // Si ya está en esa pestaña y visible → minimizar/restaurar
+  if (isOpen && paneVisible && !_drawerMinimized) { _minimizeDrawer(); return; }
   drawer.style.display = 'flex';
-  document.body.style.paddingBottom = '360px';
+  _applyDrawerOpen(_drawerHeight());
   _switchToolTab(tab);
+  // Inicializar resize handle (solo 1 vez)
+  _initDrawerResize();
+}
+
+function _minimizeDrawer() {
+  const drawer = document.getElementById('toolsDrawer');
+  _drawerMinimized = true;
+  drawer.style.height = '34px';
+  document.body.style.paddingBottom = '38px';
+  const mw = document.getElementById('missionWidget');
+  if (mw) mw.style.bottom = '80px';
+  // Ocultar contenido de panes pero dejar barra visible
+  ['logsPanel','terminalPanel','firewallPanel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+function _restoreDrawer() {
+  if (!_drawerMinimized) return;
+  _applyDrawerOpen(240);
+  if (_currentDrawerTab) _switchToolTab(_currentDrawerTab);
 }
 
 function _collapseDrawer() {
   document.getElementById('toolsDrawer').style.display = 'none';
   document.body.style.paddingBottom = '';
+  const mw = document.getElementById('missionWidget');
+  if (mw) mw.style.bottom = '80px';
+  _drawerMinimized = false;
   ['logsPanel','terminalPanel','firewallPanel'].forEach(id =>
     document.getElementById(id).style.display = 'none');
+}
+
+let _resizeInit = false;
+function _initDrawerResize() {
+  if (_resizeInit) return;
+  _resizeInit = true;
+  const handle = document.getElementById('drawerResizeHandle');
+  const drawer = document.getElementById('toolsDrawer');
+  if (!handle) return;
+  let dragging = false, startY, startH;
+  handle.addEventListener('mousedown', e => {
+    dragging = true; startY = e.clientY;
+    startH = parseInt(drawer.style.height) || 240;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const newH = Math.max(120, Math.min(window.innerHeight * 0.7, startH - (e.clientY - startY)));
+    drawer.style.height = newH + 'px';
+    document.body.style.paddingBottom = (newH + 4) + 'px';
+    const mw = document.getElementById('missionWidget');
+    if (mw) mw.style.bottom = (newH + 16) + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
 }
 
 function toggleLogsPanel()     { _openToolsDrawer('logs'); }
