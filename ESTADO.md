@@ -1,6 +1,6 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-15 — COMPLETADA ✅ (Rediseño mapa red, drawer unificado Logs/Terminal/Firewall, IP única por atacante, botón → FW, Feedback IA Gemini)
+## Última sesión: 2026-06-15 — COMPLETADA ✅ (Migración SQLite→PostgreSQL + reimport 211 bitácoras + Feedback IA Gemini + drawer unificado)
 
 ---
 
@@ -45,6 +45,18 @@
 - Guía standalone con tema claro (fondo `#f8fafc`, tarjetas blancas)
 - Tabla de referencia de comandos + procedimientos por tipo de ataque
 - `code` blocks con `word-break:break-all` y color `#1e293b` para legibilidad
+
+#### Migración SQLite → PostgreSQL (2026-06-15)
+- `backend/requirements.txt`: `aiosqlite` → `asyncpg==0.29.0`
+- `backend/database/db.py`: eliminado `connect_args`, auto-fix prefijo `postgresql://` → `postgresql+asyncpg://`
+- `backend/database/models.py`: todos los `Enum` convertidos a `String` (compatibilidad PG)
+- `render.yaml`: `DATABASE_URL` apunta a PostgreSQL
+- BD `dc-simulator-db` creada en Render (Free, Oregon, PostgreSQL 18)
+- `DATABASE_URL` agregada manualmente en Render → Environment
+- Backup previo: `backup_datacenter_20260615.json` (guardado en OneDrive + Google Drive)
+- Reimportación exitosa: 20 students, 340 sessions, 636 incidents, **211 bitácoras**, 211 guided_sessions, 145 practice_sessions
+- Endpoints temporales: `GET /api/admin/export-data`, `POST /api/admin/import-data` (mantener para futuras migraciones)
+- **Variables de entorno añadidas a Render:** `DATABASE_URL` (Internal URL de dc-simulator-db)
 
 #### Commits sesión
 - `90c55b0` — feat: Gemini AI feedback for bitácora + guia-simulador.html
