@@ -92,6 +92,10 @@ async def get_bitacora_feedback(req: FeedbackRequest):
         return result
 
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            return {"error": "Límite de solicitudes Gemini alcanzado. Espera 30 segundos e intenta de nuevo.", "available": False}
+        if e.response.status_code == 404:
+            return {"error": "Modelo Gemini no disponible. Contacta al administrador.", "available": False}
         return {"error": f"Error API Gemini: {e.response.status_code}", "available": False}
     except Exception as e:
         return {"error": f"Error procesando feedback: {str(e)}", "available": False}
