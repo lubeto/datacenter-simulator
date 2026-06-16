@@ -44,9 +44,11 @@ services:
       - key: ENVIRONMENT
         value: production
 
-      # Base de datos — usar disco persistente en Render
+      # Base de datos — PostgreSQL (ver sección databases abajo)
       - key: DATABASE_URL
-        value: sqlite+aiosqlite:///./data/simulator.db
+        fromDatabase:
+          name: dc-simulator-db
+          property: connectionString
 
       # Admin inicial (cambia desde el Dashboard de Render)
       - key: ADMIN_EMAIL
@@ -101,3 +103,8 @@ services:
 
     # ── Auto-deploy desde Git ───────────────────────────────────────────
     autoDeploy: true    # re-deploy automático en cada push a main
+
+databases:
+  - name: dc-simulator-db
+    plan: free          # PostgreSQL gratuito en Render (90 días, luego $7/mes)
+    region: oregon

@@ -5,7 +5,7 @@ SQLAlchemy ORM - SQLite
 from datetime import datetime
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean,
-    DateTime, ForeignKey, Text, Enum
+    DateTime, ForeignKey, Text
 )
 from sqlalchemy.orm import relationship, declarative_base
 
@@ -22,7 +22,7 @@ class Student(Base):
     name             = Column(String(100), nullable=False)
     email            = Column(String(150), unique=True, index=True, nullable=False)
     password_hash    = Column(String(200), nullable=False)
-    role             = Column(Enum("student", "instructor", name="role_enum"), default="student")
+    role             = Column(String(20), default="student")
     created_at       = Column(DateTime, default=datetime.utcnow)
     is_active        = Column(Boolean, default=True)
 
@@ -128,7 +128,7 @@ class SSTReading(Base):
     unauthorized    = Column(Boolean, default=False)
 
     # Estado del sensor
-    alert_level     = Column(Enum("normal", "warning", "critical", name="sst_alert_enum"), default="normal")
+    alert_level     = Column(String(20), default="normal")
 
 
 # ============================================================
@@ -154,7 +154,7 @@ class SSLCertificate(Base):
     is_valid        = Column(Boolean, default=True)
 
     last_checked    = Column(DateTime, default=datetime.utcnow)
-    alert_level     = Column(Enum("normal", "warning", "critical", name="ssl_alert_enum"), default="normal")
+    alert_level     = Column(String(20), default="normal")
     alert_message   = Column(String(300), nullable=True)
 
 
@@ -170,7 +170,7 @@ class Incident(Base):
     # Clasificación
     incident_type       = Column(String(50), nullable=False)   # dos, ddos, brute_force, etc.
     category            = Column(String(30), nullable=False)   # attack, hardware, sst, ssl
-    severity            = Column(Enum("info", "warning", "critical", name="severity_enum"))
+    severity            = Column(String(20))
     node_affected       = Column(String(50), nullable=False)
     description         = Column(Text, nullable=True)
 
@@ -186,8 +186,7 @@ class Incident(Base):
     mitigation_score    = Column(Float, nullable=True)   # 0-100
 
     # Estado
-    status              = Column(Enum("active", "detected", "mitigating", "resolved", "missed",
-                                      name="incident_status_enum"), default="active")
+    status              = Column(String(20), default="active")
     root_cause          = Column(Text, nullable=True)
     resolution_notes    = Column(Text, nullable=True)
 
@@ -209,7 +208,7 @@ class Alert(Base):
     timestamp       = Column(DateTime, default=datetime.utcnow, index=True)
 
     alert_type      = Column(String(50), nullable=False)
-    severity        = Column(Enum("info", "warning", "critical", name="alert_severity_enum"))
+    severity        = Column(String(20))
     message         = Column(String(500), nullable=False)
     metric_name     = Column(String(50), nullable=True)
     metric_value    = Column(Float, nullable=True)
