@@ -92,8 +92,9 @@ async def import_data(
     # ── Incidents ─────────────────────────────────────────────
     count = 0
     for i in payload.get("incidents", []):
+        sid = i.get("session_id")
         obj = Incident(
-            id=i["id"], session_id=i.get("session_id"),
+            id=i["id"], session_id=sid if sid else None,
             incident_type=i["incident_type"], category=i["category"],
             severity=i.get("severity"), node_affected=i["node_affected"],
             description=i.get("description"),
