@@ -1,6 +1,30 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-15 — COMPLETADA ✅ (Migración SQLite→PostgreSQL + reimport 211 bitácoras + Feedback IA Gemini + drawer unificado)
+## Última sesión: 2026-06-15 — COMPLETADA ✅ (Manual estudiante HTML + más actividad auto-ataques + Migración SQLite→PostgreSQL + Feedback IA Gemini)
+
+---
+
+### Sesión 2026-06-15 — Parte 2 (tarde)
+
+#### Manual del Estudiante (`frontend/manual-estudiante.html`)
+- Nuevo archivo standalone accesible en `/manual-estudiante` (o abriendo el HTML directo)
+- Sidebar navegable con scroll-spy
+- Cubre 5 sesiones de clase: DoS/DDoS/SYN Flood, Brute Force/Port Scan, Memory Leak/Disk Failure, SST (thermal/smoke/acceso físico), SSL/TLS
+- Por cada ataque: síntomas, comandos de terminal con salidas reales, respuestas del panel guiado (4 fases), qué escribir en la bitácora
+- Tabla de referencia rápida: proceso ps aux + mensaje syslog por tipo de ataque
+- Guía del instructor: cómo detectar cuándo se lanzó un ataque, compatibilidad ataque/nodo
+- Sistema de puntaje: MTTD, bitácora, panel guiado, pistas usadas
+
+#### Scheduler — Más actividad (`backend/simulation/scheduler.py`)
+- Intervalo entre ataques auto: 2-7 min → **1-3 min**
+- Máximo de ataques simultáneos: 1 → **2** (configurable vía `AUTO_ATTACK_MAX_CONCURRENT`)
+- `render.yaml` actualizado con las 3 nuevas variables: `AUTO_ATTACK_MIN_INTERVAL_MIN=1`, `AUTO_ATTACK_MAX_INTERVAL_MIN=3`, `AUTO_ATTACK_MAX_CONCURRENT=2`
+- Para clase: cambiar `MAX_CONCURRENT` a 3 desde Render Dashboard → Environment sin redeploy
+
+#### Commits sesión parte 2
+- `f14ef66` — feat: más actividad en dashboard + manual estudiante HTML
+
+---
 
 ---
 
