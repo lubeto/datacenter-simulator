@@ -3689,8 +3689,6 @@ function _openToolsDrawer(tab) {
   drawer.style.display = 'flex';
   document.body.style.paddingBottom = '360px';
   _switchToolTab(tab);
-  const guided = document.getElementById('guidedPanel');
-  if (guided && guided.classList.contains('open') && !guided.classList.contains('minimized')) minimizeGuided();
 }
 
 function _collapseDrawer() {
