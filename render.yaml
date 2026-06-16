@@ -71,10 +71,13 @@ services:
         value: "true"
 
       - key: AUTO_ATTACK_MIN_INTERVAL_MIN
-        value: "5"
+        value: "1"
 
       - key: AUTO_ATTACK_MAX_INTERVAL_MIN
-        value: "20"
+        value: "3"
+
+      - key: AUTO_ATTACK_MAX_CONCURRENT
+        value: "2"
 
       # CORS — reemplaza con tu URL de Render después del primer deploy
       # Ejemplo: https://dc-monitoring-simulator.onrender.com

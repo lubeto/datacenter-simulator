@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual del Estudiante — DC Monitoring Simulator</title>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #0f1628;
+  --bg3: #141c35;
+  --border: #1e2d50;
+  --accent: #4f8ef7;
+  --accent2: #7c3aed;
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --muted: #7a8aaa;
+  --code-bg: #0d1117;
+  --sidebar-w: 280px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w);
+  background: var(--bg2); border-right: 1px solid var(--border);
+  position: fixed; top: 0; left: 0; height: 100vh;
+  overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+}
+#sidebar .logo {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase;
+  letter-spacing: 1px;
+}
+#sidebar .logo span { display: block; font-size: 11px; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; margin-top: 2px; }
+#sidebar nav { flex: 1; padding: 8px 0; }
+#sidebar .nav-section { padding: 16px 16px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; }
+#sidebar a {
+  display: block; padding: 7px 16px 7px 20px;
+  font-size: 13px; color: var(--muted); text-decoration: none;
+  border-left: 3px solid transparent; transition: all .15s;
+}
+#sidebar a:hover, #sidebar a.active { color: var(--text); border-left-color: var(--accent); background: rgba(79,142,247,.07); }
+#sidebar a.session-link { font-weight: 600; color: var(--text); font-size: 12.5px; padding-left: 16px; }
+#sidebar a.sub { padding-left: 28px; font-size: 12px; }
+
+/* ── CONTENT ── */
+#content { margin-left: var(--sidebar-w); flex: 1; padding: 40px 48px 80px; max-width: 1100px; }
+
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(135deg, #0f1e45 0%, #1a0538 100%);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 40px; margin-bottom: 40px;
+}
+.hero h1 { font-size: 28px; color: #fff; margin-bottom: 8px; }
+.hero .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+.hero .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+.badge.critical { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+.badge.warning { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
+.badge.info { background: rgba(6,182,212,.15); color: var(--cyan); border: 1px solid rgba(6,182,212,.3); }
+.badge.success { background: rgba(16,185,129,.15); color: var(--green); border: 1px solid rgba(16,185,129,.3); }
+
+/* ── SECTIONS ── */
+.section { margin-bottom: 60px; }
+h2 { font-size: 22px; color: #fff; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+h2 .icon { margin-right: 8px; }
+h3 { font-size: 16px; color: var(--cyan); margin: 24px 0 10px; }
+h4 { font-size: 14px; color: var(--yellow); margin: 16px 0 8px; text-transform: uppercase; letter-spacing: .5px; }
+p { font-size: 14px; line-height: 1.7; color: var(--muted); margin-bottom: 10px; }
+ul, ol { padding-left: 20px; }
+li { font-size: 14px; color: var(--muted); line-height: 1.8; }
+
+/* ── ATTACK CARD ── */
+.attack-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 32px; overflow: hidden;
+}
+.attack-header {
+  padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.attack-type-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.attack-type-icon.dos   { background: rgba(239,68,68,.15); }
+.attack-type-icon.bf    { background: rgba(245,158,11,.15); }
+.attack-type-icon.ps    { background: rgba(6,182,212,.15); }
+.attack-type-icon.hw    { background: rgba(156,163,175,.15); }
+.attack-type-icon.sst   { background: rgba(239,68,68,.1); }
+.attack-type-icon.ssl   { background: rgba(124,58,237,.15); }
+.attack-header-info h3 { margin: 0 0 2px; font-size: 17px; color: #fff; }
+.attack-header-info p { margin: 0; font-size: 13px; }
+.attack-body { padding: 20px; }
+.attack-body > * { margin-bottom: 20px; }
+.attack-body > *:last-child { margin-bottom: 0; }
+
+/* ── INFO GRID ── */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-box {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px;
+}
+.info-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+.info-box ul { padding-left: 14px; }
+.info-box li { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+/* ── STEPS ── */
+.steps { counter-reset: step; }
+.step {
+  display: flex; gap: 14px; margin-bottom: 12px;
+  counter-increment: step;
+}
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.step-num.green  { background: var(--green); }
+.step-num.yellow { background: var(--yellow); }
+.step-num.red    { background: var(--red); }
+.step-num.purple { background: var(--accent2); }
+.step-content h5 { font-size: 13px; color: #fff; margin-bottom: 4px; }
+.step-content p  { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+
+/* ── TERMINAL BLOCK ── */
+.terminal {
+  background: var(--code-bg); border: 1px solid #1e2d50;
+  border-radius: 8px; overflow: hidden; margin: 8px 0 16px;
+}
+.terminal-header {
+  background: #161b27; padding: 8px 14px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #1e2d50;
+}
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-dot.red   { background: #ff5f57; }
+.terminal-dot.yellow{ background: #febc2e; }
+.terminal-dot.green { background: #28c840; }
+.terminal-title { font-size: 12px; color: var(--muted); margin-left: 4px; font-family: monospace; }
+.terminal-body { padding: 14px; font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 13px; line-height: 1.6; }
+.cmd  { color: #79c0ff; }
+.cmd::before { content: '$ '; color: #3fb950; }
+.out  { color: #7a8aaa; }
+.out.alert { color: #ff7b72; }
+.out.ok    { color: #3fb950; }
+.out.warn  { color: #d29922; }
+.out.node  { color: #e3b341; }
+
+/* ── NODE TABLE ── */
+.node-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+.node-table th { background: var(--bg3); color: var(--muted); text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+.node-table td { padding: 9px 12px; border-bottom: 1px solid rgba(30,45,80,.5); color: var(--text); vertical-align: top; }
+.node-table tr:last-child td { border-bottom: none; }
+.node-table tr:hover td { background: rgba(79,142,247,.04); }
+.node-id { font-family: monospace; font-weight: 700; color: var(--accent); }
+.node-ip { font-family: monospace; color: var(--cyan); }
+
+/* ── ALERT BOX ── */
+.alert-box {
+  border-radius: 8px; padding: 14px 18px; margin: 12px 0;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.alert-box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); }
+.alert-box.danger { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); }
+.alert-box.info  { background: rgba(79,142,247,.08); border: 1px solid rgba(79,142,247,.25); }
+.alert-box.success { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.25); }
+.alert-box .icon { font-size: 18px; flex-shrink: 0; }
+.alert-box p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text); }
+
+/* ── SESSION PILL ── */
+.session-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(90deg, var(--accent2) 0%, var(--accent) 100%);
+  color: #fff; font-size: 11px; font-weight: 700; padding: 3px 12px;
+  border-radius: 100px; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+.session-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px; margin-bottom: 32px;
+}
+.session-card h3 { color: #fff; font-size: 18px; margin: 0 0 6px; }
+.session-card .meta { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.attack-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; margin: 3px;
+  background: rgba(79,142,247,.12); color: var(--accent);
+  border: 1px solid rgba(79,142,247,.2);
+}
+.attack-tag.red { background: rgba(239,68,68,.12); color: var(--red); border-color: rgba(239,68,68,.2); }
+.attack-tag.yellow { background: rgba(245,158,11,.12); color: var(--yellow); border-color: rgba(245,158,11,.2); }
+.attack-tag.purple { background: rgba(124,58,237,.12); color: #a78bfa; border-color: rgba(124,58,237,.2); }
+.attack-tag.cyan { background: rgba(6,182,212,.12); color: var(--cyan); border-color: rgba(6,182,212,.2); }
+
+/* ── MISSION FLOW ── */
+.mission-flow { display: flex; gap: 0; margin: 16px 0; }
+.mf-step {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  padding: 14px 12px; text-align: center; position: relative;
+}
+.mf-step:first-child { border-radius: 8px 0 0 8px; }
+.mf-step:last-child  { border-radius: 0 8px 8px 0; }
+.mf-step:not(:last-child)::after {
+  content: '→'; position: absolute; right: -14px; top: 50%;
+  transform: translateY(-50%); font-size: 18px; color: var(--accent);
+  z-index: 1;
+}
+.mf-num { font-size: 22px; font-weight: 800; color: var(--accent); display: block; }
+.mf-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-top: 4px; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+/* ── PRINT ── */
+@media print {
+  #sidebar { display: none; }
+  #content { margin-left: 0; padding: 20px; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  #sidebar { transform: translateX(-100%); }
+  #content { margin-left: 0; padding: 20px; }
+  .info-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside id="sidebar">
+  <div class="logo">DC Simulator<span>Manual del Estudiante v1.0</span></div>
+  <nav>
+    <div class="nav-section">Inicio</div>
+    <a href="#intro">Introducción</a>
+    <a href="#nodos">Nodos del Datacenter</a>
+    <a href="#flujo">Flujo de Trabajo</a>
+    <a href="#comandos">Referencia de Comandos</a>
+
+    <div class="nav-section">Clases por Sesión</div>
+    <a class="session-link" href="#sesion1">Sesión 1 — Fundamentos</a>
+    <a class="sub" href="#s1-dos">DoS / DDoS / SYN Flood</a>
+    <a class="session-link" href="#sesion2">Sesión 2 — Autenticación</a>
+    <a class="sub" href="#s2-bf">Brute Force SSH</a>
+    <a class="sub" href="#s2-ps">Escaneo de Puertos</a>
+    <a class="session-link" href="#sesion3">Sesión 3 — Hardware</a>
+    <a class="sub" href="#s3-mem">Memory Leak</a>
+    <a class="sub" href="#s3-disk">Disk Failure</a>
+    <a class="session-link" href="#sesion4">Sesión 4 — SST / Físico</a>
+    <a class="sub" href="#s4-thermal">Sobrecalentamiento</a>
+    <a class="sub" href="#s4-smoke">Alerta de Humo</a>
+    <a class="sub" href="#s4-unauth">Acceso Físico No Autorizado</a>
+    <a class="session-link" href="#sesion5">Sesión 5 — SSL &amp; Evaluación</a>
+    <a class="sub" href="#s5-ssl">SSL Expirado / TLS Downgrade</a>
+
+    <div class="nav-section">Instructor</div>
+    <a href="#instructor">Panel del Instructor</a>
+    <a href="#eval">Evaluación y Puntaje</a>
+  </nav>
+</aside>
+
+<!-- ═══════════════ CONTENIDO ═══════════════ -->
+<main id="content">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>🛡️ Manual del Estudiante</h1>
+  <p class="subtitle">DC Monitoring Simulator — Guía completa de ataques, mitigaciones y procedimientos por sesión</p>
+  <div class="badges">
+    <span class="badge critical">Ataques de Red</span>
+    <span class="badge warning">Ataques de Autenticación</span>
+    <span class="badge info">Fallos de Hardware</span>
+    <span class="badge success">Eventos SST</span>
+  </div>
+</div>
+
+<!-- ═══ INTRODUCCIÓN ═══ -->
+<section class="section" id="intro">
+  <h2><span class="icon">📋</span>Introducción al Simulador</h2>
+  <p>El DC Monitoring Simulator replica un centro de datos real con 12 nodos activos. Tu rol es el de un <strong>analista SOC Jr.</strong>: detectar incidentes, analizarlos en el panel guiado, ejecutar comandos en terminal, y documentar en la bitácora.</p>
+
+  <div class="alert-box info">
+    <span class="icon">ℹ️</span>
+    <p><strong>URL de acceso:</strong> El instructor proporciona la URL en cada clase. Inicia sesión con tu correo y la contraseña que te asignó. Si olvidaste la contraseña, comunícate con el instructor.</p>
+  </div>
+
+  <h3>Roles en el sistema</h3>
+  <table class="node-table">
+    <thead><tr><th>Rol</th><th>Panel</th><th>Puede hacer</th></tr></thead>
+    <tbody>
+      <tr><td><span class="node-id">estudiante</span></td><td>Dashboard</td><td>Ver métricas, ejecutar comandos en terminal, usar panel guiado, llenar bitácora, revisar con IA</td></tr>
+      <tr><td><span class="node-id">instructor</span></td><td>Instructor</td><td>Desplegar ataques, ver estudiantes en tiempo real, evaluar bitácoras, gestionar grupos</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ NODOS ═══ -->
+<section class="section" id="nodos">
+  <h2><span class="icon">🖥️</span>Nodos del Datacenter</h2>
+  <p>El DC tiene 12 nodos distribuidos en capas. Cada nodo tiene un ID único que usarás en los comandos del terminal.</p>
+
+  <h3>Capa Perimetral</h3>
+  <table class="node-table">
+    <thead><tr><th>ID</th><th>Nombre</th><th>IP</th><th>Servicios</th><th>Zona</th></tr></thead>
+    <tbody>
+      <tr><td class="node-id">RTR-EDGE</td><td>Router de Borde</td><td class="node-ip">10.0.0.1</td><td>bgpd, ospfd</td><td>Rack-D</td></tr>
+      <tr><td class="node-id">FW-01</td><td>Firewall Principal</td><td class="node-ip">10.0.0.2</td><td>pf, ids</td><td>Rack-D</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Capa de Conmutación</h3>
+  <table class="node-table">
+    <thead><tr><th>ID</th><th>Nombre</th><th>IP</th><th>Tipo</th><th>Zona</th></tr></thead>
+    <tbody>
+      <tr><td class="node-id">SW-CORE</td><td>Switch Core</td><td class="node-ip">10.0.0.10</td><td>switch</td><td>Rack-D</td></tr>
+      <tr><td class="node-id">SW-ACC-01</td><td>Switch Acceso 01</td><td class="node-ip">10.0.0.11</td><td>switch</td><td>Rack-A</td></tr>
+      <tr><td class="node-id">SW-ACC-02</td><td>Switch Acceso 02</td><td class="node-ip">10.0.0.12</td><td>switch</td><td>Rack-B</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Servidores de Aplicación</h3>
+  <table class="node-table">
+    <thead><tr><th>ID</th><th>Nombre</th><th>IP</th><th>OS</th><th>Servicios</th></tr></thead>
+    <tbody>
+      <tr><td class="node-id">WEB-01</td><td>Web Server 01</td><td class="node-ip">10.0.1.10</td><td>Ubuntu 22.04</td><td>nginx, php-fpm, ssl</td></tr>
+      <tr><td class="node-id">WEB-02</td><td>Web Server 02</td><td class="node-ip">10.0.1.11</td><td>Ubuntu 22.04</td><td>nginx, php-fpm, ssl</td></tr>
+      <tr><td class="node-id">APP-01</td><td>App Server 01</td><td class="node-ip">10.0.3.10</td><td>Debian 12</td><td>python, fastapi, redis</td></tr>
+      <tr><td class="node-id">APP-02</td><td>App Server 02</td><td class="node-ip">10.0.3.11</td><td>Debian 12</td><td>python, fastapi, redis</td></tr>
+      <tr><td class="node-id">DB-01</td><td>Database Primary</td><td class="node-ip">10.0.2.10</td><td>CentOS 8</td><td>postgresql, pg_backup</td></tr>
+      <tr><td class="node-id">DB-02</td><td>Database Replica</td><td class="node-ip">10.0.2.11</td><td>CentOS 8</td><td>postgresql, replication</td></tr>
+      <tr><td class="node-id">STORAGE-01</td><td>Storage NAS</td><td class="node-ip">10.0.4.10</td><td>FreeNAS</td><td>iscsid, nfsd, raidmonitor</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert-box warn">
+    <span class="icon">⚠️</span>
+    <p>Los sensores SST (temperatura, humedad, humo) son independientes de los nodos de red. Se monitorean en la pestaña <strong>"SST / Ambiente"</strong> del dashboard.</p>
+  </div>
+</section>
+
+<!-- ═══ FLUJO DE TRABAJO ═══ -->
+<section class="section" id="flujo">
+  <h2><span class="icon">🔄</span>Flujo de Trabajo Estándar</h2>
+  <p>Cada incidente sigue el mismo ciclo de 4 pasos. Memoriza este flujo — lo aplicarás en cada ataque:</p>
+
+  <div class="mission-flow">
+    <div class="mf-step"><span class="mf-num">1</span><span class="mf-label">Terminal</span></div>
+    <div class="mf-step"><span class="mf-num">2</span><span class="mf-label">Panel Guiado</span></div>
+    <div class="mf-step"><span class="mf-num">3</span><span class="mf-label">Firewall</span></div>
+    <div class="mf-step"><span class="mf-num">4</span><span class="mf-label">Bitácora</span></div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h5>Terminal — Detectar</h5>
+        <p>Abre la terminal del nodo afectado. Ejecuta <code>netstat -an</code>, <code>tail -f /var/log/syslog</code> y <code>ps aux</code> para identificar el tipo de ataque y la IP atacante.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num green">2</div>
+      <div class="step-content">
+        <h5>Panel Guiado — Analizar y Clasificar</h5>
+        <p>En el panel guiado, responde las 4 preguntas (DETECTAR → ANALIZAR → CLASIFICAR → MITIGAR). Usa las pistas si te bloqueas, pero cada pista reduce el puntaje.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num yellow">3</div>
+      <div class="step-content">
+        <h5>Firewall — Bloquear IP atacante</h5>
+        <p>En la pestaña Firewall, agrega la regla <code>iptables -A INPUT -s &lt;IP_ATACANTE&gt; -j DROP</code>. También puedes usar la terminal del nodo con el mismo comando.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num red">4</div>
+      <div class="step-content">
+        <h5>Bitácora — Documentar</h5>
+        <p>Completa los 4 campos: síntomas observados, causa raíz, acciones tomadas, lecciones aprendidas. Usa "✨ Revisar con IA" para obtener retroalimentación antes de guardar.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Las 4 preguntas del Panel Guiado</h3>
+  <table class="node-table">
+    <thead><tr><th>Fase</th><th>Pregunta que responde</th><th>Qué buscar</th></tr></thead>
+    <tbody>
+      <tr><td><strong>DETECTAR</strong></td><td>¿Qué anomalía observas?</td><td>Métricas fuera de rango (CPU, RAM, red, latencia)</td></tr>
+      <tr><td><strong>ANALIZAR</strong></td><td>¿Cuáles son los IOCs?</td><td>IPs sospechosas, procesos extraños, mensajes de syslog</td></tr>
+      <tr><td><strong>CLASIFICAR</strong></td><td>¿Qué tipo de incidente es?</td><td>Categoría: ataque de red / hardware / SST / SSL</td></tr>
+      <tr><td><strong>MITIGAR</strong></td><td>¿Qué acción tomas?</td><td>Bloqueo de IP, reinicio de servicio, escalada, etc.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ REFERENCIA DE COMANDOS ═══ -->
+<section class="section" id="comandos">
+  <h2><span class="icon">💻</span>Referencia de Comandos — Terminal</h2>
+  <p>Todos estos comandos se ejecutan en la terminal del nodo seleccionado dentro del simulador.</p>
+
+  <div class="terminal">
+    <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — help</span></div>
+    <div class="terminal-body">
+<span class="cmd">help</span>
+<span class="out">Comandos disponibles:</span>
+<span class="out">  netstat -an              lista conexiones de red</span>
+<span class="out">  ps aux                   lista procesos</span>
+<span class="out">  ping &lt;node_id&gt;           prueba conectividad a un nodo</span>
+<span class="out">  iptables -L              lista reglas de firewall</span>
+<span class="out">  iptables -A INPUT ...    agrega una regla</span>
+<span class="out">  tail -f /var/log/syslog  últimas líneas del log de sistema</span>
+<span class="out">  systemctl status &lt;svc&gt;   estado de un servicio</span>
+<span class="out">  systemctl restart &lt;svc&gt;  reinicia un servicio</span>
+<span class="out">  df -h                    uso de disco</span>
+<span class="out">  free -m                  uso de memoria</span>
+<span class="out">  tcpdump -i eth0          captura de paquetes</span>
+<span class="out">  help                     muestra esta ayuda</span>
+<span class="out">  clear                    limpia la pantalla</span>
+    </div>
+  </div>
+
+  <h3>Tabla de comandos por escenario</h3>
+  <table class="node-table">
+    <thead><tr><th>Comando</th><th>Cuándo usarlo</th><th>Lo que revela</th></tr></thead>
+    <tbody>
+      <tr><td class="node-id">netstat -an</td><td>Siempre como primer paso</td><td>Conexiones activas, puertos escuchando, IPs conectadas</td></tr>
+      <tr><td class="node-id">tail -f /var/log/syslog</td><td>Cuando hay anomalías en logs</td><td>Mensajes del kernel, intentos SSH, errores de disco</td></tr>
+      <tr><td class="node-id">ps aux</td><td>CPU/RAM alto sospechoso</td><td>Procesos corriendo; en ataques muestra: flood.sh, hydra, nmap, backdoor.sh</td></tr>
+      <tr><td class="node-id">tcpdump -i eth0</td><td>Tráfico anómalo de red</td><td>Captura de paquetes en tiempo real</td></tr>
+      <tr><td class="node-id">free -m</td><td>RAM al límite</td><td>Memoria total, usada, libre y swap</td></tr>
+      <tr><td class="node-id">df -h</td><td>Disco con alto I/O</td><td>Uso de particiones</td></tr>
+      <tr><td class="node-id">iptables -L</td><td>Verificar reglas activas</td><td>Lista todas las reglas INPUT/OUTPUT actuales</td></tr>
+      <tr><td class="node-id">iptables -A INPUT -s &lt;IP&gt; -j DROP</td><td>Bloquear atacante</td><td>Agrega regla de bloqueo para la IP especificada</td></tr>
+      <tr><td class="node-id">systemctl status nginx</td><td>Servicio web caído</td><td>Estado, PID, últimas líneas del log del servicio</td></tr>
+      <tr><td class="node-id">systemctl restart nginx</td><td>Servicio degradado</td><td>Reinicia el servicio (usar tras mitigación)</td></tr>
+      <tr><td class="node-id">ping FW-01</td><td>Verificar conectividad</td><td>Latencia y pérdida de paquetes hacia otro nodo</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<hr class="divider">
+
+<!-- ══════════════════════════════════════════════════════════
+     SESIÓN 1 — DoS / DDoS / SYN FLOOD
+     ══════════════════════════════════════════════════════════ -->
+<section class="section" id="sesion1">
+  <span class="session-pill">📅 Sesión 1</span>
+  <h2><span class="icon">🌊</span>Ataques de Volumetría de Red</h2>
+  <p>En esta sesión aprenderás a identificar y mitigar ataques que saturan el ancho de banda o las tablas de conexión del servidor.</p>
+
+  <div class="session-card">
+    <h3>Objetivo de la sesión</h3>
+    <p class="meta">Duración: 4 horas — Ataques practicados: DoS, DDoS, SYN Flood</p>
+    <p>Al finalizar debes poder distinguir los tres ataques por sus síntomas, saber qué comando ejecutar primero y completar la bitácora con al menos 75% de puntaje.</p>
+    <div>
+      <span class="attack-tag red">DoS</span>
+      <span class="attack-tag red">DDoS</span>
+      <span class="attack-tag red">SYN Flood</span>
+    </div>
+  </div>
+
+  <!-- DoS -->
+  <div class="attack-card" id="s1-dos">
+    <div class="attack-header">
+      <div class="attack-type-icon dos">🌊</div>
+      <div class="attack-header-info">
+        <h3>Ataque DoS (Denial of Service)</h3>
+        <p>Inundación de paquetes desde <strong>una sola IP</strong>. Satura el ancho de banda del nodo objetivo.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas (métricas)</div>
+          <ul>
+            <li>Net In &gt; 800 Mbps</li>
+            <li>Latencia &gt; 200 ms</li>
+            <li>Pérdida de paquetes &gt; 10%</li>
+            <li>CPU alta por proceso de red</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🎯 Nodos objetivo comunes</div>
+          <ul>
+            <li>WEB-01, WEB-02 (más expuestos)</li>
+            <li>APP-01, APP-02</li>
+            <li>FW-01 (puede saturarse)</li>
+            <li>RTR-EDGE</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Comando en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — Detectar DoS</span></div>
+        <div class="terminal-body">
+<span class="cmd">netstat -an</span>
+<span class="out">Active Internet connections (servers and established)</span>
+<span class="out">Proto Recv-Q Send-Q Local Address           Foreign Address         State</span>
+<span class="out alert">tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN</span>
+<span class="out alert">tcp   128000      0 10.0.1.10:80            203.0.113.45:5421       ESTABLISHED</span>
+<span class="out alert">tcp   128000      0 10.0.1.10:80            203.0.113.45:5422       ESTABLISHED</span>
+<span class="out alert">tcp   128000      0 10.0.1.10:80            203.0.113.45:5423       ESTABLISHED</span>
+<span class="out">... (cientos de conexiones desde la misma IP)</span>
+<br>
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">kernel: [4721.334] possible SYN flood on eth0. Sending cookies.</span>
+<span class="out alert">kernel: [4721.335] possible SYN flood on eth0. Sending cookies.</span>
+<span class="out alert">kernel: [4721.336] possible SYN flood on eth0. Sending cookies.</span>
+<br>
+<span class="cmd">ps aux</span>
+<span class="out">root      1337  99.0  0.1  flood.sh --target 10.0.1.10 --port 80</span>
+        </div>
+      </div>
+
+      <div class="alert-box warn">
+        <span class="icon">🔍</span>
+        <p><strong>IOC clave:</strong> Cientos de conexiones desde <em>la misma IP</em> (en el ejemplo: <code>203.0.113.45</code>). Si las IPs son <em>diferentes</em>, es un DDoS — ver sección siguiente.</p>
+      </div>
+
+      <h4>Paso 2 — Panel Guiado (respuestas esperadas)</h4>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h5>DETECTAR</h5>
+            <p>Selecciona: <em>"Tráfico de red entrante extremadamente alto"</em> o <em>"Latencia superior a 200ms en el nodo"</em></p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num green">2</div>
+          <div class="step-content">
+            <h5>ANALIZAR</h5>
+            <p>IOC: <em>"Múltiples conexiones desde una sola IP"</em> + proceso <code>flood.sh</code> en ps aux</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num yellow">3</div>
+          <div class="step-content">
+            <h5>CLASIFICAR</h5>
+            <p>Tipo: <em>"Ataque DoS"</em> — una sola fuente (vs. DDoS que son múltiples fuentes)</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num red">4</div>
+          <div class="step-content">
+            <h5>MITIGAR</h5>
+            <p>Acción: <em>"Bloquear IP atacante con iptables"</em> + <em>"Activar rate limiting en FW-01"</em></p>
+          </div>
+        </div>
+      </div>
+
+      <h4>Paso 3 — Bloquear en Firewall / Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — Bloquear atacante</span></div>
+        <div class="terminal-body">
+<span class="cmd">iptables -A INPUT -s 203.0.113.45 -j DROP</span>
+<span class="out ok">Regla agregada: DROP desde 203.0.113.45</span>
+<br>
+<span class="cmd">iptables -L</span>
+<span class="out">Chain INPUT (policy ACCEPT)</span>
+<span class="out">target     prot opt source               destination</span>
+<span class="out">ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0   tcp dpt:80</span>
+<span class="out ok">DROP       all  --  203.0.113.45         0.0.0.0/0</span>
+<br>
+<span class="cmd">netstat -an</span>
+<span class="out ok">Active connections: 12   (normalizado)</span>
+        </div>
+      </div>
+
+      <h4>Paso 4 — Bitácora (qué escribir)</h4>
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">Síntomas observados</div>
+          <ul>
+            <li>Net In supera 800 Mbps</li>
+            <li>Cientos de conexiones desde 203.0.113.45</li>
+            <li>Latencia &gt;200 ms en WEB-01</li>
+            <li>Proceso flood.sh encontrado en ps aux</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">Acciones tomadas</div>
+          <ul>
+            <li>netstat -an → IP atacante identificada</li>
+            <li>tail syslog → confirmado SYN flood</li>
+            <li>iptables DROP 203.0.113.45</li>
+            <li>Verificado con netstat post-bloqueo</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DDoS -->
+  <div class="attack-card">
+    <div class="attack-header">
+      <div class="attack-type-icon dos">🌪️</div>
+      <div class="attack-header-info">
+        <h3>Ataque DDoS (Distributed Denial of Service)</h3>
+        <p>Ataque coordinado desde <strong>múltiples IPs</strong>. Alta volumetría, difícil de bloquear por IP única.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas (métricas)</div>
+          <ul>
+            <li>Net In &gt; 900 Mbps</li>
+            <li>Conexiones activas &gt; 50,000</li>
+            <li>Pérdida de paquetes &gt; 25%</li>
+            <li>Todo el nodo degradado</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🔑 Diferencia clave vs. DoS</div>
+          <ul>
+            <li>DoS: una sola IP de origen</li>
+            <li>DDoS: decenas/cientos de IPs distintas</li>
+            <li>DDoS es más difícil de mitigar</li>
+            <li>Requiere protección upstream</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Comando en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — Detectar DDoS</span></div>
+        <div class="terminal-body">
+<span class="cmd">netstat -an</span>
+<span class="out alert">tcp  0  0 10.0.1.10:80  185.220.101.12:4123  ESTABLISHED</span>
+<span class="out alert">tcp  0  0 10.0.1.10:80  45.153.240.89:7891   ESTABLISHED</span>
+<span class="out alert">tcp  0  0 10.0.1.10:80  194.165.16.72:9123   ESTABLISHED</span>
+<span class="out alert">tcp  0  0 10.0.1.10:80  91.108.56.181:3421   ESTABLISHED</span>
+<span class="out">... (+50,000 conexiones desde IPs distintas)</span>
+<br>
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">kernel: [5891.112] possible SYN flood on eth0. Sending cookies.</span>
+<span class="out alert">kernel: [5891.113] nf_conntrack: table full, dropping packet</span>
+<span class="out alert">kernel: [5891.114] nf_conntrack: table full, dropping packet</span>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas DDoS</h4>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num yellow">3</div>
+          <div class="step-content">
+            <h5>CLASIFICAR (diferenciador)</h5>
+            <p>Tipo: <em>"Ataque DDoS Distribuido"</em> — múltiples fuentes coordinadas. Pérdida de paquetes &gt;25%.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num red">4</div>
+          <div class="step-content">
+            <h5>MITIGAR (diferente al DoS)</h5>
+            <p>Acción: <em>"Activar scrubbing center / CDN"</em> + <em>"Implementar blackhole routing (RTBH)"</em> + <em>"Contactar proveedor upstream"</em></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-box info">
+        <span class="icon">💡</span>
+        <p>En el simulador, la mitigación de DDoS se registra en el panel guiado. No puedes bloquear cien IPs una a una — la respuesta correcta es escalar al ISP y usar protección de red.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYN Flood -->
+  <div class="attack-card">
+    <div class="attack-header">
+      <div class="attack-type-icon dos">⚡</div>
+      <div class="attack-header-info">
+        <h3>SYN Flood</h3>
+        <p>Explotación del handshake TCP. Agota la tabla de conexiones semi-abiertas del kernel.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas</div>
+          <ul>
+            <li>Conexiones activas &gt; 60,000</li>
+            <li>CPU &gt; 85%</li>
+            <li>Latencia &gt; 300 ms</li>
+            <li>Estado SYN_RECV masivo en netstat</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🔑 Cómo identificarlo</div>
+          <ul>
+            <li>Miles de conexiones en estado SYN_RECV</li>
+            <li>Proceso: <code>synflooder</code> en ps aux</li>
+            <li>Mensaje kernel: "Sending cookies" en syslog</li>
+            <li>Servidor no puede aceptar conexiones legítimas</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Comando en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — Detectar SYN Flood</span></div>
+        <div class="terminal-body">
+<span class="cmd">netstat -an</span>
+<span class="out alert">tcp  0  0 10.0.1.10:80  198.51.100.7:11234  SYN_RECV</span>
+<span class="out alert">tcp  0  0 10.0.1.10:80  198.51.100.7:11235  SYN_RECV</span>
+<span class="out alert">tcp  0  0 10.0.1.10:80  198.51.100.7:11236  SYN_RECV</span>
+<span class="out">... (60,000+ en estado SYN_RECV)</span>
+<br>
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">kernel: [8321.445] possible SYN flood on eth0. Sending cookies.</span>
+<span class="out alert">kernel: [8321.446] possible SYN flood on eth0. Sending cookies.</span>
+<br>
+<span class="cmd">ps aux</span>
+<span class="out">root  2891  98.5  0.2  synflooder --target 10.0.1.10</span>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas SYN Flood</h4>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num yellow">3</div>
+          <div class="step-content">
+            <h5>CLASIFICAR</h5>
+            <p>Tipo: <em>"SYN Flood"</em> — muchas conexiones en SYN_RECV, proceso <code>synflooder</code>, mensaje "Sending cookies" en kernel.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num red">4</div>
+          <div class="step-content">
+            <h5>MITIGAR</h5>
+            <p><em>"Habilitar SYN Cookies en el kernel"</em> + <em>"Implementar SYN proxy en el firewall"</em> + bloquear IP origen con iptables.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SESIÓN 2 — BRUTE FORCE + PORT SCAN
+     ══════════════════════════════════════════════════════════ -->
+<section class="section" id="sesion2">
+  <span class="session-pill">📅 Sesión 2</span>
+  <h2><span class="icon">🔐</span>Ataques de Autenticación y Reconocimiento</h2>
+
+  <div class="session-card">
+    <h3>Objetivo de la sesión</h3>
+    <p class="meta">Duración: 4 horas — Ataques practicados: Brute Force SSH, Escaneo de Puertos</p>
+    <p>Identificar intentos de acceso y reconocimiento, bloquear al atacante y fortalecer la configuración SSH.</p>
+    <div>
+      <span class="attack-tag yellow">Brute Force</span>
+      <span class="attack-tag cyan">Port Scan</span>
+    </div>
+  </div>
+
+  <!-- BRUTE FORCE -->
+  <div class="attack-card" id="s2-bf">
+    <div class="attack-header">
+      <div class="attack-type-icon bf">🔑</div>
+      <div class="attack-header-info">
+        <h3>Brute Force SSH</h3>
+        <p>Intentos masivos de autenticación SSH — el atacante usa <code>hydra</code> para probar contraseñas.</p>
+      </div>
+      <span class="badge warning">ADVERTENCIA</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas</div>
+          <ul>
+            <li>Más de 100 fallos de auth por minuto</li>
+            <li>Conexiones entrantes en puerto 22 masivas</li>
+            <li>Proceso <code>hydra</code> en ps aux</li>
+            <li>Mensajes "Failed password" en syslog</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🎯 Nodos objetivo</div>
+          <ul>
+            <li>WEB-01, WEB-02 (SSH expuesto)</li>
+            <li>APP-01, APP-02</li>
+            <li>DB-01, DB-02 (crítico — proteger)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Comandos en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">APP-01 — Detectar Brute Force SSH</span></div>
+        <div class="terminal-body">
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">sshd[4521]: Failed password for root from 192.168.1.200 port 43210 ssh2</span>
+<span class="out alert">sshd[4522]: Failed password for root from 192.168.1.200 port 43211 ssh2</span>
+<span class="out alert">sshd[4523]: Failed password for admin from 192.168.1.200 port 43212 ssh2</span>
+<span class="out alert">sshd[4524]: Failed password for ubuntu from 192.168.1.200 port 43213 ssh2</span>
+<span class="out">... (cientos por minuto desde la misma IP)</span>
+<br>
+<span class="cmd">netstat -an</span>
+<span class="out alert">tcp  0  0 10.0.3.10:22  192.168.1.200:43210  ESTABLISHED</span>
+<span class="out alert">tcp  0  0 10.0.3.10:22  192.168.1.200:43211  TIME_WAIT</span>
+<span class="out alert">tcp  0  0 10.0.3.10:22  192.168.1.200:43212  TIME_WAIT</span>
+<span class="out">(muchas conexiones al puerto 22)</span>
+<br>
+<span class="cmd">ps aux</span>
+<span class="out">attacker  5501  85.2  0.4  hydra -l root -P wordlist.txt ssh://10.0.3.10</span>
+        </div>
+      </div>
+
+      <h4>Paso 2 — Panel Guiado</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"Múltiples intentos de autenticación fallidos en SSH"</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: IP 192.168.1.200 intentando usuarios root, admin, ubuntu. Proceso hydra visible en ps aux.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Ataque Brute Force SSH" — intentos de diccionario sobre el servicio SSH.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Bloquear IP con fail2ban / iptables" + "Revisar /var/log/auth.log" + "Deshabilitar login por contraseña"</p></div></div>
+      </div>
+
+      <h4>Paso 3 — Bloquear en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">APP-01 — Bloquear Brute Force</span></div>
+        <div class="terminal-body">
+<span class="cmd">iptables -A INPUT -s 192.168.1.200 -j DROP</span>
+<span class="out ok">Regla DROP agregada para 192.168.1.200</span>
+<br>
+<span class="cmd">systemctl status sshd</span>
+<span class="out ok">● sshd.service - OpenSSH server daemon</span>
+<span class="out ok">   Active: active (running) since ...</span>
+<span class="out">   Main PID: 1234 (sshd)</span>
+<br>
+<span class="cmd">iptables -L</span>
+<span class="out ok">DROP  all  --  192.168.1.200  0.0.0.0/0</span>
+        </div>
+      </div>
+
+      <h4>Paso 4 — Bitácora</h4>
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">Síntomas observados</div>
+          <ul>
+            <li>+100 "Failed password" por minuto en syslog</li>
+            <li>IP 192.168.1.200 en puerto 22</li>
+            <li>Proceso hydra corriendo en el nodo</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">Lecciones aprendidas</div>
+          <ul>
+            <li>Usar autenticación por llave pública SSH</li>
+            <li>Cambiar puerto SSH a número no estándar</li>
+            <li>Activar fail2ban para bloqueo automático</li>
+            <li>Monitorear /var/log/auth.log regularmente</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORT SCAN -->
+  <div class="attack-card" id="s2-ps">
+    <div class="attack-header">
+      <div class="attack-type-icon ps">🔭</div>
+      <div class="attack-header-info">
+        <h3>Escaneo de Puertos (Port Scan)</h3>
+        <p>Reconocimiento activo — el atacante usa <code>nmap</code> para mapear servicios expuestos.</p>
+      </div>
+      <span class="badge warning">ADVERTENCIA</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas</div>
+          <ul>
+            <li>Pico de Net In desde una sola IP</li>
+            <li>Conexiones a múltiples puertos diferentes desde la misma IP</li>
+            <li>Proceso <code>nmap</code> en ps aux</li>
+            <li>Mensajes "table full, dropping packet" en syslog</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">⚠️ ¿Por qué es peligroso?</div>
+          <ul>
+            <li>El scan en sí no es el ataque final</li>
+            <li>Permite al atacante planear el ataque real</li>
+            <li>Indica que el DC está siendo mapeado</li>
+            <li>Debe documentarse como "reconocimiento"</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Comandos en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">FW-01 — Detectar Port Scan</span></div>
+        <div class="terminal-body">
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">kernel: [3421.221] nf_conntrack: table full, dropping packet from 10.1.0.55</span>
+<span class="out alert">kernel: [3421.222] nf_conntrack: table full, dropping packet from 10.1.0.55</span>
+<span class="out alert">kernel: [3421.223] nf_conntrack: table full, dropping packet from 10.1.0.55</span>
+<br>
+<span class="cmd">netstat -an</span>
+<span class="out alert">tcp  0  0 10.0.0.2:21   10.1.0.55:52001  TIME_WAIT</span>
+<span class="out alert">tcp  0  0 10.0.0.2:22   10.1.0.55:52002  TIME_WAIT</span>
+<span class="out alert">tcp  0  0 10.0.0.2:23   10.1.0.55:52003  TIME_WAIT</span>
+<span class="out alert">tcp  0  0 10.0.0.2:25   10.1.0.55:52004  TIME_WAIT</span>
+<span class="out alert">tcp  0  0 10.0.0.2:80   10.1.0.55:52005  TIME_WAIT</span>
+<span class="out">(misma IP, muchos puertos diferentes → scan)</span>
+<br>
+<span class="cmd">ps aux</span>
+<span class="out">scanner  7891  45.0  0.3  nmap -sS -p 1-65535 10.0.0.0/24</span>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas Port Scan</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"Conexiones a múltiples puertos desde una sola IP en tiempo corto"</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: IP 10.1.0.55 conectándose a puertos 21, 22, 23, 25, 80, 443... en secuencia rápida. Proceso nmap en ps aux.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Escaneo de Puertos / Reconocimiento activo" — no es un ataque destructivo pero precede uno.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Bloquear IP en firewall" + "Revisar qué puertos fueron escaneados" + "Verificar que no hay puertos innecesarios abiertos"</p></div></div>
+      </div>
+
+      <h4>Paso 3 — Bloquear y Verificar</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">FW-01 — Bloquear escáner</span></div>
+        <div class="terminal-body">
+<span class="cmd">iptables -A INPUT -s 10.1.0.55 -j DROP</span>
+<span class="out ok">Regla DROP agregada para 10.1.0.55</span>
+<br>
+<span class="cmd">iptables -L</span>
+<span class="out">Chain INPUT (policy ACCEPT)</span>
+<span class="out ok">DROP  all  --  10.1.0.55  0.0.0.0/0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SESIÓN 3 — HARDWARE
+     ══════════════════════════════════════════════════════════ -->
+<section class="section" id="sesion3">
+  <span class="session-pill">📅 Sesión 3</span>
+  <h2><span class="icon">💾</span>Fallos de Hardware</h2>
+
+  <div class="session-card">
+    <h3>Objetivo de la sesión</h3>
+    <p class="meta">Duración: 4 horas — Eventos: Memory Leak, Disk Failure</p>
+    <p>Los fallos de hardware no son ataques externos — son problemas internos del servidor que debes detectar por síntomas graduales y tomar acción antes de que causen pérdida de datos.</p>
+    <div>
+      <span class="attack-tag yellow">Memory Leak</span>
+      <span class="attack-tag yellow">Disk Failure</span>
+    </div>
+  </div>
+
+  <!-- MEMORY LEAK -->
+  <div class="attack-card" id="s3-mem">
+    <div class="attack-header">
+      <div class="attack-type-icon hw">🧠</div>
+      <div class="attack-header-info">
+        <h3>Memory Leak (Fuga de Memoria)</h3>
+        <p>Un proceso consume RAM progresivamente (+2% por minuto). El OOM Killer del kernel termina procesos.</p>
+      </div>
+      <span class="badge warning">ADVERTENCIA</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas</div>
+          <ul>
+            <li>RAM sube gradualmente cada minuto</li>
+            <li>Swap activo (señal de RAM casi llena)</li>
+            <li>OOM Killer mata procesos</li>
+            <li>Proceso <code>leaky_app</code> en ps aux</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🎯 Nodos objetivo</div>
+          <ul>
+            <li>WEB-01, WEB-02</li>
+            <li>APP-01, APP-02 (más común)</li>
+            <li>DB-01, DB-02 (crítico)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Comandos en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">APP-02 — Detectar Memory Leak</span></div>
+        <div class="terminal-body">
+<span class="cmd">free -m</span>
+<span class="out">              total        used        free      shared  buff/cache   available</span>
+<span class="out alert">Mem:          48000       46820         140          0         1040         180</span>
+<span class="out alert">Swap:          8192        7891         301</span>
+<span class="out warn">(RAM al 97.5%, swap casi lleno — crítico)</span>
+<br>
+<span class="cmd">ps aux</span>
+<span class="out">USER      PID  %CPU  %MEM  COMMAND</span>
+<span class="out alert">root     3341  15.2  45.8  leaky_app --mode continuous</span>
+<span class="out">www-data 1234   2.1   8.4  nginx: worker process</span>
+<span class="out">postgres 2891   3.4  12.1  postgres: main</span>
+<br>
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">kernel: [9821.334] Out of memory: Killed process 4521 (php-fpm)</span>
+<span class="out alert">kernel: [9821.445] Out of memory: Killed process 4522 (cron)</span>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas Memory Leak</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"RAM sube progresivamente sin causa aparente" + swap activo</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: proceso <code>leaky_app</code> consumiendo 45.8% RAM. Mensaje "Out of memory: Killed process" en syslog.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Memory Leak — fallo de software" — no es un ataque externo sino un bug interno del proceso.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Reiniciar el servicio afectado" + "Implementar watchdog" + "Actualizar/parchear leaky_app"</p></div></div>
+      </div>
+
+      <h4>Paso 3 — Reiniciar Servicio</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">APP-02 — Mitigar Memory Leak</span></div>
+        <div class="terminal-body">
+<span class="cmd">systemctl restart leaky_app</span>
+<span class="out ok">leaky_app reiniciado correctamente</span>
+<br>
+<span class="cmd">free -m</span>
+<span class="out ok">Mem:  48000  18450  28550  0  1000  29000</span>
+<span class="out ok">Swap: 8192   200    7992</span>
+<span class="out ok">(RAM normalizada tras reinicio)</span>
+        </div>
+      </div>
+
+      <div class="alert-box warn">
+        <span class="icon">⚠️</span>
+        <p><strong>Importante:</strong> El reinicio es temporal. La lección correcta es actualizar el proceso o implementar un watchdog que lo reinicie automáticamente cuando supere un umbral de RAM.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISK FAILURE -->
+  <div class="attack-card" id="s3-disk">
+    <div class="attack-header">
+      <div class="attack-type-icon hw">💿</div>
+      <div class="attack-header-info">
+        <h3>Falla de Disco RAID</h3>
+        <p>Un disco del array RAID reporta errores SMART. Degradación progresiva del I/O.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas</div>
+          <ul>
+            <li>Disk I/O &gt; 400 Mbps sostenido</li>
+            <li>Errores SMART en syslog</li>
+            <li>I/O wait elevado</li>
+            <li>Aplicaciones lentas o timeout</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🎯 Nodos objetivo</div>
+          <ul>
+            <li>STORAGE-01 (primario)</li>
+            <li>DB-01, DB-02 (alto riesgo)</li>
+            <li>WEB-01, WEB-02 (logs)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Comandos en Terminal</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">STORAGE-01 — Detectar Disk Failure</span></div>
+        <div class="terminal-body">
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">kernel: [12341.221] sd 2:0:0:0: [sda] tag#8821 FAILED Result: hostbyte=DID_OK driverbyte=DRIVER_SENSE</span>
+<span class="out alert">kernel: [12341.222] sd 2:0:0:0: [sda] tag#8822 FAILED Result: hostbyte=DID_OK driverbyte=DRIVER_SENSE</span>
+<span class="out alert">kernel: [12341.223] end_request: I/O error, dev sda, sector 1048576</span>
+<br>
+<span class="cmd">df -h</span>
+<span class="out">Filesystem      Size  Used Avail Use% Mounted on</span>
+<span class="out alert">/dev/md0        2.0T  1.8T  200G  90% /data</span>
+<span class="out warn">(uso alto + RAID degradado)</span>
+<br>
+<span class="cmd">ps aux</span>
+<span class="out">root  6771  22.3  0.1  raidmonitor --alert DISK_SMART_FAIL</span>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas Disk Failure</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"I/O de disco extremadamente alto" + errores en syslog</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: mensajes "FAILED Result: DRIVER_SENSE" en syslog. Proceso raidmonitor alertando DISK_SMART_FAIL.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Falla de Disco RAID — fallo de hardware" — no es un ataque, es degradación física del disco.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Verificar estado RAID con mdadm" + "Crear snapshot de datos" + "Ordenar disco de reemplazo"</p></div></div>
+      </div>
+
+      <div class="alert-box danger">
+        <span class="icon">🚨</span>
+        <p><strong>Escalada urgente:</strong> Un disco RAID fallando puede colapsar el array completo si un segundo disco falla antes de reemplazar el primero. <strong>Notificar al instructor inmediatamente</strong> si ves este evento en un nodo DB.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SESIÓN 4 — SST / FÍSICO
+     ══════════════════════════════════════════════════════════ -->
+<section class="section" id="sesion4">
+  <span class="session-pill">📅 Sesión 4</span>
+  <h2><span class="icon">🌡️</span>Eventos SST (Seguridad y Soporte Técnico Físico)</h2>
+
+  <div class="session-card">
+    <h3>Objetivo de la sesión</h3>
+    <p class="meta">Duración: 4 horas — Eventos: Sobrecalentamiento, Alerta de Humo, Acceso No Autorizado</p>
+    <p>Los eventos SST son emergencias físicas del datacenter. Se monitorean en la pestaña <strong>"SST / Ambiente"</strong> — no en la terminal de nodos. Requieren acción inmediata y escalada a seguridad física.</p>
+    <div>
+      <span class="attack-tag red">Sobrecalentamiento</span>
+      <span class="attack-tag red">Alerta de Humo</span>
+      <span class="attack-tag red">Acceso No Autorizado</span>
+    </div>
+  </div>
+
+  <div class="alert-box info">
+    <span class="icon">📍</span>
+    <p><strong>¿Dónde ver los eventos SST?</strong> En el dashboard del estudiante, haz clic en la pestaña <strong>"SST / Ambiente"</strong>. Verás sensores de temperatura, humedad, humo y acceso físico en tiempo real.</p>
+  </div>
+
+  <!-- THERMAL -->
+  <div class="attack-card" id="s4-thermal">
+    <div class="attack-header">
+      <div class="attack-type-icon sst">🌡️</div>
+      <div class="attack-header-info">
+        <h3>Sobrecalentamiento (Thermal Event)</h3>
+        <p>Falla de unidad CRAC. Temperatura sube 0.5°C por minuto. Los CPUs hacen throttling.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas en panel SST</div>
+          <ul>
+            <li>Temperatura zona &gt; 28°C</li>
+            <li>Sensor TEMP-RACK-A o B en alerta</li>
+            <li>Fan speed al máximo</li>
+            <li>CPU throttling en servidores del rack</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🚨 Síntomas en terminal de nodo</div>
+          <ul>
+            <li>CPU alto inusual (throttling)</li>
+            <li>Latencia aumentada</li>
+            <li>Mensaje kernel "Core temperature above threshold"</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Verificar en Terminal del Nodo</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — Detectar Sobrecalentamiento</span></div>
+        <div class="terminal-body">
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">kernel: [15721.001] CPU0: Core temperature above threshold, cpu clock throttled</span>
+<span class="out alert">kernel: [15721.002] CPU1: Core temperature above threshold, cpu clock throttled</span>
+<span class="out alert">kernel: [15721.003] CPU0: Core temperature above threshold, cpu clock throttled</span>
+<br>
+<span class="cmd">ps aux</span>
+<span class="out warn">USER     PID  %CPU  COMMAND</span>
+<span class="out warn">root     1234   8.5  nginx: master (performance reducido por throttling)</span>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas Thermal</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"Temperatura de zona supera los 28°C" — verificar panel SST primero.</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: sensor TEMP-RACK-A registrando >28°C. Kernel throttling en servidores del rack afectado.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Sobrecalentamiento / Falla CRAC" — evento físico, no un ataque de red.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Verificar unidades CRAC" + "Activar enfriamiento de emergencia" + "Migrar cargas a otros racks" + "Apagar servidores no críticos"</p></div></div>
+      </div>
+
+      <h4>Respuesta esperada por nodo</h4>
+      <table class="node-table">
+        <thead><tr><th>Nodo</th><th>Prioridad de apagado</th><th>Acción</th></tr></thead>
+        <tbody>
+          <tr><td class="node-id">WEB-01, WEB-02</td><td>Baja (apagar primero)</td><td>Migrar tráfico a WEB-02/WEB-01 respectivamente</td></tr>
+          <tr><td class="node-id">APP-01, APP-02</td><td>Media</td><td>Reducir carga, mantener mínimo</td></tr>
+          <tr><td class="node-id">DB-01, DB-02</td><td>Alta (apagar último)</td><td>No apagar hasta tener réplica confirmada</td></tr>
+          <tr><td class="node-id">STORAGE-01</td><td>Alta</td><td>Proteger datos — apagar solo si temperatura crítica</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SMOKE ALERT -->
+  <div class="attack-card" id="s4-smoke">
+    <div class="attack-header">
+      <div class="attack-type-icon sst">🔥</div>
+      <div class="attack-header-info">
+        <h3>Alerta de Humo / Incendio</h3>
+        <p>Sensor de humo detecta partículas por encima del umbral. Posible inicio de incendio.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas en panel SST</div>
+          <ul>
+            <li>Sensor SMOKE-RACK-A o B activado</li>
+            <li>smoke_ppm &gt; 10 ppm</li>
+            <li>Puede combinarse con temperatura alta</li>
+            <li>Alarma sonora activada (en DC real)</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🔑 Protocolo de respuesta</div>
+          <ul>
+            <li>1. Verificar físicamente la zona</li>
+            <li>2. Activar FM-200 si confirmado</li>
+            <li>3. Evacuar personal del DC</li>
+            <li>4. Llamar bomberos si hay fuego real</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas Smoke Alert</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"Sensor de humo activado — smoke_ppm supera 10 ppm"</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: sensor SMOKE-RACK-A con alerta CRITICAL. Temperatura de la zona también puede estar elevada.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Alerta de incendio / Humo en DC" — emergencia física que requiere evacuación.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Verificar físicamente" + "Activar FM-200" + "Evacuar personal" + "Llamar bomberos" + "Activar BCP"</p></div></div>
+      </div>
+
+      <div class="alert-box danger">
+        <span class="icon">🚨</span>
+        <p><strong>En el simulador:</strong> Este evento aparece solo en el panel SST. No hay comandos de terminal para este evento — la respuesta es 100% en el panel guiado y la bitácora. <strong>En la vida real, la seguridad de las personas es lo primero.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNAUTHORIZED ACCESS -->
+  <div class="attack-card" id="s4-unauth">
+    <div class="attack-header">
+      <div class="attack-type-icon sst">🚪</div>
+      <div class="attack-header-info">
+        <h3>Acceso Físico No Autorizado</h3>
+        <p>Intento de acceso físico sin credenciales válidas al datacenter o a un rack.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas</div>
+          <ul>
+            <li>Sensor ACCESS-DOOR-RACK-A en alerta</li>
+            <li>Mensaje "ACCESS DENIED badge inválido"</li>
+            <li>Múltiples intentos en minutos</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🔑 En terminal del nodo</div>
+          <ul>
+            <li>Mensaje en syslog: <code>PAM: unauthorized access attempt</code></li>
+            <li>IP detectada si el intento es remoto</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Paso 1 — Verificar en Syslog del Nodo</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — Verificar acceso físico</span></div>
+        <div class="terminal-body">
+<span class="cmd">tail -f /var/log/syslog</span>
+<span class="out alert">PAM[7821]: unauthorized access attempt from 10.5.0.99 detected on door RACK-A</span>
+<span class="out alert">PAM[7822]: unauthorized access attempt from 10.5.0.99 detected on door RACK-A</span>
+<span class="out alert">PAM[7823]: unauthorized access attempt from 10.5.0.99 detected on door RACK-A</span>
+        </div>
+      </div>
+
+      <h4>Panel Guiado — Respuestas Acceso No Autorizado</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"Alerta de acceso físico — badge inválido en puerta RACK-A"</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: múltiples intentos en segundos. IP 10.5.0.99 en syslog.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Acceso No Autorizado / Intrusión física" — puede ser empleado con tarjeta robada o persona externa.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Revisar CCTV" + "Bloquear tarjeta reportada" + "Notificar seguridad física" + "Revisar logs 24h"</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SESIÓN 5 — SSL / EVALUACIÓN FINAL
+     ══════════════════════════════════════════════════════════ -->
+<section class="section" id="sesion5">
+  <span class="session-pill">📅 Sesión 5</span>
+  <h2><span class="icon">🔒</span>SSL/TLS y Evaluación Final</h2>
+
+  <div class="session-card">
+    <h3>Objetivo de la sesión</h3>
+    <p class="meta">Duración: 4 horas — Evaluación final del programa</p>
+    <p>Repaso de todos los ataques y eventos. El instructor desplegará una combinación de incidentes sin previo aviso. Se evaluará el tiempo de detección (MTTD) y calidad de la bitácora.</p>
+    <div>
+      <span class="attack-tag purple">SSL Expirado</span>
+      <span class="attack-tag purple">TLS Downgrade</span>
+      <span class="attack-tag red">Evaluación Final</span>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s5-ssl">
+    <div class="attack-header">
+      <div class="attack-type-icon ssl">🔒</div>
+      <div class="attack-header-info">
+        <h3>Certificado SSL Expirado / TLS Downgrade</h3>
+        <p>El certificado SSL venció o fue reemplazado por versión débil. Los browsers muestran error de seguridad.</p>
+      </div>
+      <span class="badge critical">CRÍTICO</span>
+    </div>
+    <div class="attack-body">
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="label">🚨 Síntomas — SSL Expirado</div>
+          <ul>
+            <li>Días para expirar = 0 o negativo</li>
+            <li>Browsers muestran "NET::ERR_CERT_EXPIRED"</li>
+            <li>HTTPS caído en el nodo</li>
+            <li>Tráfico HTTP sin cifrar</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <div class="label">🚨 Síntomas — TLS Downgrade</div>
+          <ul>
+            <li>Versión TLS cambia de 1.3 a 1.0/1.1</li>
+            <li>Cipher suite débil activo</li>
+            <li>Alertas de seguridad en logs nginx</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Nodos con SSL configurado</h4>
+      <table class="node-table">
+        <thead><tr><th>Nodo</th><th>Dominio SSL</th><th>Servicios</th></tr></thead>
+        <tbody>
+          <tr><td class="node-id">WEB-01</td><td>portal.datacenter.edu</td><td>nginx + SSL</td></tr>
+          <tr><td class="node-id">WEB-02</td><td>api.datacenter.edu</td><td>nginx + SSL</td></tr>
+          <tr><td class="node-id">DB-01</td><td>db-primary.datacenter.edu</td><td>postgresql + SSL</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Panel Guiado — Respuestas SSL</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>DETECTAR</h5><p>"Certificado SSL con días_para_expirar = 0 o en negativo" o "Versión TLS inferior a 1.2 detectada"</p></div></div>
+        <div class="step"><div class="step-num green">2</div><div class="step-content"><h5>ANALIZAR</h5><p>IOC: panel SSL muestra semáforo rojo. Fecha de expiración pasada. Cipher suite: RC4 o DES activo.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>CLASIFICAR</h5><p>"Certificado SSL expirado" o "Ataque TLS downgrade" — impacta confidencialidad de datos en tránsito.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>MITIGAR</h5><p>"Generar nuevo CSR" + "Renovar certificado con CA" + "Reinstalar y reiniciar nginx" + "Forzar TLS 1.2 mínimo"</p></div></div>
+      </div>
+
+      <h4>Comandos de verificación</h4>
+      <div class="terminal">
+        <div class="terminal-header"><div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div><span class="terminal-title">WEB-01 — Verificar SSL</span></div>
+        <div class="terminal-body">
+<span class="cmd">systemctl status nginx</span>
+<span class="out alert">● nginx.service - A high performance web server</span>
+<span class="out alert">   Active: active (running)</span>
+<span class="out alert">   nginx: [warn] "ssl_protocols" directive, SSLv3 should not be used</span>
+<br>
+<span class="cmd">systemctl restart nginx</span>
+<span class="out ok">nginx reiniciado con nuevo certificado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══════════════════════════════════════════════════════════
+     INSTRUCTOR
+     ══════════════════════════════════════════════════════════ -->
+<section class="section" id="instructor">
+  <h2><span class="icon">👨‍🏫</span>Guía del Instructor — Cómo Desplegar Ataques</h2>
+
+  <div class="alert-box warn">
+    <span class="icon">🔒</span>
+    <p>Esta sección es informativa para los estudiantes — comprender cómo el instructor despliega los ataques ayuda a entender qué esperar. El instructor ve el mismo simulador pero con permisos adicionales.</p>
+  </div>
+
+  <h3>Panel del Instructor — Flujo de despliegue</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h5>Seleccionar tipo de ataque</h5>
+        <p>El instructor elige el tipo (DoS, Brute Force, Memory Leak, etc.) desde el panel de control.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num green">2</div>
+      <div class="step-content">
+        <h5>Seleccionar nodo objetivo</h5>
+        <p>Elige el nodo donde se lanzará el ataque (ej: WEB-01, DB-02, STORAGE-01). El simulador valida que el tipo de ataque sea compatible con el tipo de nodo.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num yellow">3</div>
+      <div class="step-content">
+        <h5>Lanzar y monitorear</h5>
+        <p>El ataque se activa. El instructor ve en tiempo real qué estudiantes lo detectaron, en cuánto tiempo (MTTD) y si completaron la bitácora.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num red">4</div>
+      <div class="step-content">
+        <h5>Detener (opcional)</h5>
+        <p>El instructor puede detener el ataque manualmente o esperar a que expire según la duración configurada.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Señales que indican que el instructor lanzó un ataque</h3>
+  <table class="node-table">
+    <thead><tr><th>Señal visual</th><th>Tipo de ataque probable</th></tr></thead>
+    <tbody>
+      <tr><td>Nodo cambia a color rojo + métricas disparan</td><td>DoS / DDoS / SYN Flood</td></tr>
+      <tr><td>RAM del nodo sube gradualmente cada tick</td><td>Memory Leak</td></tr>
+      <tr><td>I/O de disco sube y syslog tiene errores SMART</td><td>Disk Failure</td></tr>
+      <tr><td>Panel SST muestra temperatura en alerta</td><td>Sobrecalentamiento</td></tr>
+      <tr><td>Panel SST muestra sensor de humo activado</td><td>Alerta de Humo</td></tr>
+      <tr><td>Panel SST muestra acceso denegado en puerta</td><td>Acceso Físico No Autorizado</td></tr>
+      <tr><td>Panel SSL muestra semáforo rojo en un nodo</td><td>SSL Expirado / TLS Downgrade</td></tr>
+      <tr><td>Puerto 22 con miles de conexiones desde una IP</td><td>Brute Force SSH</td></tr>
+      <tr><td>Misma IP conectándose a muchos puertos distintos</td><td>Port Scan</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Compatibilidad de ataques por nodo</h3>
+  <table class="node-table">
+    <thead><tr><th>Tipo de Ataque</th><th>Nodos posibles</th><th>Duración típica</th></tr></thead>
+    <tbody>
+      <tr><td><span class="attack-tag red">DoS / DDoS / SYN Flood</span></td><td>WEB-01/02, APP-01/02, FW-01, RTR-EDGE</td><td>3–6 min</td></tr>
+      <tr><td><span class="attack-tag yellow">Brute Force</span></td><td>WEB-01/02, APP-01/02, DB-01/02</td><td>5 min</td></tr>
+      <tr><td><span class="attack-tag cyan">Port Scan</span></td><td>FW-01, RTR-EDGE, WEB-01/02</td><td>2 min</td></tr>
+      <tr><td><span class="attack-tag yellow">Memory Leak</span></td><td>Cualquier server</td><td>8 min</td></tr>
+      <tr><td><span class="attack-tag yellow">Disk Failure</span></td><td>STORAGE-01, DB-01/02</td><td>10 min</td></tr>
+      <tr><td><span class="attack-tag red">Thermal</span></td><td>Rack-A, Rack-B (SST)</td><td>12 min</td></tr>
+      <tr><td><span class="attack-tag red">Smoke Alert</span></td><td>Cualquier rack (SST)</td><td>3 min</td></tr>
+      <tr><td><span class="attack-tag red">Acceso Físico</span></td><td>Puertas de racks (SST)</td><td>2 min</td></tr>
+      <tr><td><span class="attack-tag purple">SSL Expirado</span></td><td>WEB-01/02, DB-01</td><td>Permanente</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     EVALUACIÓN
+     ══════════════════════════════════════════════════════════ -->
+<section class="section" id="eval">
+  <h2><span class="icon">📊</span>Sistema de Evaluación y Puntaje</h2>
+
+  <h3>Cómo se calcula tu puntaje</h3>
+  <table class="node-table">
+    <thead><tr><th>Componente</th><th>Peso</th><th>Cómo mejorar</th></tr></thead>
+    <tbody>
+      <tr><td>Panel Guiado (4 preguntas)</td><td>40%</td><td>Responde sin pistas. Cada pista -10%</td></tr>
+      <tr><td>Calidad de Bitácora</td><td>35%</td><td>Completa los 4 campos con detalle. Usa la revisión IA</td></tr>
+      <tr><td>Tiempo de Detección (MTTD)</td><td>15%</td><td>Detecta el incidente pronto — los primeros 2 min son ideales</td></tr>
+      <tr><td>Tiempo de Resolución (MTTR)</td><td>10%</td><td>Completa el flujo completo rápido y sin errores</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Niveles de puntaje</h3>
+  <div class="info-grid">
+    <div class="info-box">
+      <div class="label" style="color:var(--green)">🟢 Excelente (90-100%)</div>
+      <ul>
+        <li>Detectó en &lt;2 minutos</li>
+        <li>Panel guiado completo sin pistas</li>
+        <li>Bitácora detallada con causa raíz correcta</li>
+        <li>IA calificó ≥80 en todos los criterios</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <div class="label" style="color:var(--yellow)">🟡 Satisfactorio (70-89%)</div>
+      <ul>
+        <li>Detectó en 2-5 minutos</li>
+        <li>Usó 1-2 pistas en el panel guiado</li>
+        <li>Bitácora completa pero genérica</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <div class="label" style="color:var(--red)">🔴 Por mejorar (&lt;70%)</div>
+      <ul>
+        <li>No detectó el incidente</li>
+        <li>Usó todas las pistas o no completó el panel</li>
+        <li>Bitácora vacía o con una sola línea</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <div class="label" style="color:var(--cyan)">💡 Consejos IA</div>
+      <ul>
+        <li>Usa "✨ Revisar con IA" antes de guardar</li>
+        <li>La IA califica: Claridad, Completitud, Terminología</li>
+        <li>Espera 30 segundos entre solicitudes</li>
+        <li>Corrige lo que sugiere la IA antes de guardar</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Referencia rápida — Procesos por ataque</h3>
+  <table class="node-table">
+    <thead><tr><th>Ataque</th><th>Proceso en ps aux</th><th>Mensaje clave en syslog</th></tr></thead>
+    <tbody>
+      <tr><td>DoS / DDoS</td><td class="node-id">flood.sh</td><td>possible SYN flood on eth0</td></tr>
+      <tr><td>SYN Flood</td><td class="node-id">synflooder</td><td>possible SYN flood on eth0. Sending cookies</td></tr>
+      <tr><td>Brute Force</td><td class="node-id">hydra</td><td>Failed password for root from &lt;IP&gt;</td></tr>
+      <tr><td>Port Scan</td><td class="node-id">nmap</td><td>nf_conntrack: table full, dropping packet</td></tr>
+      <tr><td>Memory Leak</td><td class="node-id">leaky_app</td><td>Out of memory: Killed process</td></tr>
+      <tr><td>Disk Failure</td><td class="node-id">raidmonitor</td><td>sd 2:0:0:0: [sda] FAILED Result: DRIVER_SENSE</td></tr>
+      <tr><td>Thermal</td><td>—</td><td>CPU0: Core temperature above threshold, cpu clock throttled</td></tr>
+      <tr><td>Unauthorized Access</td><td class="node-id">backdoor.sh</td><td>PAM: unauthorized access attempt on door RACK-A</td></tr>
+      <tr><td>Smoke Alert</td><td>—</td><td>(solo en panel SST)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert-box success">
+    <span class="icon">✅</span>
+    <p><strong>Truco para la evaluación final:</strong> El primer comando que debes ejecutar siempre es <code>netstat -an</code> y <code>ps aux</code>. En menos de 10 segundos sabrás el tipo de ataque por el proceso que ves. Luego confirmas con <code>tail -f /var/log/syslog</code>.</p>
+  </div>
+</section>
+
+<hr class="divider">
+
+<div style="text-align:center; padding: 20px 0 40px; color: var(--muted); font-size: 13px;">
+  <p>DC Monitoring Simulator — Manual Estudiante v1.0 · SENA Complementaria · Herramienta Excel · 2026</p>
+  <p style="margin-top:6px;">Instructor: Lubeto Vásquez · Generado con Claude Code</p>
+</div>
+
+</main>
+
+<script>
+// Highlight active nav link on scroll
+const sections = document.querySelectorAll('section[id], div[id]');
+const navLinks = document.querySelectorAll('#sidebar a[href^="#"]');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      navLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { threshold: 0.3, rootMargin: '-60px 0px -60% 0px' });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

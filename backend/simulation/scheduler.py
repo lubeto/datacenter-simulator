@@ -87,8 +87,9 @@ class EventScheduler:
     async def _auto_attack_loop(self):
         import os
         auto_enabled = os.getenv("AUTO_ATTACK_ENABLED", "true").lower() == "true"
-        min_min = int(os.getenv("AUTO_ATTACK_MIN_INTERVAL_MIN", "2"))
-        max_min = int(os.getenv("AUTO_ATTACK_MAX_INTERVAL_MIN", "7"))
+        min_min = int(os.getenv("AUTO_ATTACK_MIN_INTERVAL_MIN", "1"))
+        max_min = int(os.getenv("AUTO_ATTACK_MAX_INTERVAL_MIN", "3"))
+        max_concurrent = int(os.getenv("AUTO_ATTACK_MAX_CONCURRENT", "2"))
 
         def _has_manual_attack() -> bool:
             return any(
@@ -118,7 +119,7 @@ class EventScheduler:
             if _has_manual_attack():
                 continue
 
-            if len(sim_state.active_attacks) >= 1:
+            if len(sim_state.active_attacks) >= max_concurrent:
                 continue
 
             scenario = attack_manager.get_random_attack_scenario()
