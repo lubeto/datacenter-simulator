@@ -3342,7 +3342,28 @@ function _checkBitacoraQuality() {
   return { avg, warnCount, results };
 }
 
+let _aiLastCall = 0;
 async function reviewBitacoraWithAI() {
+  const now = Date.now();
+  const wait = Math.ceil((30000 - (now - _aiLastCall)) / 1000);
+  if (_aiLastCall && wait > 0) {
+    const btn = document.getElementById('bmAiBtn');
+    btn.textContent = `⏳ Espera ${wait}s antes de revisar de nuevo`;
+    btn.disabled = true;
+    const iv = setInterval(() => {
+      const w = Math.ceil((30000 - (Date.now() - _aiLastCall)) / 1000);
+      if (w <= 0) {
+        clearInterval(iv);
+        btn.disabled = false;
+        btn.textContent = '✨ Revisar con IA de nuevo';
+      } else {
+        btn.textContent = `⏳ Espera ${w}s antes de revisar de nuevo`;
+      }
+    }, 1000);
+    return;
+  }
+  _aiLastCall = now;
+
   const parts = [
     document.getElementById('bmSintomas')?.value.trim(),
     document.getElementById('bmCausa')?.value.trim(),
