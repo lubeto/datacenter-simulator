@@ -1280,8 +1280,11 @@ function updateNetChart() {
 }
 
 // ── SST ──────────────────────────────────────────────────────
+let _sstLastFull = [];
+
 function updateSST(sstData) {
   if (!sstData || !sstData.length) return;
+  _sstLastFull = sstData;
   const grid = document.getElementById('sstGrid');
   let okC=0, warnC=0, critC=0;
   grid.innerHTML = sstData.map(s => {
@@ -1308,7 +1311,6 @@ function updateSST(sstData) {
   document.getElementById('sst-ok-badge').textContent = `${okC} OK`;
   document.getElementById('sst-warn-badge').textContent = `${warnC} Warning`;
   document.getElementById('sst-crit-badge').textContent = `${critC} Critical`;
-  if (critC > 0) notify('🔥 Alerta SST', `${critC} sensor(es) en estado crítico`, 'crit');
 }
 
 // ── SSL ───────────────────────────────────────────────────────
@@ -1509,13 +1511,63 @@ function handleSSTAlert(data) {
       normal_max: r.max
     };
   });
-  updateSST(mapped);
+
+  // Merge alert status into the full sensor list — no reemplazar la lista completa
+  if (_sstLastFull.length) {
+    const alertMap = {};
+    mapped.forEach(s => { alertMap[s.id] = s; });
+    const merged = _sstLastFull.map(s => alertMap[s.id] ? { ...s, ...alertMap[s.id] } : s);
+    updateSST(merged);
+  }
+
   const crit = mapped.filter(s => s.status === 'critical');
   const warn = mapped.filter(s => s.status === 'warning');
   if (crit.length) {
     notify(`🌡️ SST Crítico`, `${crit[0].name}: valor fuera de rango`, 'crit');
     if (STUDENT && STUDENT.role !== 'instructor') startSSTProtocol(crit);
-  } else if (warn.length) notify(`⚠️ SST Alerta`, `${warn.length} sensor(es) con advertencia`, 'warn');
+    // Agregar al panel de Alertas del Sistema
+    _addSSTAlertToPanel(crit, 'critical');
+  } else if (warn.length) {
+    notify(`⚠️ SST Alerta`, `${warn.length} sensor(es) con advertencia`, 'warn');
+    _addSSTAlertToPanel(warn, 'warning');
+  }
+}
+
+function _addSSTAlertToPanel(sensors, severity) {
+  const alertList = document.getElementById('alertList');
+  const alertCount = document.getElementById('alertCount');
+  if (!alertList) return;
+  // Limpiar el placeholder "Sin alertas" si existe
+  const empty = alertList.querySelector('div[style*="Sin alertas"], div[style*="text-align:center"]');
+  if (empty) empty.remove();
+  sensors.forEach(s => {
+    const existingId = `sst-alert-${s.id}`;
+    if (document.getElementById(existingId)) return; // ya está
+    const cls = severity === 'critical' ? 'critical' : 'warning';
+    const icon = severity === 'critical' ? '🔴' : '🟡';
+    const d = document.createElement('div');
+    d.id = existingId;
+    d.className = `alert-item ${cls}`;
+    d.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem';
+    d.innerHTML = `
+      <div style="flex:1">
+        <div class="alert-msg">${icon} <strong>SST — ${s.name}</strong> &nbsp;·&nbsp; <span style="color:var(--accent)">${s.zone}</span></div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:.15rem">${s.type}: ${typeof s.value==='number'?s.value.toFixed(1):s.value} ${s.unit} (rango normal: ${s.normal_min}–${s.normal_max})</div>
+      </div>
+      <button class="btn btn-sm" style="background:#1e3060;color:#93c5fd;border:1px solid #3b5bdb;white-space:nowrap;flex-shrink:0"
+        onclick="this.closest('[id]').remove();_updateAlertCount()">✓ Atendido</button>`;
+    alertList.prepend(d);
+  });
+  _updateAlertCount();
+}
+
+function _updateAlertCount() {
+  const alertList = document.getElementById('alertList');
+  const alertCount = document.getElementById('alertCount');
+  if (!alertList || !alertCount) return;
+  const items = alertList.querySelectorAll('.alert-item');
+  alertCount.textContent = `${items.length} activas`;
+  if (!items.length) alertList.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sin alertas</div>';
 }
 
 // ── NODE MODAL ────────────────────────────────────────────────
