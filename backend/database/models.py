@@ -354,12 +354,69 @@ class Bitacora(Base):
     acciones_tomadas    = Column(Text, nullable=False)   # ¿Qué hizo?
     lecciones           = Column(Text, nullable=False)   # ¿Qué aprendió?
 
+    # Sala colaborativa (nullable — bitácoras individuales no tienen sala)
+    collab_room_id      = Column(Integer, ForeignKey("collab_rooms.id"), nullable=True)
+
     # Metadata
     created_at          = Column(DateTime, default=datetime.utcnow)
 
     # Relaciones
     student             = relationship("Student", backref="bitacoras")
     incident            = relationship("Incident", backref="bitacoras", foreign_keys=[incident_id])
+
+
+# ============================================================
+# SALA COLABORATIVA
+# ============================================================
+class CollabRoom(Base):
+    """Sala colaborativa creada por el instructor para un incidente grupal."""
+    __tablename__ = "collab_rooms"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    name            = Column(String(100), nullable=False)           # "Sala A", "Equipo Rojo"
+    instructor_id   = Column(Integer, ForeignKey("students.id"), nullable=False)
+    attack_type     = Column(String(60), nullable=True)             # Tipo de ataque asignado
+    node_id         = Column(String(50), nullable=True)             # Nodo objetivo
+    is_active       = Column(Boolean, default=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    ended_at        = Column(DateTime, nullable=True)
+
+    # Relaciones
+    members         = relationship("CollabMember", back_populates="room", cascade="all, delete-orphan")
+    actions         = relationship("CollabAction", back_populates="room", cascade="all, delete-orphan")
+
+
+class CollabMember(Base):
+    """Estudiante asignado a una sala colaborativa con un rol específico."""
+    __tablename__ = "collab_members"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    room_id     = Column(Integer, ForeignKey("collab_rooms.id"), nullable=False)
+    student_id  = Column(Integer, ForeignKey("students.id"), nullable=False)
+    # Roles: T1-Monitor, T2-Analista, Responder, Comunicador
+    role        = Column(String(30), nullable=False, default="T1-Monitor")
+    joined_at   = Column(DateTime, default=datetime.utcnow)
+
+    # Relaciones
+    room        = relationship("CollabRoom", back_populates="members")
+    student     = relationship("Student", backref="collab_memberships")
+
+
+class CollabAction(Base):
+    """Acción técnica realizada por un miembro dentro de la sala (log compartido)."""
+    __tablename__ = "collab_actions"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    room_id     = Column(Integer, ForeignKey("collab_rooms.id"), nullable=False)
+    student_id  = Column(Integer, ForeignKey("students.id"), nullable=False)
+    action_type = Column(String(50), nullable=False)   # block_ip, restart_service, chat, terminal_cmd
+    detail      = Column(Text, nullable=False)          # "bloqueó 203.0.113.45 en FW-01" / mensaje chat
+    is_chat     = Column(Boolean, default=False)        # True = mensaje de chat, False = acción técnica
+    timestamp   = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relaciones
+    room        = relationship("CollabRoom", back_populates="actions")
+    student     = relationship("Student", backref="collab_actions")
 
 
 # ============================================================
