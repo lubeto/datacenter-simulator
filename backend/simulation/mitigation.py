@@ -175,6 +175,132 @@ MITIGATION_RULES: Dict[str, Dict] = {
         "expected_recovery_sec": 0,
         "severity_impact": "low",
     },
+    # ── Seguridad Física Avanzada ─────────────────────────────
+    "biometric_bypass": {
+        "name": "Mitigacion Violacion Biometrica",
+        "steps": [
+            {"action": "lock_reader",     "desc": "Bloquear lector biométrico comprometido de forma remota",  "command": "access-control disable-reader --id <READER_ID>"},
+            {"action": "revoke_template", "desc": "Revocar template biométrico del usuario afectado",         "command": "biometric-mgr revoke --uid <USER_ID> --type fingerprint"},
+            {"action": "cctv_review",     "desc": "Revisar grabación CCTV de las últimas 2 horas",            "command": "cctv-review --zone <ZONE_ID> --from -2h --to now"},
+            {"action": "audit_access",    "desc": "Auditar todos los accesos del lector en las últimas 72h",  "command": "access-log query --reader <READER_ID> --hours 72"},
+        ],
+        "auto_actions": ["lock_reader"],
+        "expected_recovery_sec": 900,
+        "severity_impact": "critical",
+    },
+    "tailgating": {
+        "name": "Mitigacion Tailgating",
+        "steps": [
+            {"action": "mantrap_lock",    "desc": "Activar bloqueo de mantrap entre puertas de acceso",       "command": "access-control mantrap-lockdown --zone <ZONE_ID>"},
+            {"action": "cctv_review",     "desc": "Identificar a la persona no autorizada en CCTV",           "command": "cctv-review --zone <ZONE_ID> --from -1h --to now"},
+            {"action": "employee_alert",  "desc": "Notificar al empleado que generó el acceso",               "command": "notify-employee --id <EMPLOYEE_ID> --type tailgating-incident"},
+            {"action": "patrol_increase", "desc": "Incrementar frecuencia de patrullaje físico",               "command": "security-dispatch patrol --zone <ZONE_ID> --frequency 15min"},
+        ],
+        "auto_actions": ["mantrap_lock"],
+        "expected_recovery_sec": 600,
+        "severity_impact": "critical",
+    },
+    "badge_cloning": {
+        "name": "Mitigacion Clonacion RFID",
+        "steps": [
+            {"action": "revoke_badge",    "desc": "Revocar UID de la tarjeta comprometida inmediatamente",    "command": "access-control revoke-badge --uid <BADGE_UID>"},
+            {"action": "access_audit",    "desc": "Revisar todos los accesos con esa tarjeta en 72 horas",    "command": "access-log query --badge <BADGE_UID> --hours 72"},
+            {"action": "issue_new_badge", "desc": "Emitir nueva tarjeta con UID diferente al empleado",       "command": "badge-mgr issue-new --employee <EMPLOYEE_ID> --type encrypted"},
+            {"action": "reader_audit",    "desc": "Verificar lectores RFID en busca de skimmers físicos",     "command": "security-dispatch inspect-readers --all"},
+        ],
+        "auto_actions": ["revoke_badge"],
+        "expected_recovery_sec": 1200,
+        "severity_impact": "critical",
+    },
+    "cctv_tampering": {
+        "name": "Mitigacion Sabotaje CCTV",
+        "steps": [
+            {"action": "backup_cam",      "desc": "Activar cámara de respaldo en zona afectada",              "command": "cctv-mgr activate-backup --zone <ZONE_ID>"},
+            {"action": "physical_check",  "desc": "Enviar seguridad a verificar cámara físicamente",          "command": "security-dispatch check-camera --id <CAM_ID>"},
+            {"action": "access_cross",    "desc": "Cruzar logs de acceso con la ventana sin cobertura visual", "command": "access-log query --zone <ZONE_ID> --from <TAMPER_START>"},
+            {"action": "maintenance",     "desc": "Generar ticket urgente de reparación de cámara",            "command": "helpdesk ticket create --priority critical --type cctv-repair"},
+        ],
+        "auto_actions": ["backup_cam"],
+        "expected_recovery_sec": 3600,
+        "severity_impact": "high",
+    },
+
+    # ── Daños de Red Interna ──────────────────────────────────
+    "vlan_hopping": {
+        "name": "Mitigacion VLAN Hopping",
+        "steps": [
+            {"action": "disable_dtp",     "desc": "Deshabilitar DTP en puertos de acceso para evitar trunk auto", "command": "switchport nonegotiate && switchport mode access"},
+            {"action": "native_vlan",     "desc": "Cambiar VLAN nativa a VLAN sin uso (999)",                 "command": "switchport trunk native vlan 999"},
+            {"action": "vlan_prune",      "desc": "Aplicar pruning de VLANs en todos los trunks",             "command": "switchport trunk allowed vlan <ONLY_REQUIRED_VLANS>"},
+            {"action": "audit_trunks",    "desc": "Auditar configuración de trunking en todos los switches",   "command": "show interfaces trunk | grep -v inactive"},
+        ],
+        "auto_actions": ["disable_dtp", "native_vlan"],
+        "expected_recovery_sec": 120,
+        "severity_impact": "critical",
+    },
+    "rogue_dhcp": {
+        "name": "Mitigacion Servidor DHCP Falso",
+        "steps": [
+            {"action": "dhcp_snooping",   "desc": "Activar DHCP Snooping en switches: bloquear OFFER no confiables", "command": "ip dhcp snooping && ip dhcp snooping vlan <VLAN_ID>"},
+            {"action": "port_shutdown",   "desc": "Apagar el puerto donde se detectó el servidor DHCP falso", "command": "interface <PORT_ID> && shutdown"},
+            {"action": "renew_ips",       "desc": "Forzar renovación de IPs en todos los clientes afectados", "command": "dhcp-helper broadcast --type DHCPRELEASE --vlan <VLAN_ID>"},
+            {"action": "identify_device", "desc": "Identificar dispositivo no autorizado por MAC address",    "command": "show mac address-table | grep <ROGUE_PORT>"},
+        ],
+        "auto_actions": ["dhcp_snooping", "port_shutdown"],
+        "expected_recovery_sec": 180,
+        "severity_impact": "critical",
+    },
+    "dns_spoofing": {
+        "name": "Mitigacion DNS Spoofing",
+        "steps": [
+            {"action": "flush_cache",     "desc": "Limpiar caché DNS en todos los servidores afectados",      "command": "rndc flush && systemctl restart bind9"},
+            {"action": "dnssec_enable",   "desc": "Habilitar DNSSEC para validación criptográfica",           "command": "dnssec-keygen -a NSEC3RSASHA1 -b 2048 -n ZONE <DOMAIN>"},
+            {"action": "doh_enable",      "desc": "Configurar DNS sobre HTTPS para evitar interceptación",    "command": "nginx proxy_pass https://1.1.1.1/dns-query # DoH config"},
+            {"action": "verify_dns",      "desc": "Verificar resoluciones con dig para detectar anomalías",   "command": "dig @<DNS_SERVER> <DOMAIN> +dnssec"},
+        ],
+        "auto_actions": ["flush_cache"],
+        "expected_recovery_sec": 90,
+        "severity_impact": "critical",
+    },
+    "spanning_tree_attack": {
+        "name": "Mitigacion Ataque STP",
+        "steps": [
+            {"action": "bpdu_guard",      "desc": "Habilitar BPDU Guard en todos los puertos de acceso",      "command": "spanning-tree bpduguard enable"},
+            {"action": "root_guard",      "desc": "Configurar Root Guard en puertos de uplink legítimos",     "command": "spanning-tree guard root"},
+            {"action": "fix_root_bridge", "desc": "Forzar Root Bridge correcto con prioridad 0",              "command": "spanning-tree vlan <VLAN_ID> priority 0"},
+            {"action": "audit_stp",       "desc": "Verificar topología STP actual en todos los switches",     "command": "show spanning-tree detail | grep Root"},
+        ],
+        "auto_actions": ["bpdu_guard", "root_guard"],
+        "expected_recovery_sec": 60,
+        "severity_impact": "critical",
+    },
+
+    # ── Amenaza Interna ───────────────────────────────────────
+    "privilege_escalation": {
+        "name": "Mitigacion Escalada de Privilegios",
+        "steps": [
+            {"action": "revoke_privs",    "desc": "Revocar privilegios elevados del usuario/proceso",         "command": "usermod -G users <USERNAME> && pkill -u <USERNAME>"},
+            {"action": "audit_sudo",      "desc": "Auditar /etc/sudoers en busca de cambios no autorizados",  "command": "ausearch -k sudoers | aureport -f"},
+            {"action": "find_suid",       "desc": "Buscar binarios SUID sospechosos en el sistema",           "command": "find / -perm -4000 -type f 2>/dev/null | grep -v /usr/bin"},
+            {"action": "isolate_server",  "desc": "Aislar servidor si el compromiso fue exitoso",             "command": "iptables -I INPUT -j DROP && iptables -I OUTPUT -j DROP"},
+        ],
+        "auto_actions": ["revoke_privs", "audit_sudo"],
+        "expected_recovery_sec": 300,
+        "severity_impact": "critical",
+    },
+    "data_exfiltration": {
+        "name": "Mitigacion Exfiltracion de Datos",
+        "steps": [
+            {"action": "block_ip",        "desc": "Bloquear IP destino de exfiltración en firewall",          "command": "iptables -A OUTPUT -d <EXFIL_IP> -j DROP"},
+            {"action": "kill_process",    "desc": "Terminar proceso generando transferencia no autorizada",   "command": "netstat -tulnp | grep <EXFIL_IP> # identificar PID, luego kill -9"},
+            {"action": "capture_traffic", "desc": "Capturar tráfico para evidencia forense",                  "command": "tcpdump -i eth0 -w /tmp/evidencia_$(date +%Y%m%d_%H%M).pcap host <EXFIL_IP>"},
+            {"action": "db_audit",        "desc": "Auditar qué datos fueron accedidos en las últimas 24h",    "command": "mysql -e \"SELECT * FROM general_log WHERE event_time > NOW()-INTERVAL 24 HOUR\""},
+        ],
+        "auto_actions": ["block_ip", "capture_traffic"],
+        "expected_recovery_sec": 1800,
+        "severity_impact": "critical",
+    },
+
     "tls_downgrade": {
         "name": "Mitigacion TLS Downgrade",
         "steps": [

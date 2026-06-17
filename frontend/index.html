@@ -964,10 +964,13 @@ function _showDebriefModal(data) {
 // ── MISIÓN ACTIVA ────────────────────────────────────────────
 // Ataques de red: requieren terminal + logs + firewall
 const _NETWORK_ATTACKS = new Set(['ddos','dos','syn_flood','brute_force','port_scan','mitm',
-  'sql_injection','crypto_mining','lateral_movement','ransomware','unauthorized_access']);
+  'sql_injection','crypto_mining','lateral_movement','ransomware',
+  'vlan_hopping','rogue_dhcp','dns_spoofing','spanning_tree_attack',
+  'privilege_escalation','data_exfiltration','arp_spoofing']);
 // SST y hardware: van directo al panel guiado y bitácora
 const _SST_ATTACKS = new Set(['smoke_alert','thermal','memory_leak','disk_failure',
-  'ups_failure','power_failure','humidity','ssl_expired','tls_downgrade']);
+  'ups_failure','power_failure','humidity','ssl_expired','tls_downgrade',
+  'unauthorized_access','biometric_bypass','tailgating','badge_cloning','cctv_tampering']);
 
 function _isNetworkAttack(type) {
   if (!type) return false;
@@ -2130,8 +2133,11 @@ function _gCorrectDetect(inc){ return inc?.attack?.node_id||'WEB-01'; }
 function _gCategory(inc){
   const t = _gAttType(inc);
   if(t.includes('ssl')||t.includes('tls')||t.includes('cert')||t.includes('expir')) return 'ssl';
-  if(t.includes('thermal')||t.includes('smoke')||t.includes('power')||t.includes('unauth')||t.includes('access')) return 'sst';
+  if(t.includes('thermal')||t.includes('smoke')||t.includes('power')||t.includes('unauth')||t.includes('access')
+     ||t.includes('biometric')||t.includes('tailgat')||t.includes('badge')||t.includes('cctv')) return 'sst';
   if(t.includes('disk')||t.includes('memory')||t.includes('leak')||t.includes('storage')) return 'hardware';
+  if(t.includes('vlan')||t.includes('dhcp')||t.includes('dns')||t.includes('spanning')||t.includes('rogue')) return 'red';
+  if(t.includes('privilege')||t.includes('escalat')||t.includes('exfil')) return 'red';
   return 'red'; // ddos, syn, flood, dos, brute, port_scan, arp, mitm, lateral
 }
 

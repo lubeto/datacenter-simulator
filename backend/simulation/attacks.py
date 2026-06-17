@@ -213,6 +213,178 @@ ATTACK_CATALOG = {
         ]
     },
 
+    # ── Seguridad Física Avanzada ───────────────────────────
+    "biometric_bypass": {
+        "name": "Violación de Biometría",
+        "category": "sst",
+        "description": "Huella dactilar o retina clonada. Acceso físico a zona restringida con credencial biométrica falsificada.",
+        "severity": "critical",
+        "target_types": [],
+        "default_duration_sec": 180,
+        "indicators": ["ACCESS GRANTED con biometría sospechosa", "hora inusual de acceso", "badge + biometría no coinciden"],
+        "mitigation_steps": [
+            "Bloquear inmediatamente el lector biométrico comprometido",
+            "Revisar grabación CCTV de la zona en las últimas 2 horas",
+            "Revocar template biométrico del usuario afectado",
+            "Verificar integridad del lector (posible skimmer)",
+            "Emitir alerta a seguridad física y escalar a RRHH",
+            "Auditar logs de acceso de los últimos 30 días del punto comprometido",
+        ]
+    },
+    "tailgating": {
+        "name": "Tailgating (Seguimiento no autorizado)",
+        "category": "sst",
+        "description": "Persona no autorizada accede al datacenter siguiendo a un empleado legítimo sin registrar entrada propia.",
+        "severity": "critical",
+        "target_types": [],
+        "default_duration_sec": 240,
+        "indicators": ["sensor de doble entrada activado", "CCTV muestra 2 personas en 1 acceso", "badge sin contrapartida de salida"],
+        "mitigation_steps": [
+            "Activar bloqueo de mantrap (cámara de seguridad entre puertas)",
+            "Verificar CCTV e identificar a la persona no autorizada",
+            "Contactar al empleado que generó el acceso para entrevista",
+            "Registrar el incidente en el sistema de control de acceso",
+            "Reforzar capacitación: ningún visitante sin escolta",
+            "Instalar sensor de antipassback si no existe",
+        ]
+    },
+    "badge_cloning": {
+        "name": "Clonación de Tarjeta RFID",
+        "category": "sst",
+        "description": "Tarjeta de acceso RFID duplicada ilegalmente. Acceso físico con credencial válida pero de persona no autorizada.",
+        "severity": "critical",
+        "target_types": [],
+        "default_duration_sec": 300,
+        "indicators": ["badge activo en dos ubicaciones simultáneas", "acceso en horario no habitual", "reporte de tarjeta robada"],
+        "mitigation_steps": [
+            "Revocar inmediatamente el UID de la tarjeta comprometida",
+            "Emitir nueva tarjeta con UID diferente al empleado afectado",
+            "Revisar todos los accesos realizados con esa tarjeta en 72h",
+            "Verificar si hay lectores RFID con anomalías (skimmers)",
+            "Migrar a tecnología RFID cifrada si se usan tarjetas antiguas",
+            "Reportar a seguridad y evaluar reposición de sistema de acceso",
+        ]
+    },
+    "cctv_tampering": {
+        "name": "Sabotaje de Cámaras CCTV",
+        "category": "sst",
+        "description": "Cámara de seguridad bloqueada, girada o desconectada. Punto ciego en monitoreo físico del datacenter.",
+        "severity": "warning",
+        "target_types": [],
+        "default_duration_sec": 600,
+        "indicators": ["señal de cámara perdida", "imagen congelada", "cámara girada sin registro de mantenimiento"],
+        "mitigation_steps": [
+            "Verificar estado de la cámara afectada físicamente",
+            "Activar cámara de respaldo si existe en la zona",
+            "Revisar logs de acceso a la zona sin cobertura visual",
+            "Incrementar patrullaje físico mientras se restaura la cámara",
+            "Investigar si el sabotaje fue intencional (cruzar con logs de acceso)",
+            "Generar ticket de mantenimiento urgente para reparación",
+        ]
+    },
+
+    # ── Daños de Red Interna ────────────────────────────────
+    "vlan_hopping": {
+        "name": "VLAN Hopping (Salto de VLAN)",
+        "category": "attack",
+        "description": "Atacante interno explota trunking 802.1Q para saltar entre VLANs sin autorización. Rompe la segmentación de red.",
+        "severity": "critical",
+        "target_types": ["switch"],
+        "default_duration_sec": 300,
+        "indicators": ["tráfico entre VLANs sin gateway", "doble encapsulación 802.1Q detectada", "VLAN nativa sin cifrar"],
+        "mitigation_steps": [
+            "Deshabilitar trunking automático (DTP) en puertos de acceso",
+            "Cambiar VLAN nativa a una VLAN sin uso (ej. VLAN 999)",
+            "Activar VLAN pruning para eliminar VLANs no necesarias en trunks",
+            "Implementar Private VLANs en segmentos sensibles",
+            "Auditar configuración de todos los switches con 'show interfaces trunk'",
+        ]
+    },
+    "rogue_dhcp": {
+        "name": "Servidor DHCP Falso",
+        "category": "attack",
+        "description": "Servidor DHCP no autorizado en red interna asigna IPs falsas y redirige tráfico. Permite MITM masivo.",
+        "severity": "critical",
+        "target_types": ["switch", "server"],
+        "default_duration_sec": 420,
+        "indicators": ["clientes con IPs inesperadas", "gateway incorrecto asignado", "múltiples DHCP OFFER en red"],
+        "mitigation_steps": [
+            "Activar DHCP Snooping en todos los switches: 'ip dhcp snooping'",
+            "Identificar y apagar el puerto del servidor DHCP falso",
+            "Marcar solo los puertos con DHCP legítimo como 'trusted'",
+            "Renovar IPs de todos los clientes afectados: 'ipconfig /renew'",
+            "Revisar quién conectó el dispositivo no autorizado (CCTV + logs)",
+        ]
+    },
+    "dns_spoofing": {
+        "name": "DNS Spoofing (Envenenamiento DNS)",
+        "category": "attack",
+        "description": "Caché DNS envenenada. Usuarios son redirigidos a sitios maliciosos aunque escriban la URL correcta.",
+        "severity": "critical",
+        "target_types": ["server"],
+        "default_duration_sec": 360,
+        "indicators": ["resoluciones DNS inconsistentes", "certificado SSL no coincide con dominio", "usuarios reportan redirecciones"],
+        "mitigation_steps": [
+            "Limpiar caché DNS en todos los servidores: 'rndc flush'",
+            "Habilitar DNSSEC para validación criptográfica de respuestas",
+            "Configurar DNS sobre HTTPS (DoH) o DNS sobre TLS (DoT)",
+            "Verificar integridad del archivo /etc/hosts en servidores",
+            "Monitorear respuestas DNS con 'dig' para detectar anomalías",
+        ]
+    },
+    "spanning_tree_attack": {
+        "name": "Ataque STP (Spanning Tree)",
+        "category": "attack",
+        "description": "Atacante inyecta BPDUs falsos para convertirse en Root Bridge. Genera bucles de red o desvía todo el tráfico.",
+        "severity": "critical",
+        "target_types": ["switch"],
+        "default_duration_sec": 480,
+        "indicators": ["root bridge cambia inesperadamente", "bucles de red activos", "tráfico interrumpido en segmento"],
+        "mitigation_steps": [
+            "Habilitar BPDU Guard en puertos de acceso: 'spanning-tree bpduguard enable'",
+            "Configurar Root Guard en puertos de uplink legítimos",
+            "Definir manualmente el Root Bridge con prioridad baja (0)",
+            "Activar PortFast solo en puertos de end-devices",
+            "Monitorear topología STP con 'show spanning-tree detail'",
+        ]
+    },
+
+    # ── Amenaza Interna (Insider Threat) ────────────────────
+    "privilege_escalation": {
+        "name": "Escalada de Privilegios",
+        "category": "attack",
+        "description": "Usuario o proceso obtiene permisos de administrador/root sin autorización. Puede comprometer todo el sistema.",
+        "severity": "critical",
+        "target_types": ["server"],
+        "default_duration_sec": 360,
+        "indicators": ["sudo inusual en logs", "proceso no-root con UID=0", "cambios en /etc/sudoers", "setuid inesperado"],
+        "mitigation_steps": [
+            "Identificar proceso/usuario con 'ps aux' y 'id <user>'",
+            "Revocar permisos inmediatamente: 'usermod -G <USER>' sin grupo admin",
+            "Auditar /etc/sudoers y /etc/passwd en busca de cambios",
+            "Buscar binarios con setuid sospechosos: 'find / -perm -4000'",
+            "Revisar historial de comandos: /root/.bash_history",
+            "Aislar el servidor si el compromiso fue exitoso",
+        ]
+    },
+    "data_exfiltration": {
+        "name": "Exfiltración de Datos",
+        "category": "attack",
+        "description": "Transferencia masiva de datos hacia destino externo no autorizado. Posible fuga de información confidencial.",
+        "severity": "critical",
+        "target_types": ["server", "storage"],
+        "default_duration_sec": 600,
+        "indicators": ["net_out_mbps alto sostenido", "conexiones a IPs externas inusuales", "acceso masivo a base de datos"],
+        "mitigation_steps": [
+            "Bloquear IP destino en firewall inmediatamente",
+            "Identificar proceso generando el tráfico: 'netstat -tulnp'",
+            "Terminar conexión sospechosa: 'kill -9 <PID>'",
+            "Capturar tráfico para evidencia forense: 'tcpdump -w evidencia.pcap'",
+            "Auditar qué datos fueron accedidos en las últimas 24h",
+            "Notificar al DPO (oficial de protección de datos) según normativa",
+        ]
+    },
+
     # ── SSL / TLS ───────────────────────────────────────────
     "ssl_expired": {
         "name": "Certificado SSL Expirado",
@@ -278,7 +450,9 @@ class AttackManager:
         if not catalog:
             return {"error": f"Tipo de ataque '{attack_type}' no encontrado"}
 
-        if node_id not in DC_NODES and attack_type not in ("power_failure", "smoke_alert", "unauthorized_access"):
+        _SST_GLOBAL = {"power_failure", "smoke_alert", "unauthorized_access",
+                       "biometric_bypass", "tailgating", "badge_cloning", "cctv_tampering"}
+        if node_id not in DC_NODES and attack_type not in _SST_GLOBAL:
             return {"error": f"Nodo '{node_id}' no existe"}
 
         duration = duration_sec or catalog["default_duration_sec"]
