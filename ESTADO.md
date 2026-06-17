@@ -1,6 +1,41 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-16 (noche) — Fixes + Bitácora Colaborativa + Manual actualizado
+## Última sesión: 2026-06-16 (cierre) — SST flow fix + 10 nuevos tipos de ataque
+
+---
+
+## Sesión cierre 2026-06-16 — SST flow fix + Catálogo de ataques expandido
+
+### Fix: Flujo SST vs Red — separación definitiva
+- `_NETWORK_ATTACKS` y `_SST_ATTACKS` definen qué tipo de incidente es qué
+- Ataques SST (humo, temperatura, biometría, etc.) ya NO llevan al estudiante a terminal/firewall
+- `_missionActivate` pre-rellena `termDone/iocDone/fwDone=true` para SST
+- Widget de misión muestra pasos adaptados: "panel guiado → protocolo → bitácora → confirmar"
+- `_missionTick('verify')` no requiere `fwApplied` para SST
+- `showGuidedResults()` llama automáticamente a `_missionTick('verify')` al terminar el panel guiado
+
+### 10 nuevos tipos de ataque (backend + frontend)
+**Seguridad Física (SST — panel guiado, sin terminal):**
+- `biometric_bypass` — huella/retina clonada, acceso físico con biometría falsificada
+- `tailgating` — persona no autorizada entra siguiendo a empleado legítimo
+- `badge_cloning` — tarjeta RFID duplicada ilegalmente
+- `cctv_tampering` — sabotaje de cámaras de seguridad
+
+**Red Interna (flujo terminal + firewall):**
+- `vlan_hopping` — salto entre VLANs sin autorización via 802.1Q doble encapsulación
+- `rogue_dhcp` — servidor DHCP falso redirige tráfico interno
+- `dns_spoofing` — envenenamiento de caché DNS
+- `spanning_tree_attack` — manipulación del protocolo STP para tomar Root Bridge
+
+**Amenaza Interna / Insider Threat (flujo terminal + firewall):**
+- `privilege_escalation` — usuario/proceso obtiene permisos root sin autorización
+- `data_exfiltration` — transferencia masiva de datos a destino externo no autorizado
+
+Cada nuevo ataque incluye: catálogo completo (`attacks.py`), reglas de mitigación con comandos reales (`mitigation.py`), clasificación en `_isNetworkAttack()` y `_gCategory()` en el frontend.
+
+### Commits sesión cierre
+- `2fc0fbf` — fix: SST alerts skip terminal/firewall, go direct to guided panel
+- `32b73ad` — feat: add 10 new attack types (biometric, internal network, insider threat)
 
 ---
 
