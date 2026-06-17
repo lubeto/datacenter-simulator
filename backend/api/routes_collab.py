@@ -197,6 +197,9 @@ async def add_member(
     await db.refresh(member)
     await db.commit()
 
+    # Registrar en sala WS para mensajes privados
+    ws_manager.join_room(room_id, body.student_id)
+
     payload = _member_dict(member, student.name)
     await ws_manager.broadcast("collab_member_added", {"room_id": room_id, "member": payload})
     return payload
@@ -225,6 +228,7 @@ async def remove_member(
 
     await db.delete(member)
     await db.commit()
+    ws_manager.leave_room(room_id, student_id)
     await ws_manager.broadcast("collab_member_removed", {"room_id": room_id, "student_id": student_id})
     return {"ok": True}
 
@@ -244,6 +248,7 @@ async def close_room(
     room.ended_at = datetime.utcnow()
     await db.commit()
 
+    ws_manager.close_room(room_id)
     await ws_manager.broadcast("collab_room_closed", {"room_id": room_id})
     return {"ok": True}
 
@@ -291,9 +296,21 @@ async def post_action(
     await db.commit()
 
     payload = _action_dict(action, current.name)
-    # Broadcast solo a miembros de esta sala via WS (usamos evento con room_id para filtrar en frontend)
-    await ws_manager.broadcast("collab_action", {"room_id": room_id, "action": payload})
+    # Solo miembros de esta sala reciben el evento (canal privado)
+    await ws_manager.broadcast_to_room(room_id, "collab_action", {"room_id": room_id, "action": payload})
     return payload
+
+
+@router.post("/rooms/{room_id}/join")
+async def ws_join_room(
+    room_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: Student = Depends(get_current_student),
+):
+    """Estudiante notifica al servidor que está activo en la sala (restaura canal WS tras reconexión)."""
+    await _get_room_or_404(db, room_id)
+    ws_manager.join_room(room_id, current.id)
+    return {"ok": True, "room_id": room_id, "student_id": current.id}
 
 
 @router.get("/my-room")
