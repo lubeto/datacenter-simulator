@@ -1,6 +1,49 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-16 — COMPLETADA ✅ FASE 3 Sala Colaborativa (todas las iteraciones)
+## Última sesión: 2026-06-16 (noche) — Fixes + Bitácora Colaborativa + Manual actualizado
+
+---
+
+## FASE 3 — Sala Colaborativa ✅ COMPLETADA + POST-FIXES (2026-06-16)
+
+### Sesión nocturna 2026-06-16 — Fixes y mejoras adicionales
+
+#### Bitácora Colaborativa (nueva)
+- Modelo `CollabBitacora`: una fila por sala, secciones por rol (t1_sintomas, t2_causa, resp_acciones, com_lecciones)
+- Migración automática en `main.py`: `CREATE TABLE IF NOT EXISTS collab_bitacoras`
+- Rutas: `GET/PATCH /api/collab/rooms/{id}/bitacora` + `GET /api/collab/bitacoras` (instructor)
+- Modal en panel del estudiante: botón **📋 Bitácora** en header → abre las 4 secciones
+- Sección propia editable, secciones de compañeros en solo lectura
+- WS event `collab_bitacora_updated` notifica a toda la sala en tiempo real cuando alguien guarda
+- Bitácora se marca ✅ Completa cuando los 4 roles han guardado
+
+#### Fix: SST panel parpadeando
+- `_sstLastFull` cachea los 12 sensores desde `handleMetrics`
+- `handleSSTAlert` hace merge (no replace) de alertas sobre la lista completa
+- El panel SST ya no colapsa a 1 sensor cuando hay un Critical
+
+#### Fix: Alertas del sistema no mostraba SST
+- `_addSSTAlertToPanel()` agrega sensores críticos/warning al panel de alertas
+- Botón **"✓ Atender"** (antes decía "Atendido") — cambia a verde al hacer clic y desaparece
+- `_updateAlertCount()` mantiene el contador sincronizado
+
+#### Fix: Internal Server Error en múltiples rutas
+- Causa: `collab_room_id` en modelo ORM pero columna no existía en PostgreSQL
+- Fix: `ALTER TABLE bitacoras ADD COLUMN IF NOT EXISTS collab_room_id` al arrancar
+- Afectaba: Monitor Individual, Calidad Textual de Bitácoras, Reportes Evaluativos
+
+#### Manual del estudiante actualizado
+- Nueva sección **Sala Colaborativa** con: roles paso a paso, flujo de equipo 8 pasos,
+  tabla de acciones automáticas, guía de bitácora por rol
+
+#### Commits sesión nocturna
+- `6264eb9` — Iter 6+7: vistas por rol + auto-log acciones
+- `6f785c3` — Iter 8+9: collab_room_id en bitácora + reporte sala
+- `e5121f2` — fix: migración collab_room_id + undefined en incidentes
+- `39b4582` — docs: sección Sala Colaborativa en manual estudiante
+- `3317618` — fix: SST no parpadea + alertas SST en panel alertas
+- `65deb5e` — fix: botón Atender (no Atendido)
+- `e106d2b` — feat: bitácora colaborativa completa
 
 ---
 
