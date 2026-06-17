@@ -314,6 +314,7 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
     <a href="/analytics-page" class="btn btn-outline btn-sm">Analytics</a>
     <a href="/reports-page" class="btn btn-outline btn-sm">Reportes</a>
     <button id="labNavBtn" onclick="openLab()" style="background:#8b5cf6;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F9EA; Lab</button>
+    <button id="collabNavBtn" onclick="toggleCollabPanel()" style="display:none;background:#0d9488;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">🤝 Sala</button>
     <button id="logsNavBtn" onclick="toggleLogsPanel()" style="background:#0ea5e9;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F4C4; Logs</button>
     <button id="firewallNavBtn" onclick="toggleFirewallPanel()" style="background:#dc2626;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F525; Firewall</button>
     <button id="terminalNavBtn" onclick="toggleTerminal()" style="background:#16a34a;border:none;border-radius:6px;padding:6px 14px;color:white;font-size:.82rem;font-weight:700;cursor:pointer;margin-right:6px">&#x1F5A5; Terminal</button>
@@ -392,6 +393,40 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
       <span>Verifica con <strong>terminal</strong> que bajó el ataque</span>
     </div>
     <div id="missionHint" style="margin-top:6px;color:#fbbf24;font-size:.7rem;min-height:1em"></div>
+  </div>
+</div>
+
+<!-- ══ PANEL SALA COLABORATIVA ══════════════════════════════ -->
+<div id="collabPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;height:320px;background:#0f172a;border-top:2px solid #0d9488;z-index:9400;flex-direction:column">
+
+  <!-- Header -->
+  <div style="background:#0d9488;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="color:#fff;font-weight:700;font-size:.82rem">🤝 Sala Colaborativa — <span id="cpRoomName">—</span> &nbsp;<span id="cpRoleBadge" style="background:rgba(255,255,255,.2);border-radius:100px;padding:1px 8px;font-size:.7rem"></span></span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="toggleCollabPanel()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.8rem">✕</button>
+    </div>
+  </div>
+
+  <!-- Body: equipo | chat -->
+  <div style="display:flex;flex:1;overflow:hidden">
+
+    <!-- Columna equipo -->
+    <div style="width:200px;border-right:1px solid #134e4a;padding:8px;overflow-y:auto;flex-shrink:0">
+      <div style="font-size:.68rem;color:#5eead4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Equipo</div>
+      <div id="cpMembers"></div>
+    </div>
+
+    <!-- Columna chat -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div id="cpChatLog" style="flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:4px"></div>
+      <div style="padding:6px 10px;border-top:1px solid #134e4a;display:flex;gap:6px;flex-shrink:0">
+        <input id="cpChatInput" type="text" placeholder="Escribe un mensaje a tu equipo…"
+          style="flex:1;background:#1e293b;border:1px solid #134e4a;border-radius:6px;padding:5px 10px;color:#f1f5f9;font-size:.82rem;outline:none"
+          onkeydown="if(event.key==='Enter')sendCollabChat()">
+        <button onclick="sendCollabChat()" style="background:#0d9488;border:none;border-radius:6px;color:#fff;padding:5px 12px;font-size:.82rem;font-weight:700;cursor:pointer">Enviar</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -822,6 +857,9 @@ function handleWSMessage(msg) {
     case 'guided_step_stats':      handleScenarioStepStats(msg.data); break;
     case 'guided_session_stopped':
     case 'guided_session_completed': handleScenarioEnded(msg.data); break;
+    case 'collab_action':       handleCollabWS(msg.data); break;
+    case 'collab_room_closed':  handleCollabRoomClosed(msg.data); break;
+    case 'collab_member_added': handleCollabMemberAdded(msg.data); break;
   }
 }
 
@@ -4170,6 +4208,179 @@ async function fwFlush() {
     notify('⚠️ Error', 'No se pudo limpiar las reglas', 'warn');
   }
 }
+
+// ══════════════════════════════════════════════════════════
+// SALA COLABORATIVA — estudiante
+// ══════════════════════════════════════════════════════════
+let _collabRoom = null;
+let _collabRole = null;
+let _collabPanelOpen = false;
+
+async function checkMyCollabRoom() {
+  try {
+    const res = await fetch('/api/collab/my-room', {
+      headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || '') }
+    });
+    const data = await res.json();
+    if (data.room) {
+      _collabRoom = data.room;
+      _collabRole = data.role;
+      document.getElementById('collabNavBtn').style.display = 'block';
+      document.getElementById('cpRoomName').textContent = data.room.name;
+      document.getElementById('cpRoleBadge').textContent = _roleIcon(_collabRole) + ' ' + _collabRole;
+      renderCollabMembers(data.room.members || []);
+      // Registrar canal WS privado
+      fetch(`/api/collab/rooms/${data.room.id}/join`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || '') }
+      });
+      // Cargar historial de chat/acciones
+      loadCollabActions();
+    } else {
+      document.getElementById('collabNavBtn').style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+function _roleIcon(role) {
+  return { 'T1-Monitor': '📡', 'T2-Analista': '🔍', 'Responder': '🛡️', 'Comunicador': '📢' }[role] || '👤';
+}
+
+function toggleCollabPanel() {
+  const panel = document.getElementById('collabPanel');
+  _collabPanelOpen = !_collabPanelOpen;
+  panel.style.display = _collabPanelOpen ? 'flex' : 'none';
+  if (_collabPanelOpen) {
+    loadCollabActions();
+    // Subir toolsDrawer si está abierto
+    const drawer = document.getElementById('toolsDrawer');
+    if (drawer && drawer.style.display !== 'none') {
+      drawer.style.bottom = '320px';
+    }
+  } else {
+    const drawer = document.getElementById('toolsDrawer');
+    if (drawer) drawer.style.bottom = '0';
+  }
+}
+
+function renderCollabMembers(members) {
+  const el = document.getElementById('cpMembers');
+  if (!el) return;
+  el.innerHTML = members.map(m => `
+    <div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #134e4a">
+      <span style="font-size:.9rem">${_roleIcon(m.role)}</span>
+      <div>
+        <div style="font-size:.75rem;color:#f1f5f9;font-weight:600">${m.student_name}</div>
+        <div style="font-size:.65rem;color:#5eead4">${m.role}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadCollabActions() {
+  if (!_collabRoom) return;
+  try {
+    const res = await fetch(`/api/collab/rooms/${_collabRoom.id}/actions?limit=80`, {
+      headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || '') }
+    });
+    const actions = await res.json();
+    renderCollabChat(actions);
+  } catch (_) {}
+}
+
+function renderCollabChat(actions) {
+  const log = document.getElementById('cpChatLog');
+  if (!log) return;
+  const me = JSON.parse(localStorage.getItem('student') || '{}');
+  log.innerHTML = actions.map(a => {
+    const isMe = a.student_id === me.id;
+    const isChat = a.is_chat;
+    const time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+    if (isChat) {
+      return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+        <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':a.student_name} · ${time}</div>
+        <div style="background:${isMe?'#0d9488':'#1e293b'};color:#f1f5f9;border-radius:8px;padding:4px 10px;font-size:.78rem;max-width:85%">${_esc(a.detail)}</div>
+      </div>`;
+    } else {
+      return `<div style="text-align:center;font-size:.68rem;color:#64748b;padding:2px 0">
+        <span style="background:#1e293b;border-radius:4px;padding:1px 6px">${_roleIcon('')} <strong>${a.student_name}</strong>: ${_esc(a.detail)} <span style="color:#374151">· ${time}</span></span>
+      </div>`;
+    }
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+function _esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function sendCollabChat() {
+  const input = document.getElementById('cpChatInput');
+  const msg = input.value.trim();
+  if (!msg || !_collabRoom) return;
+  input.value = '';
+  await fetch(`/api/collab/rooms/${_collabRoom.id}/actions`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || ''), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action_type: 'chat', detail: msg, is_chat: true })
+  });
+}
+
+async function postCollabAction(actionType, detail) {
+  if (!_collabRoom) return;
+  await fetch(`/api/collab/rooms/${_collabRoom.id}/actions`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || ''), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action_type: actionType, detail, is_chat: false })
+  });
+}
+
+// WS: recibir acciones/chat en tiempo real
+function handleCollabWS(data) {
+  if (!_collabRoom || data.room_id !== _collabRoom.id) return;
+  const log = document.getElementById('cpChatLog');
+  if (!log) return;
+  const a = data.action;
+  const me = JSON.parse(localStorage.getItem('student') || '{}');
+  const isMe = a.student_id === me.id;
+  const time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+  let html;
+  if (a.is_chat) {
+    html = `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+      <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':a.student_name} · ${time}</div>
+      <div style="background:${isMe?'#0d9488':'#1e293b'};color:#f1f5f9;border-radius:8px;padding:4px 10px;font-size:.78rem;max-width:85%">${_esc(a.detail)}</div>
+    </div>`;
+  } else {
+    html = `<div style="text-align:center;font-size:.68rem;color:#64748b;padding:2px 0">
+      <span style="background:#1e293b;border-radius:4px;padding:1px 6px"><strong>${a.student_name}</strong>: ${_esc(a.detail)}</span>
+    </div>`;
+  }
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  log.appendChild(div.firstElementChild);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Eventos WS collab
+function handleCollabRoomClosed(data) {
+  if (_collabRoom && data.room_id === _collabRoom.id) {
+    _collabRoom = null; _collabRole = null;
+    document.getElementById('collabNavBtn').style.display = 'none';
+    document.getElementById('collabPanel').style.display = 'none';
+    _collabPanelOpen = false;
+    notify('🔴 Sala cerrada', 'El instructor cerró la sala colaborativa', 'warn');
+  }
+}
+
+function handleCollabMemberAdded(data) {
+  if (_collabRoom && data.room_id === _collabRoom.id) {
+    checkMyCollabRoom();
+  }
+}
+
+// Iniciar al cargar
+setTimeout(checkMyCollabRoom, 2000);
+// Revisar cada 60s por si el instructor asigna sala después
+setInterval(checkMyCollabRoom, 60000);
 
 </script>
 
