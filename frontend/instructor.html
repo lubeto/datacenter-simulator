@@ -4266,7 +4266,16 @@ async function loadCollabRooms() {
     }
   }
 
-  renderCollabReport(rooms);
+  // Cargar conteo de acciones para el reporte
+  const details = [];
+  for (const r of rooms) {
+    const rd2 = await fetch(`/api/collab/rooms/${r.id}`, { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const det = await rd2.json();
+    const acts = await fetch(`/api/collab/rooms/${r.id}/actions`, { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const actData = await acts.json();
+    details.push({ ...r, members: det.members || [], actionCount: actData.length });
+  }
+  renderCollabReport(details);
 }
 
 function _roleIcon(role) {
@@ -4275,27 +4284,33 @@ function _roleIcon(role) {
 
 function renderCollabReport(rooms) {
   const el = document.getElementById('collabReportTable');
-  if (!rooms.length) { el.innerHTML = ''; return; }
+  if (!rooms.length) { el.innerHTML = '<div style="color:#6b7280;font-size:.82rem">Sin salas para reportar.</div>'; return; }
+  const _elapsed = (created_at) => {
+    if (!created_at) return '—';
+    const mins = Math.floor((Date.now() - new Date(created_at).getTime()) / 60000);
+    return mins < 60 ? `${mins} min` : `${Math.floor(mins/60)}h ${mins%60}m`;
+  };
   el.innerHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:.78rem">
       <thead>
         <tr style="background:#0a1220">
           <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Sala</th>
-          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Ataque</th>
-          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Nodo</th>
-          <th style="text-align:center;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Miembros</th>
-          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Creada</th>
+          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Miembros</th>
+          <th style="text-align:center;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Acciones</th>
+          <th style="text-align:center;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Tiempo activo</th>
         </tr>
       </thead>
       <tbody>
-        ${rooms.map(r => `
+        ${rooms.map(r => {
+          const memberList = (r.members || []).map(m => `${_roleIcon(m.role)} ${m.student_name}`).join(', ') || '—';
+          return `
           <tr>
-            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#f9fafb;font-weight:600">${r.name}</td>
-            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#fbbf24">${r.attack_type || '—'}</td>
-            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#67e8f9">${r.node_id || '—'}</td>
-            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#a78bfa;text-align:center" id="reportCount-${r.id}">—</td>
-            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#6b7280">${r.created_at ? new Date(r.created_at).toLocaleTimeString() : '—'}</td>
-          </tr>`).join('')}
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#f9fafb;font-weight:600">${r.name}<br><span style="font-size:.7rem;color:#fbbf24">${r.attack_type || ''} ${r.node_id ? '→ ' + r.node_id : ''}</span></td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#a7f3d0;font-size:.72rem">${memberList}</td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#a78bfa;text-align:center;font-weight:700">${r.actionCount ?? '—'}</td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#67e8f9;text-align:center">${_elapsed(r.created_at)}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 }

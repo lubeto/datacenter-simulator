@@ -34,6 +34,7 @@ class BitacoraCreate(BaseModel):
     mttd_seconds:        Optional[float] = None
     duration_sec:        float = 0.0
     incident_id:         Optional[int] = None
+    collab_room_id:      Optional[int] = None
 
     sintomas_observados: str = Field(..., min_length=20)
     causa_raiz:          str = Field(..., min_length=20)
@@ -182,6 +183,7 @@ async def create_bitacora(
         causa_raiz          = data.causa_raiz,
         acciones_tomadas    = data.acciones_tomadas,
         lecciones           = data.lecciones,
+        collab_room_id      = data.collab_room_id,
     )
     db.add(b)
     await db.commit()

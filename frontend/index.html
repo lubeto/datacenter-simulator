@@ -3539,6 +3539,7 @@ async function submitBitacora() {
     causa_raiz:          document.getElementById('bmCausa').value.trim(),
     acciones_tomadas:    document.getElementById('bmAcciones').value.trim(),
     lecciones:           document.getElementById('bmLecciones').value.trim(),
+    collab_room_id:      _collabRoom ? _collabRoom.id : null,
   };
 
   let qualityInfo = null;
