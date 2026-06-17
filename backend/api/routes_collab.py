@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 
 from ..database.db import get_db
-from ..database.models import CollabRoom, CollabMember, CollabAction, Student
+from ..database.models import CollabRoom, CollabMember, CollabAction, CollabBitacora, Student
 from ..api.routes_students import get_current_student
 from ..api.websocket import manager as ws_manager
 
@@ -343,3 +343,134 @@ async def my_room(
     )
     data["members"] = [_member_dict(m, name) for m, name in members_result.all()]
     return {"room": data, "role": role}
+
+
+# ── Bitácora Colaborativa ──────────────────────────────────────
+
+_ROLE_FIELD = {
+    "T1-Monitor": ("t1_student_id", "t1_sintomas", "t1_saved_at"),
+    "T2-Analista": ("t2_student_id", "t2_causa", "t2_saved_at"),
+    "Responder":   ("resp_student_id", "resp_acciones", "resp_saved_at"),
+    "Comunicador": ("com_student_id", "com_lecciones", "com_saved_at"),
+}
+
+
+def _bitacora_dict(b: CollabBitacora, names: dict) -> dict:
+    return {
+        "id": b.id,
+        "room_id": b.room_id,
+        "incident_type": b.incident_type,
+        "node_id": b.node_id,
+        "sections": {
+            "T1-Monitor":  {"text": b.t1_sintomas,   "student_id": b.t1_student_id,   "name": names.get(b.t1_student_id),   "saved_at": b.t1_saved_at.isoformat()   if b.t1_saved_at   else None},
+            "T2-Analista": {"text": b.t2_causa,       "student_id": b.t2_student_id,   "name": names.get(b.t2_student_id),   "saved_at": b.t2_saved_at.isoformat()   if b.t2_saved_at   else None},
+            "Responder":   {"text": b.resp_acciones,  "student_id": b.resp_student_id, "name": names.get(b.resp_student_id), "saved_at": b.resp_saved_at.isoformat() if b.resp_saved_at else None},
+            "Comunicador": {"text": b.com_lecciones,  "student_id": b.com_student_id,  "name": names.get(b.com_student_id),  "saved_at": b.com_saved_at.isoformat()  if b.com_saved_at  else None},
+        },
+        "created_at": b.created_at.isoformat() if b.created_at else None,
+        "completed_at": b.completed_at.isoformat() if b.completed_at else None,
+    }
+
+
+async def _load_names(db: AsyncSession, *ids) -> dict:
+    ids = [i for i in ids if i]
+    if not ids:
+        return {}
+    result = await db.execute(select(Student.id, Student.name).where(Student.id.in_(ids)))
+    return {r.id: r.name for r in result.all()}
+
+
+class BitacoraRoomInit(BaseModel):
+    incident_type: Optional[str] = None
+    node_id: Optional[str] = None
+
+
+class BitacoraSection(BaseModel):
+    text: str
+
+
+@router.get("/rooms/{room_id}/bitacora")
+async def get_bitacora(
+    room_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: Student = Depends(get_current_student),
+):
+    """Obtiene la bitácora colaborativa de la sala (crea una vacía si no existe)."""
+    room = await _get_room_or_404(db, room_id)
+    result = await db.execute(select(CollabBitacora).where(CollabBitacora.room_id == room_id))
+    bit = result.scalar_one_or_none()
+    if not bit:
+        bit = CollabBitacora(room_id=room_id, incident_type=room.attack_type, node_id=room.node_id)
+        db.add(bit)
+        await db.flush()
+        await db.refresh(bit)
+        await db.commit()
+    names = await _load_names(db, bit.t1_student_id, bit.t2_student_id, bit.resp_student_id, bit.com_student_id)
+    return _bitacora_dict(bit, names)
+
+
+@router.patch("/rooms/{room_id}/bitacora")
+async def save_bitacora_section(
+    room_id: int,
+    body: BitacoraSection,
+    db: AsyncSession = Depends(get_db),
+    current: Student = Depends(get_current_student),
+):
+    """Estudiante guarda su sección en la bitácora colaborativa según su rol."""
+    await _get_room_or_404(db, room_id)
+
+    # Obtener rol del estudiante en esta sala
+    mr = await db.execute(
+        select(CollabMember.role).where(
+            CollabMember.room_id == room_id,
+            CollabMember.student_id == current.id,
+        )
+    )
+    role = mr.scalar_one_or_none()
+    if not role:
+        raise HTTPException(status_code=403, detail="No eres miembro de esta sala")
+    if role not in _ROLE_FIELD:
+        raise HTTPException(status_code=400, detail=f"Rol {role} no tiene sección en la bitácora")
+
+    sid_col, text_col, ts_col = _ROLE_FIELD[role]
+
+    result = await db.execute(select(CollabBitacora).where(CollabBitacora.room_id == room_id))
+    bit = result.scalar_one_or_none()
+    if not bit:
+        room = await _get_room_or_404(db, room_id)
+        bit = CollabBitacora(room_id=room_id, incident_type=room.attack_type, node_id=room.node_id)
+        db.add(bit)
+        await db.flush()
+
+    setattr(bit, sid_col, current.id)
+    setattr(bit, text_col, body.text)
+    setattr(bit, ts_col, datetime.utcnow())
+
+    # Marcar como completa si los 4 roles guardaron
+    if all([bit.t1_sintomas, bit.t2_causa, bit.resp_acciones, bit.com_lecciones]):
+        bit.completed_at = bit.completed_at or datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(bit)
+
+    names = await _load_names(db, bit.t1_student_id, bit.t2_student_id, bit.resp_student_id, bit.com_student_id)
+    payload = _bitacora_dict(bit, names)
+    await ws_manager.broadcast_to_room(room_id, "collab_bitacora_updated", {"room_id": room_id, "bitacora": payload})
+    return payload
+
+
+@router.get("/bitacoras")
+async def list_bitacoras(
+    db: AsyncSession = Depends(get_db),
+    current: Student = Depends(get_current_student),
+):
+    """Instructor: lista todas las bitácoras colaborativas."""
+    if current.role != "instructor":
+        raise HTTPException(status_code=403)
+    result = await db.execute(select(CollabBitacora).order_by(CollabBitacora.created_at.desc()))
+    bits = result.scalars().all()
+    out = []
+    for b in bits:
+        names = await _load_names(db, b.t1_student_id, b.t2_student_id, b.resp_student_id, b.com_student_id)
+        out.append(_bitacora_dict(b, names))
+    return out

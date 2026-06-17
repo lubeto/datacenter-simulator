@@ -129,6 +129,37 @@ async def lifespan(app: FastAPI):
             logger.warning(f"Migración collab_room_id: {e}")
             await db.rollback()
 
+    async with AsyncSessionLocal() as db:
+        try:
+            from sqlalchemy import text as _text
+            await db.execute(_text("""
+                CREATE TABLE IF NOT EXISTS collab_bitacoras (
+                    id SERIAL PRIMARY KEY,
+                    room_id INTEGER UNIQUE REFERENCES collab_rooms(id) ON DELETE CASCADE,
+                    incident_type VARCHAR(60),
+                    node_id VARCHAR(50),
+                    t1_student_id INTEGER REFERENCES students(id) ON DELETE SET NULL,
+                    t1_sintomas TEXT,
+                    t1_saved_at TIMESTAMP,
+                    t2_student_id INTEGER REFERENCES students(id) ON DELETE SET NULL,
+                    t2_causa TEXT,
+                    t2_saved_at TIMESTAMP,
+                    resp_student_id INTEGER REFERENCES students(id) ON DELETE SET NULL,
+                    resp_acciones TEXT,
+                    resp_saved_at TIMESTAMP,
+                    com_student_id INTEGER REFERENCES students(id) ON DELETE SET NULL,
+                    com_lecciones TEXT,
+                    com_saved_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    completed_at TIMESTAMP
+                )
+            """))
+            await db.commit()
+            logger.info("✅ Migración: tabla collab_bitacoras (IF NOT EXISTS)")
+        except Exception as e:
+            logger.warning(f"Migración collab_bitacoras: {e}")
+            await db.rollback()
+
     # Crear usuario administrador/instructor por defecto
     async with AsyncSessionLocal() as db:
         admin_email = os.getenv("ADMIN_EMAIL", "instructor@datacenter.edu")

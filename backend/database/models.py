@@ -420,6 +420,44 @@ class CollabAction(Base):
 
 
 # ============================================================
+# BITÁCORA COLABORATIVA — una por sala, cada rol llena su sección
+# ============================================================
+class CollabBitacora(Base):
+    """Bitácora grupal: una por sala, cada miembro completa la sección de su rol."""
+    __tablename__ = "collab_bitacoras"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    room_id         = Column(Integer, ForeignKey("collab_rooms.id"), unique=True, nullable=False)
+    incident_type   = Column(String(60), nullable=True)
+    node_id         = Column(String(50), nullable=True)
+
+    # Sección T1-Monitor
+    t1_student_id   = Column(Integer, ForeignKey("students.id"), nullable=True)
+    t1_sintomas     = Column(Text, nullable=True)
+    t1_saved_at     = Column(DateTime, nullable=True)
+
+    # Sección T2-Analista
+    t2_student_id   = Column(Integer, ForeignKey("students.id"), nullable=True)
+    t2_causa        = Column(Text, nullable=True)
+    t2_saved_at     = Column(DateTime, nullable=True)
+
+    # Sección Responder
+    resp_student_id = Column(Integer, ForeignKey("students.id"), nullable=True)
+    resp_acciones   = Column(Text, nullable=True)
+    resp_saved_at   = Column(DateTime, nullable=True)
+
+    # Sección Comunicador
+    com_student_id  = Column(Integer, ForeignKey("students.id"), nullable=True)
+    com_lecciones   = Column(Text, nullable=True)
+    com_saved_at    = Column(DateTime, nullable=True)
+
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    completed_at    = Column(DateTime, nullable=True)
+
+    room            = relationship("CollabRoom", backref="bitacora", uselist=False)
+
+
+# ============================================================
 # SESIONES EVALUATIVAS GRUPALES
 # ============================================================
 class EvalGroup(Base):
