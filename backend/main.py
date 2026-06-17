@@ -34,6 +34,7 @@ from .api.routes_sessions  import router as sessions_router
 from .api.routes_admin     import router as admin_router
 from .api.routes_instructor import router as instructor_router
 from .api.routes_ai_feedback import router as ai_feedback_router
+from .api.routes_collab      import router as collab_router
 from .api.routes_export import router as export_router
 from .api.routes_import import router as import_router
 from .api.websocket       import manager as ws_manager
@@ -226,6 +227,7 @@ app.include_router(sessions_router)
 app.include_router(admin_router)
 app.include_router(instructor_router)
 app.include_router(ai_feedback_router)
+app.include_router(collab_router)
 app.include_router(export_router)
 app.include_router(import_router)
 
