@@ -1555,7 +1555,7 @@ function _addSSTAlertToPanel(sensors, severity) {
         <div style="font-size:.75rem;color:var(--muted);margin-top:.15rem">${s.type}: ${typeof s.value==='number'?s.value.toFixed(1):s.value} ${s.unit} (rango normal: ${s.normal_min}–${s.normal_max})</div>
       </div>
       <button class="btn btn-sm" style="background:#1e3060;color:#93c5fd;border:1px solid #3b5bdb;white-space:nowrap;flex-shrink:0"
-        onclick="this.closest('[id]').remove();_updateAlertCount()">✓ Atendido</button>`;
+        onclick="this.textContent='✓ Atendido';this.disabled=true;this.style.background='#14532d';this.style.color='#4ade80';setTimeout(()=>{this.closest('[id]').remove();_updateAlertCount();},1200)">✓ Atender</button>`;
     alertList.prepend(d);
   });
   _updateAlertCount();
