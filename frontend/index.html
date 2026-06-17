@@ -3459,8 +3459,17 @@ function _openBitacoraModal(data) {
   const btn = document.getElementById('bmSubmitBtn');
   if (btn) { btn.disabled = false; btn.textContent = '✅ Guardar bitácora y ver resultado'; }
   document.getElementById('bitacoraOverlay').classList.add('open');
-  // Iniciar temporizador de inactividad en el modal
   _startBitacoraInactivityWatch();
+  // Verificar disponibilidad de IA y ocultar botón si no está activa
+  const aiBtn = document.getElementById('bmAiBtn');
+  if (aiBtn) {
+    aiBtn.style.display = 'none';
+    fetch('/api/ai/bitacora-feedback/status', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('dc_token') }
+    }).then(r => r.json()).then(d => {
+      if (d.available) aiBtn.style.display = '';
+    }).catch(() => {});
+  }
 }
 
 function bmCount(textarea, counterId, minLen) {
