@@ -264,6 +264,13 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
     <a class="session-link" href="#sesion5">Sesión 5 — SSL &amp; Evaluación</a>
     <a class="sub" href="#s5-ssl">SSL Expirado / TLS Downgrade</a>
 
+    <div class="nav-section">Sala Colaborativa</div>
+    <a class="session-link" href="#collab">¿Qué es la Sala?</a>
+    <a class="sub" href="#collab-roles">Los 4 Roles</a>
+    <a class="sub" href="#collab-flujo">Flujo de Equipo</a>
+    <a class="sub" href="#collab-acciones">Acciones Automáticas</a>
+    <a class="sub" href="#collab-bitacora">Bitácora Colaborativa</a>
+
     <div class="nav-section">Instructor</div>
     <a href="#instructor">Panel del Instructor</a>
     <a href="#eval">Evaluación y Puntaje</a>
@@ -1546,6 +1553,257 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
   <div class="alert-box success">
     <span class="icon">✅</span>
     <p><strong>Truco para la evaluación final:</strong> El primer comando que debes ejecutar siempre es <code>netstat -an</code> y <code>ps aux</code>. En menos de 10 segundos sabrás el tipo de ataque por el proceso que ves. Luego confirmas con <code>tail -f /var/log/syslog</code>.</p>
+  </div>
+</section>
+
+<!-- ═══ SALA COLABORATIVA ═══ -->
+<section class="section" id="collab">
+  <h2><span class="icon">🤝</span>Sala Colaborativa</h2>
+  <p>La <strong>Sala Colaborativa</strong> es un ejercicio en equipo donde el instructor asigna un incidente activo a un grupo de 4 estudiantes, cada uno con un rol específico. El objetivo es resolver el incidente coordinados en tiempo real, tal como lo haría un equipo SOC real.</p>
+
+  <div class="alert-box info">
+    <span class="icon">ℹ️</span>
+    <p><strong>¿Cómo entro a la sala?</strong> El instructor te asigna desde el panel. Cuando lo haga, verás aparecer el botón <strong>🤝 Sala</strong> en la barra superior de tu dashboard. Haz clic para abrir el panel de equipo.</p>
+  </div>
+
+  <h3>¿Qué verás en tu pantalla?</h3>
+  <p>Al abrir la sala, aparece un panel en la parte inferior de tu dashboard con dos columnas:</p>
+  <table class="node-table">
+    <thead><tr><th>Columna izquierda</th><th>Columna derecha</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Tu equipo</strong> — lista de compañeros con su rol asignado. Tu rol aparece resaltado con un banner de color que indica en qué panel debes enfocarte.</td>
+        <td><strong>Chat de sala</strong> — mensajes en tiempo real entre los miembros del equipo. También aparecen aquí las acciones técnicas que cada compañero ejecuta (bloqueos de IP, reinicios de servicio).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="alert-box warning">
+    <span class="icon">⚠️</span>
+    <p><strong>Tu rol se abre automáticamente:</strong> cuando entras a la sala, el simulador abre la pestaña de herramientas correspondiente a tu rol (Logs, Firewall, etc.). No la cierres — es tu área de trabajo principal.</p>
+  </div>
+</section>
+
+<!-- ═══ LOS 4 ROLES ═══ -->
+<section class="section" id="collab-roles">
+  <h2><span class="icon">🎭</span>Los 4 Roles — Responsabilidades</h2>
+  <p>Cada rol tiene una responsabilidad clara. No son excluyentes — puedes ver otras pestañas — pero <strong>tu aporte principal es el de tu rol</strong>.</p>
+
+  <!-- T1-Monitor -->
+  <div class="attack-card" style="margin-bottom:1.5rem">
+    <div class="attack-header" style="background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.3)">
+      <span class="attack-icon">📡</span>
+      <div>
+        <div class="attack-name">T1-Monitor</div>
+        <div class="attack-meta">Vigilancia de métricas en tiempo real</div>
+      </div>
+      <span class="badge info" style="margin-left:auto">Métricas</span>
+    </div>
+    <div class="attack-body">
+      <h4>Tu misión</h4>
+      <p>Eres los ojos del equipo. Observas el mapa de red y las métricas de todos los nodos para identificar cuál está bajo ataque y qué tan grave es.</p>
+      <h4>Paso a paso</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>Observa el mapa de red</h5><p>Busca nodos en rojo o amarillo. El nodo afectado tendrá CPU, RAM o tráfico de red fuera de lo normal.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-content"><h5>Informa al equipo por chat</h5><p>Escribe en el chat: <code>Nodo WEB-01 — CPU 98% — tráfico entrante 450 Mbps. Posible DDoS.</code></p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-content"><h5>Monitorea durante toda la respuesta</h5><p>Informa si las métricas mejoran o empeoran mientras el equipo actúa. Di "bajó a 60% CPU" o "sigue crítico".</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-content"><h5>Confirma la mitigación</h5><p>Cuando el Responder bloquee la IP, confirma si las métricas vuelven a niveles normales (CPU &lt;70%, red &lt;100 Mbps).</p></div></div>
+      </div>
+      <div class="alert-box success"><span class="icon">✅</span><p><strong>Frase clave de reporte:</strong> "Nodo [NOMBRE] — [MÉTRICA] en [VALOR] — [TENDENCIA: subiendo/bajando/estable]"</p></div>
+    </div>
+  </div>
+
+  <!-- T2-Analista -->
+  <div class="attack-card" style="margin-bottom:1.5rem">
+    <div class="attack-header" style="background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.3)">
+      <span class="attack-icon">🔍</span>
+      <div>
+        <div class="attack-name">T2-Analista</div>
+        <div class="attack-meta">Análisis de logs y evidencias</div>
+      </div>
+      <span class="badge" style="background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3);margin-left:auto">Logs + Terminal</span>
+    </div>
+    <div class="attack-body">
+      <h4>Tu misión</h4>
+      <p>Eres el investigador forense. Revisas los logs del nodo afectado para identificar la IP atacante, el proceso malicioso o el patrón de ataque. Tu análisis guía al Responder.</p>
+      <h4>Paso a paso</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>Abre la pestaña Logs</h5><p>El simulador la abre automáticamente. Busca líneas en rojo (crítico) con IPs externas o mensajes de error.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-content"><h5>Identifica la IP atacante</h5><p>Busca el patrón de la IP: DoS/DDoS → 203.0.113.x | Brute Force → 198.51.100.x | Unauth → 185.220.101.x | SSL → 91.108.4.x</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-content"><h5>Marca la línea como IOC</h5><p>Haz clic en la línea del log sospechosa para marcarla con 🚩. Aparecerá el botón <code>🔥 IP → FW</code>.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-content"><h5>Informa la IP al equipo</h5><p>Escribe en chat: <code>IP atacante confirmada: 203.0.113.47 — brute force SSH — 847 intentos en 2 min</code></p></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-content"><h5>Ejecuta comandos de verificación</h5><p>En Terminal: <code>netstat -an | grep ESTABLISHED</code>, <code>tail -f /var/log/auth.log</code>, <code>ps aux</code>. Comparte los hallazgos por chat.</p></div></div>
+      </div>
+      <div class="alert-box warning"><span class="icon">⚠️</span><p><strong>No bloquees tú la IP</strong> — eso es tarea del Responder. Tu trabajo es identificarla y comunicarla con claridad.</p></div>
+    </div>
+  </div>
+
+  <!-- Responder -->
+  <div class="attack-card" style="margin-bottom:1.5rem">
+    <div class="attack-header" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3)">
+      <span class="attack-icon">🛡️</span>
+      <div>
+        <div class="attack-name">Responder</div>
+        <div class="attack-meta">Contención y mitigación activa</div>
+      </div>
+      <span class="badge critical" style="margin-left:auto">Firewall</span>
+    </div>
+    <div class="attack-body">
+      <h4>Tu misión</h4>
+      <p>Eres quien ejecuta las acciones defensivas. Cuando el Analista confirme la IP o el problema, tú aplicas las reglas de firewall y reinicias servicios comprometidos.</p>
+      <h4>Paso a paso</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>Espera la IP del Analista</h5><p>No actúes hasta que T2-Analista confirme la IP atacante en el chat. Actuar sobre la IP equivocada bloquea tráfico legítimo.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-content"><h5>Abre la pestaña Firewall</h5><p>El simulador la abre automáticamente. Ingresa la IP en el campo "Bloquear IP" y haz clic en <strong>Bloquear</strong>.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-content"><h5>Confirma la regla aplicada</h5><p>Verifica que aparece en la lista de reglas como <code>DROP &lt;IP&gt;</code>. Esta acción se publica automáticamente en el chat de la sala.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-content"><h5>Reinicia el servicio si aplica</h5><p>Para ataques de brute force o servicio caído, en Terminal ejecuta: <code>systemctl restart ssh</code> o <code>systemctl restart nginx</code>. También se registra automáticamente en el chat.</p></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-content"><h5>Informa al equipo</h5><p>Escribe: <code>IP 203.0.113.47 bloqueada. Regla DROP aplicada. Esperando confirmación del monitor.</code></p></div></div>
+      </div>
+      <div class="alert-box success"><span class="icon">✅</span><p><strong>Cada bloqueo que aplicas aparece automáticamente en el chat</strong> para que el equipo sepa lo que hiciste, sin que tengas que escribirlo manualmente.</p></div>
+    </div>
+  </div>
+
+  <!-- Comunicador -->
+  <div class="attack-card" style="margin-bottom:1.5rem">
+    <div class="attack-header" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3)">
+      <span class="attack-icon">📢</span>
+      <div>
+        <div class="attack-name">Comunicador</div>
+        <div class="attack-meta">Coordinación y documentación del equipo</div>
+      </div>
+      <span class="badge warning" style="margin-left:auto">Chat + Resumen</span>
+    </div>
+    <div class="attack-body">
+      <h4>Tu misión</h4>
+      <p>Eres el coordinador del equipo. Mantienes el hilo de la conversación, sintetizas lo que dice cada rol, y eres quien al final redacta el resumen del incidente para la bitácora.</p>
+      <h4>Paso a paso</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h5>Abre el ejercicio</h5><p>Cuando la sala se activa, escribe en el chat para presentar el equipo: <code>Sala activa. Equipo: [T1], [T2], [Responder], Comunicador. Comenzamos.</code></p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-content"><h5>Registra los hallazgos</h5><p>A medida que el equipo reporta, anota en un bloc o directamente en el campo de síntomas de la bitácora: nodo afectado, IP atacante, tipo de ataque.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-content"><h5>Coordina si hay silencio</h5><p>Si alguien no reporta, pregunta por chat: <code>T2 — ¿encontraste la IP atacante?</code> o <code>Monitor — ¿cómo están las métricas?</code></p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-content"><h5>Redacta el resumen final</h5><p>Cuando el Responder confirme la mitigación, escribe el resumen en el chat con este formato:</p>
+        <div class="terminal" style="margin-top:8px">
+          <div class="term-line cmd">RESUMEN DEL INCIDENTE</div>
+          <div class="term-line">Nodo: WEB-01 | Ataque: DDoS | Severidad: Crítica</div>
+          <div class="term-line">IP bloqueada: 203.0.113.47</div>
+          <div class="term-line">Tiempo de respuesta: ~8 minutos</div>
+          <div class="term-line ok">Estado: MITIGADO ✅</div>
+        </div>
+        </div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-content"><h5>Completa la bitácora</h5><p>Usa el resumen que construiste durante el ejercicio para llenar los 4 campos de la bitácora individual. Haz clic en "✨ Revisar con IA" antes de guardar.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FLUJO DE EQUIPO ═══ -->
+<section class="section" id="collab-flujo">
+  <h2><span class="icon">🔄</span>Flujo de Equipo — Paso a Paso</h2>
+  <p>Así se ve un ejercicio colaborativo completo, desde que el instructor activa la sala hasta que cierran el incidente:</p>
+
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><h5>El instructor crea la sala</h5><p>Recibes una notificación y aparece el botón <strong>🤝 Sala</strong> en tu barra superior. Haz clic para abrir el panel colaborativo.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><h5>Conoce tu rol</h5><p>El banner de color en la columna izquierda te indica tu rol y en qué debes enfocarte. La pestaña de herramientas correspondiente se abre automáticamente.</p></div></div>
+    <div class="step"><div class="step-num green">3</div><div class="step-content"><h5>T1-Monitor reporta</h5><p><strong>Primero habla el Monitor.</strong> Identifica el nodo afectado mirando el mapa y escribe en el chat qué métricas están fuera de rango.</p></div></div>
+    <div class="step"><div class="step-num green">4</div><div class="step-content"><h5>T2-Analista investiga</h5><p>Con el nodo identificado, el Analista revisa los logs, marca la línea IOC y comunica la IP atacante y el tipo de ataque al equipo.</p></div></div>
+    <div class="step"><div class="step-num yellow">5</div><div class="step-content"><h5>Responder actúa</h5><p>Con la IP confirmada, el Responder aplica la regla en el Firewall y/o reinicia el servicio. <strong>Esto aparece automáticamente en el chat.</strong></p></div></div>
+    <div class="step"><div class="step-num yellow">6</div><div class="step-content"><h5>T1-Monitor confirma mejora</h5><p>El Monitor reporta si las métricas vuelven a valores normales. Si no mejoran, el equipo analiza si hay más IPs atacantes o si el ataque cambió.</p></div></div>
+    <div class="step"><div class="step-num red">7</div><div class="step-content"><h5>Comunicador redacta el resumen</h5><p>El Comunicador escribe el resumen final en el chat con nodo, IP, tipo, tiempo de respuesta y estado.</p></div></div>
+    <div class="step"><div class="step-num red">8</div><div class="step-content"><h5>Todos completan la bitácora</h5><p>Cada integrante completa su bitácora <strong>individual</strong> con lo que observó desde su rol. La bitácora queda vinculada automáticamente a la sala.</p></div></div>
+  </div>
+
+  <div class="alert-box warning">
+    <span class="icon">⏱️</span>
+    <p><strong>Tiempo objetivo:</strong> Un equipo bien coordinado resuelve el incidente en 5 a 10 minutos. Si pasan 15 minutos sin mitigación, el instructor puede revelar pistas.</p>
+  </div>
+</section>
+
+<!-- ═══ ACCIONES AUTOMÁTICAS ═══ -->
+<section class="section" id="collab-acciones">
+  <h2><span class="icon">⚡</span>Acciones que se Registran Automáticamente</h2>
+  <p>No necesitas escribir en el chat cada vez que ejecutas una acción técnica. El simulador detecta ciertas acciones y las publica automáticamente en el log de la sala para que todo el equipo las vea.</p>
+
+  <table class="node-table">
+    <thead>
+      <tr>
+        <th>Acción</th>
+        <th>Cómo ejecutarla</th>
+        <th>Lo que aparece en el chat</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Bloquear IP</strong></td>
+        <td>Pestaña Firewall → campo "Bloquear IP" → clic en Bloquear</td>
+        <td><code>🛡️ Bloqueó IP: 203.0.113.47</code></td>
+      </tr>
+      <tr>
+        <td><strong>Bloquear Puerto</strong></td>
+        <td>Pestaña Firewall → campo "Bloquear Puerto" → clic en Bloquear</td>
+        <td><code>🛡️ Bloqueó puerto: 22</code></td>
+      </tr>
+      <tr>
+        <td><strong>Reiniciar servicio</strong></td>
+        <td>Terminal → <code>systemctl restart &lt;servicio&gt;</code></td>
+        <td><code>⚙️ Reinició servicio: systemctl restart ssh</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="alert-box info">
+    <span class="icon">ℹ️</span>
+    <p><strong>Solo el comando exacto activa el registro automático:</strong> el reinicio de servicio se detecta cuando el comando contiene <code>systemctl restart</code> seguido del nombre del servicio. Otros comandos de terminal no se registran automáticamente — escríbelos manualmente en el chat si quieres compartirlos.</p>
+  </div>
+
+  <h3>Mensajes manuales de chat</h3>
+  <p>Para todo lo demás, usa el campo de texto en la columna derecha del panel. Pulsa <strong>Enter</strong> o el botón <strong>Enviar</strong> para que el mensaje llegue a todos los miembros de la sala en tiempo real.</p>
+</section>
+
+<!-- ═══ BITÁCORA COLABORATIVA ═══ -->
+<section class="section" id="collab-bitacora">
+  <h2><span class="icon">📋</span>Bitácora en la Sala Colaborativa</h2>
+  <p>Cada estudiante completa su bitácora <strong>de forma individual</strong>, pero el sistema la vincula automáticamente a la sala. Esto permite al instructor ver qué documentó cada rol.</p>
+
+  <h3>¿Qué escribir según tu rol?</h3>
+  <table class="node-table">
+    <thead>
+      <tr><th>Rol</th><th>Síntomas observados</th><th>Causa raíz</th><th>Acciones tomadas</th><th>Lecciones aprendidas</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>📡 T1-Monitor</strong></td>
+        <td>Métricas que observé: CPU, RAM, tráfico de red, nodos afectados</td>
+        <td>El ataque generó saturación de recursos en el nodo porque...</td>
+        <td>Monitorié las métricas y reporté en tiempo real al equipo</td>
+        <td>La primera señal fue X — en el futuro revisaré Y primero</td>
+      </tr>
+      <tr>
+        <td><strong>🔍 T2-Analista</strong></td>
+        <td>Líneas de log con IP, proceso y timestamp del inicio del ataque</td>
+        <td>La IP 203.0.113.x realizó X intentos de Y en Z segundos</td>
+        <td>Marqué los IOC, identifiqué la IP atacante y la comuniqué al Responder</td>
+        <td>El patrón X en los logs es el indicador más rápido para este tipo de ataque</td>
+      </tr>
+      <tr>
+        <td><strong>🛡️ Responder</strong></td>
+        <td>Ataques activos que encontré en el panel Firewall al abrir la sala</td>
+        <td>El atacante usó la IP X para ejecutar Y — el servicio Z quedó comprometido</td>
+        <td>Apliqué regla DROP para IP X. Reinicié servicio Y con systemctl restart</td>
+        <td>El bloqueo tardó X min — la próxima vez actuaré más rápido si el Analista confirma primero</td>
+      </tr>
+      <tr>
+        <td><strong>📢 Comunicador</strong></td>
+        <td>Resumen del reporte del equipo: nodo, métricas, IP, tipo de ataque</td>
+        <td>Síntesis de lo que causó el incidente según el análisis del equipo</td>
+        <td>Coordiné el equipo, documenté hallazgos y redacté el resumen final</td>
+        <td>El equipo tardó X en comunicarse — la próxima vez estableceré una estructura de reporte desde el inicio</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="alert-box success">
+    <span class="icon">✅</span>
+    <p><strong>Truco:</strong> Durante el ejercicio, abre un bloc de notas aparte y anota lo que hace tu rol en tiempo real. Al terminar, usa esas notas para llenar la bitácora — será mucho más detallada y obtendrás mejor puntaje de calidad textual.</p>
   </div>
 </section>
 
