@@ -117,6 +117,18 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("✅ Base de datos inicializada")
 
+    # Migraciones manuales — columnas agregadas después del schema inicial
+    async with AsyncSessionLocal() as db:
+        try:
+            await db.execute(__import__("sqlalchemy", fromlist=["text"]).text(
+                "ALTER TABLE bitacoras ADD COLUMN IF NOT EXISTS collab_room_id INTEGER REFERENCES collab_rooms(id) ON DELETE SET NULL"
+            ))
+            await db.commit()
+            logger.info("✅ Migración: collab_room_id en bitacoras (IF NOT EXISTS)")
+        except Exception as e:
+            logger.warning(f"Migración collab_room_id: {e}")
+            await db.rollback()
+
     # Crear usuario administrador/instructor por defecto
     async with AsyncSessionLocal() as db:
         admin_email = os.getenv("ADMIN_EMAIL", "instructor@datacenter.edu")
