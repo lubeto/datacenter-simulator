@@ -234,6 +234,7 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
   <button class="tab-btn"        id="tabBtn-reportes" onclick="switchTab('reportes')">📋 Reportes</button>
   <button class="tab-btn"        id="tabBtn-guided"   onclick="switchTab('guided')">🎓 Clase Guiada <span class="tab-badge" id="guidedBadge" style="display:none">▶</span></button>
   <button class="tab-btn"        id="tabBtn-classreport" onclick="switchTab('classreport')">📊 Reporte de Clase</button>
+  <button class="tab-btn"        id="tabBtn-collab"      onclick="switchTab('collab');loadCollabRooms()">🤝 Sala Colaborativa</button>
 </nav>
 
 <div class="container">
@@ -1099,6 +1100,108 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 
 </div><!-- /container -->
 
+<!-- ══ TAB: SALA COLABORATIVA ════════════════════════════════ -->
+<div id="tab-collab" class="tab-pane">
+  <div style="max-width:1100px;margin:0 auto;padding:1.2rem">
+
+    <!-- Cabecera + botón crear -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <h2 style="font-size:1.1rem;font-weight:700;color:#f9fafb;margin:0">🤝 Salas Colaborativas</h2>
+      <button class="btn btn-primary btn-sm" onclick="openCreateRoomModal()">＋ Nueva Sala</button>
+    </div>
+
+    <!-- Lista de salas activas -->
+    <div id="collabRoomsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem">
+      <div style="color:#6b7280;font-size:.85rem">Cargando salas...</div>
+    </div>
+
+    <!-- Reporte simple -->
+    <div style="margin-top:2rem">
+      <h3 style="font-size:.85rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Resumen de salas</h3>
+      <div id="collabReportTable" style="overflow-x:auto"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal crear sala -->
+<div id="collabCreateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#0f172a;border:1px solid #1e3a5f;border-radius:12px;padding:1.5rem;width:440px;max-width:95vw">
+    <h3 style="font-size:1rem;font-weight:700;color:#f9fafb;margin:0 0 1rem">Nueva Sala Colaborativa</h3>
+
+    <label style="font-size:.8rem;color:#9ca3af;display:block;margin-bottom:.25rem">Nombre de la sala</label>
+    <input id="crRoomName" type="text" placeholder="Ej: Equipo Rojo" style="width:100%;background:#1e293b;border:1px solid #1e3a5f;border-radius:6px;padding:.5rem .75rem;color:#f9fafb;font-size:.85rem;margin-bottom:.75rem;box-sizing:border-box">
+
+    <label style="font-size:.8rem;color:#9ca3af;display:block;margin-bottom:.25rem">Tipo de ataque (opcional)</label>
+    <select id="crAttackType" style="width:100%;background:#1e293b;border:1px solid #1e3a5f;border-radius:6px;padding:.5rem .75rem;color:#f9fafb;font-size:.85rem;margin-bottom:.75rem">
+      <option value="">— Sin asignar —</option>
+      <option value="dos">DoS</option>
+      <option value="ddos">DDoS</option>
+      <option value="syn_flood">SYN Flood</option>
+      <option value="brute_force">Brute Force SSH</option>
+      <option value="port_scan">Port Scan</option>
+      <option value="memory_leak">Memory Leak</option>
+      <option value="disk_failure">Disk Failure</option>
+      <option value="thermal">Sobrecalentamiento</option>
+      <option value="smoke_alert">Alerta de Humo</option>
+      <option value="unauthorized_access">Acceso No Autorizado</option>
+      <option value="ssl_expired">SSL Expirado</option>
+    </select>
+
+    <label style="font-size:.8rem;color:#9ca3af;display:block;margin-bottom:.25rem">Nodo objetivo (opcional)</label>
+    <select id="crNodeId" style="width:100%;background:#1e293b;border:1px solid #1e3a5f;border-radius:6px;padding:.5rem .75rem;color:#f9fafb;font-size:.85rem;margin-bottom:1rem">
+      <option value="">— Sin asignar —</option>
+      <option>WEB-01</option><option>WEB-02</option>
+      <option>APP-01</option><option>APP-02</option>
+      <option>DB-01</option><option>DB-02</option>
+      <option>STORAGE-01</option><option>FW-01</option>
+      <option>RTR-EDGE</option><option>SW-CORE</option>
+      <option>SW-ACC-01</option><option>SW-ACC-02</option>
+    </select>
+
+    <div style="display:flex;gap:.75rem;justify-content:flex-end">
+      <button class="btn btn-outline btn-sm" onclick="closeCreateRoomModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="createCollabRoom()">Crear Sala</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal gestionar sala (miembros) -->
+<div id="collabManageModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#0f172a;border:1px solid #1e3a5f;border-radius:12px;padding:1.5rem;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h3 id="manageRoomTitle" style="font-size:1rem;font-weight:700;color:#f9fafb;margin:0">Gestionar Sala</h3>
+      <button onclick="closeManageModal()" style="background:none;border:none;color:#9ca3af;font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+
+    <!-- Miembros actuales -->
+    <div style="margin-bottom:1rem">
+      <div style="font-size:.75rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Miembros</div>
+      <div id="manageRoomMembers" style="display:flex;flex-direction:column;gap:.4rem"></div>
+    </div>
+
+    <!-- Agregar miembro -->
+    <div style="background:#1e293b;border-radius:8px;padding:.75rem;margin-bottom:1rem">
+      <div style="font-size:.75rem;color:#9ca3af;margin-bottom:.5rem">Agregar estudiante</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <select id="addMemberStudent" style="flex:1;min-width:140px;background:#0f172a;border:1px solid #1e3a5f;border-radius:6px;padding:.4rem .6rem;color:#f9fafb;font-size:.82rem"></select>
+        <select id="addMemberRole" style="background:#0f172a;border:1px solid #1e3a5f;border-radius:6px;padding:.4rem .6rem;color:#f9fafb;font-size:.82rem">
+          <option value="T1-Monitor">T1-Monitor</option>
+          <option value="T2-Analista">T2-Analista</option>
+          <option value="Responder">Responder</option>
+          <option value="Comunicador">Comunicador</option>
+        </select>
+        <button class="btn btn-success btn-sm" onclick="addCollabMember()">Agregar</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;justify-content:flex-end">
+      <button class="btn btn-danger btn-sm" onclick="closeCollabRoom()">🔴 Cerrar Sala</button>
+      <button class="btn btn-outline btn-sm" onclick="closeManageModal()">Listo</button>
+    </div>
+  </div>
+</div>
+
 <div class="notif" id="notifContainer"></div>
 
 <script>
@@ -1150,6 +1253,11 @@ function handleWS(msg) {
     case 'guided_session_started':
     case 'guided_step_stats':
       handleGuidedWsEvent(evt, msg.data); break;
+    case 'collab_room_created':
+    case 'collab_room_closed':
+    case 'collab_member_added':
+    case 'collab_member_removed':
+      if (currentTab === 'collab') loadCollabRooms(); break;
   }
 }
 
@@ -4103,6 +4211,202 @@ setInterval(() => {
 }, 30000);
 
 loadLiveStatus();
+
+// ══════════════════════════════════════════════════════════
+// SALA COLABORATIVA
+// ══════════════════════════════════════════════════════════
+let _collabManageRoomId = null;
+let _collabStudents = [];  // cache de estudiantes para el select
+
+async function loadCollabRooms() {
+  const res = await fetch('/api/collab/rooms', { headers: { Authorization: 'Bearer ' + TOKEN } });
+  const rooms = await res.json();
+  const el = document.getElementById('collabRoomsList');
+
+  if (!rooms.length) {
+    el.innerHTML = '<div style="color:#6b7280;font-size:.85rem;grid-column:1/-1">No hay salas activas. Crea una nueva sala para comenzar.</div>';
+    renderCollabReport([]);
+    return;
+  }
+
+  el.innerHTML = rooms.map(r => `
+    <div style="background:#0f172a;border:1px solid #1e3a5f;border-radius:10px;padding:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">
+        <div>
+          <div style="font-weight:700;color:#f9fafb;font-size:.95rem">${r.name}</div>
+          <div style="font-size:.75rem;color:#6b7280;margin-top:2px">
+            ${r.attack_type ? '⚡ ' + r.attack_type : 'Sin ataque asignado'}
+            ${r.node_id ? ' → ' + r.node_id : ''}
+          </div>
+        </div>
+        <span style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);border-radius:100px;font-size:.7rem;font-weight:700;padding:2px 10px">ACTIVA</span>
+      </div>
+      <div id="roomMembers-${r.id}" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.75rem">
+        <span style="font-size:.75rem;color:#6b7280">Cargando miembros...</span>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-outline btn-sm" style="flex:1" onclick="openManageModal(${r.id},'${r.name.replace(/'/g,"\\'")}')">⚙️ Gestionar</button>
+        <button class="btn btn-danger btn-sm" onclick="closeCollabRoomById(${r.id})">Cerrar</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Cargar miembros de cada sala
+  for (const r of rooms) {
+    const rd = await fetch(`/api/collab/rooms/${r.id}`, { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const detail = await rd.json();
+    const el2 = document.getElementById(`roomMembers-${r.id}`);
+    if (el2) {
+      el2.innerHTML = detail.members.length
+        ? detail.members.map(m => `
+            <span style="background:#1e293b;border:1px solid #1e3a5f;border-radius:6px;padding:2px 8px;font-size:.72rem;color:#e2e8f0">
+              ${_roleIcon(m.role)} ${m.student_name} <span style="color:#6b7280">(${m.role})</span>
+            </span>`).join('')
+        : '<span style="font-size:.75rem;color:#6b7280">Sin miembros</span>';
+    }
+  }
+
+  renderCollabReport(rooms);
+}
+
+function _roleIcon(role) {
+  return { 'T1-Monitor': '📡', 'T2-Analista': '🔍', 'Responder': '🛡️', 'Comunicador': '📢' }[role] || '👤';
+}
+
+function renderCollabReport(rooms) {
+  const el = document.getElementById('collabReportTable');
+  if (!rooms.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+      <thead>
+        <tr style="background:#0a1220">
+          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Sala</th>
+          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Ataque</th>
+          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Nodo</th>
+          <th style="text-align:center;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Miembros</th>
+          <th style="text-align:left;padding:.4rem .8rem;color:#9ca3af;border-bottom:1px solid #1e3a5f">Creada</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rooms.map(r => `
+          <tr>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#f9fafb;font-weight:600">${r.name}</td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#fbbf24">${r.attack_type || '—'}</td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#67e8f9">${r.node_id || '—'}</td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#a78bfa;text-align:center" id="reportCount-${r.id}">—</td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#6b7280">${r.created_at ? new Date(r.created_at).toLocaleTimeString() : '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ── Modal crear sala ──────────────────────────────────────
+function openCreateRoomModal() {
+  document.getElementById('crRoomName').value = '';
+  document.getElementById('crAttackType').value = '';
+  document.getElementById('crNodeId').value = '';
+  document.getElementById('collabCreateModal').style.display = 'flex';
+}
+
+function closeCreateRoomModal() {
+  document.getElementById('collabCreateModal').style.display = 'none';
+}
+
+async function createCollabRoom() {
+  const name = document.getElementById('crRoomName').value.trim();
+  if (!name) { alert('Ingresa un nombre para la sala'); return; }
+  const body = {
+    name,
+    attack_type: document.getElementById('crAttackType').value || null,
+    node_id: document.getElementById('crNodeId').value || null,
+  };
+  const res = await fetch('/api/collab/rooms', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { alert('Error al crear sala'); return; }
+  closeCreateRoomModal();
+  loadCollabRooms();
+  notify('✅ Sala creada', name, 'ok');
+}
+
+// ── Modal gestionar sala ──────────────────────────────────
+async function openManageModal(roomId, roomName) {
+  _collabManageRoomId = roomId;
+  document.getElementById('manageRoomTitle').textContent = '⚙️ ' + roomName;
+  document.getElementById('collabManageModal').style.display = 'flex';
+  await loadManageMembers();
+  await loadStudentsForSelect();
+}
+
+function closeManageModal() {
+  document.getElementById('collabManageModal').style.display = 'none';
+  _collabManageRoomId = null;
+  loadCollabRooms();
+}
+
+async function loadManageMembers() {
+  const res = await fetch(`/api/collab/rooms/${_collabManageRoomId}`, { headers: { Authorization: 'Bearer ' + TOKEN } });
+  const room = await res.json();
+  const el = document.getElementById('manageRoomMembers');
+  if (!room.members.length) {
+    el.innerHTML = '<div style="font-size:.8rem;color:#6b7280">Sin miembros aún</div>';
+    return;
+  }
+  el.innerHTML = room.members.map(m => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#1e293b;border-radius:7px;padding:.4rem .75rem">
+      <span style="font-size:.82rem;color:#e2e8f0">${_roleIcon(m.role)} <strong>${m.student_name}</strong> <span style="color:#6b7280;font-size:.75rem">${m.role}</span></span>
+      <button onclick="removeCollabMember(${m.student_id})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.8rem">✕</button>
+    </div>`).join('');
+}
+
+async function loadStudentsForSelect() {
+  if (!_collabStudents.length) {
+    const res = await fetch('/api/students/', { headers: { Authorization: 'Bearer ' + TOKEN } });
+    _collabStudents = (await res.json()).filter(s => s.role === 'student');
+  }
+  const sel = document.getElementById('addMemberStudent');
+  sel.innerHTML = _collabStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+async function addCollabMember() {
+  const student_id = parseInt(document.getElementById('addMemberStudent').value);
+  const role = document.getElementById('addMemberRole').value;
+  const res = await fetch(`/api/collab/rooms/${_collabManageRoomId}/members`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ student_id, role }),
+  });
+  const data = await res.json();
+  if (data.detail) { notify('⚠️ Error', data.detail, 'warn'); return; }
+  await loadManageMembers();
+  notify('✅ Miembro agregado', '', 'ok');
+}
+
+async function removeCollabMember(studentId) {
+  await fetch(`/api/collab/rooms/${_collabManageRoomId}/members/${studentId}`, {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + TOKEN },
+  });
+  await loadManageMembers();
+}
+
+async function closeCollabRoom() {
+  if (!confirm('¿Cerrar esta sala? Los miembros perderán acceso.')) return;
+  await closeCollabRoomById(_collabManageRoomId);
+  closeManageModal();
+}
+
+async function closeCollabRoomById(roomId) {
+  await fetch(`/api/collab/rooms/${roomId}`, {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + TOKEN },
+  });
+  loadCollabRooms();
+  notify('🔴 Sala cerrada', '', 'warn');
+}
+
 
 </script>
 </body>
