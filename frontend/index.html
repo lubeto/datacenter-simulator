@@ -411,8 +411,10 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
   <div style="display:flex;flex:1;overflow:hidden">
 
     <!-- Columna equipo -->
-    <div style="width:200px;border-right:1px solid #134e4a;padding:8px;overflow-y:auto;flex-shrink:0">
-      <div style="font-size:.68rem;color:#5eead4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Equipo</div>
+    <div style="width:220px;border-right:1px solid #134e4a;padding:8px;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;gap:6px">
+      <!-- Banner rol -->
+      <div id="cpRoleBanner" style="background:#134e4a;border-radius:7px;padding:6px 8px;font-size:.72rem;color:#a7f3d0;line-height:1.4"></div>
+      <div style="font-size:.68rem;color:#5eead4;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Equipo</div>
       <div id="cpMembers"></div>
     </div>
 
@@ -4098,6 +4100,9 @@ async function _termRunCommand(cmd) {
   if (missionState.active && diag.some(d => cmd.toLowerCase().startsWith(d.split(' ')[0]))) {
     _missionTick(missionState.fwApplied ? 'verify' : 'term');
   }
+  if (_collabRoom && /systemctl\s+restart\s+\S+/.test(cmd)) {
+    postCollabAction('restart_service', `Reinició servicio: ${cmd}`);
+  }
 }
 
 // ============================================================
@@ -4158,6 +4163,7 @@ async function fwBlockIp() {
     notify('🔥 Regla aplicada', data.message, 'ok');
     input.value = '';
     if (missionState.active) _missionTick('fw');
+    if (_collabRoom) postCollabAction('block_ip', `Bloqueó IP: ${ip}`);
   } catch (e) {
     notify('⚠️ Error', 'No se pudo aplicar la regla', 'warn');
   }
@@ -4177,6 +4183,7 @@ async function fwBlockPort() {
     notify('🔥 Regla aplicada', data.message, 'ok');
     input.value = '';
     if (missionState.active) _missionTick('fw');
+    if (_collabRoom) postCollabAction('block_port', `Bloqueó puerto: ${port}`);
   } catch (e) {
     notify('⚠️ Error', 'No se pudo aplicar la regla', 'warn');
   }
@@ -4246,21 +4253,38 @@ function _roleIcon(role) {
   return { 'T1-Monitor': '📡', 'T2-Analista': '🔍', 'Responder': '🛡️', 'Comunicador': '📢' }[role] || '👤';
 }
 
+const _ROLE_CONFIG = {
+  'T1-Monitor':  { icon:'📡', hint:'Tu foco: <strong>Métricas en tiempo real</strong>. Monitorea CPU, RAM y red de todos los nodos. Informa al equipo cualquier anomalía.', tool: null },
+  'T2-Analista': { icon:'🔍', hint:'Tu foco: <strong>Logs y Terminal</strong>. Analiza syslog y ps aux para identificar el proceso atacante y la IP origen.', tool: 'logs' },
+  'Responder':   { icon:'🛡️', hint:'Tu foco: <strong>Firewall</strong>. Bloquea la IP atacante con iptables en cuanto el analista la identifique.', tool: 'fw' },
+  'Comunicador': { icon:'📢', hint:'Tu foco: <strong>Chat y coordinación</strong>. Centraliza la información del equipo, redacta la bitácora grupal y comunica el estado al instructor.', tool: null },
+};
+
 function toggleCollabPanel() {
   const panel = document.getElementById('collabPanel');
   _collabPanelOpen = !_collabPanelOpen;
   panel.style.display = _collabPanelOpen ? 'flex' : 'none';
+
   if (_collabPanelOpen) {
     loadCollabActions();
+    _applyRoleView();
     // Subir toolsDrawer si está abierto
     const drawer = document.getElementById('toolsDrawer');
-    if (drawer && drawer.style.display !== 'none') {
-      drawer.style.bottom = '320px';
-    }
+    if (drawer && drawer.style.display !== 'none') drawer.style.bottom = '320px';
   } else {
     const drawer = document.getElementById('toolsDrawer');
     if (drawer) drawer.style.bottom = '0';
   }
+}
+
+function _applyRoleView() {
+  const cfg = _ROLE_CONFIG[_collabRole];
+  if (!cfg) return;
+  // Banner de rol
+  const banner = document.getElementById('cpRoleBanner');
+  if (banner) banner.innerHTML = cfg.icon + ' <strong>' + _collabRole + '</strong><br>' + cfg.hint;
+  // Abrir herramienta principal según rol (solo primera vez)
+  if (cfg.tool) _openToolsDrawer(cfg.tool);
 }
 
 function renderCollabMembers(members) {
