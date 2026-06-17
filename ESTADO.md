@@ -1,10 +1,10 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-15 — COMPLETADA ✅ (Manual estudiante HTML + más actividad auto-ataques + Migración SQLite→PostgreSQL + Feedback IA Gemini)
+## Última sesión: 2026-06-16 — COMPLETADA ✅ FASE 3 Sala Colaborativa (todas las iteraciones)
 
 ---
 
-## FASE 3 — Sala Colaborativa (PENDIENTE — inicio estimado 2026-06-16 noche)
+## FASE 3 — Sala Colaborativa ✅ COMPLETADA (2026-06-16)
 
 ### Plan acordado (8 iteraciones — 2 días)
 
@@ -13,15 +13,16 @@
 - Iter 2: CRUD + rutas `/api/collab/`
 - Iter 3: WebSocket rooms (join/leave/broadcast por sala — extender ws_manager existente)
 
-**Día 2 — Frontend + Roles**
-- Iter 4: modal crear sala (instructor asigna estudiantes y roles)
-- Iter 5: UI estudiante → ver sala asignada + rol propio
-- Iter 6: chat en tiempo real por sala ✅ (mantener — los aprendices deben poder coordinarse con mensajes)
-- Iter 7: vistas diferenciadas por rol (T1=métricas, T2=logs, Responder=firewall, Comunicador=resumen)
-- Iter 8: bitácora individual con campo `collab_room_id` (sin tabla nueva — ahorra complejidad)
-
-**Iter 9 (reducida) — Reporte instructor:**
-Tabla simple por sala: miembros | acciones tomadas | tiempo de respuesta grupal (MTTR). Sin gráficas.
+**Día 2 — Frontend + Roles** ✅
+- Iter 4: modal crear sala (instructor asigna estudiantes y roles) ✅
+- Iter 5: UI estudiante → ver sala asignada + rol propio ✅
+- Iter 6+7: chat en tiempo real + vistas por rol + auto-log de acciones técnicas ✅
+  - `_ROLE_CONFIG` abre drawer correspondiente (logs/fw) al entrar a la sala
+  - `#cpRoleBanner` muestra guía contextual por rol
+  - `fwBlockIp`/`fwBlockPort` → `postCollabAction('block_ip'/'block_port')` si hay sala activa
+  - `_termRunCommand` detecta `systemctl restart` → publica en log de sala
+- Iter 8: bitácora individual incluye `collab_room_id` si estudiante está en sala ✅
+- Iter 9: reporte instructor — tabla sala | miembros+roles | acciones | tiempo activo ✅
 
 ### Roles definidos
 | Rol | Panel principal |
