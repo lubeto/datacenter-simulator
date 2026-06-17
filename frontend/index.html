@@ -962,10 +962,40 @@ function _showDebriefModal(data) {
 }
 
 // ── MISIÓN ACTIVA ────────────────────────────────────────────
-let missionState = {active:false, step:0, termDone:false, iocDone:false, fwDone:false, verifyDone:false, fwApplied:false, mttd:0, timer:null, penalized:false};
+// Ataques de red: requieren terminal + logs + firewall
+const _NETWORK_ATTACKS = new Set(['ddos','dos','syn_flood','brute_force','port_scan','mitm',
+  'sql_injection','crypto_mining','lateral_movement','ransomware','unauthorized_access']);
+// SST y hardware: van directo al panel guiado y bitácora
+const _SST_ATTACKS = new Set(['smoke_alert','thermal','memory_leak','disk_failure',
+  'ups_failure','power_failure','humidity','ssl_expired','tls_downgrade']);
+
+function _isNetworkAttack(type) {
+  if (!type) return false;
+  const t = type.toLowerCase();
+  return _NETWORK_ATTACKS.has(t) || (!_SST_ATTACKS.has(t) && (t.includes('ddos') || t.includes('flood') || t.includes('force') || t.includes('scan')));
+}
+
+let missionState = {active:false, step:0, termDone:false, iocDone:false, fwDone:false, verifyDone:false, fwApplied:false, mttd:0, timer:null, penalized:false, isNetwork:true};
 
 function _missionActivate(inc) {
-  missionState = {active:true, step:0, termDone:false, iocDone:false, fwDone:false, verifyDone:false, fwApplied:false, mttd:0, timer:null, penalized:false};
+  const attackType = inc?.attack?.attack_type || inc?.attack_type || '';
+  const isNetwork = _isNetworkAttack(attackType);
+  missionState = {active:true, step:0, termDone:!isNetwork, iocDone:!isNetwork, fwDone:!isNetwork,
+    verifyDone:false, fwApplied:false, mttd:0, timer:null, penalized:false, isNetwork};
+  // Actualizar textos del widget según tipo
+  const labels = isNetwork
+    ? ['Investiga con la <strong>terminal</strong> (<code>netstat</code>, <code>top</code>…)',
+       'Marca IOC en los <strong>logs</strong> (<span id="mIocCount">0</span>/2)',
+       'Aplica regla en el <strong>firewall</strong>',
+       'Verifica con <strong>terminal</strong> que bajó el ataque']
+    : ['Responde el <strong>panel guiado</strong> (4 fases)',
+       'Ejecuta el protocolo de respuesta',
+       'Documenta en la <strong>bitácora</strong>',
+       'Confirma resolución del incidente'];
+  labels.forEach((txt, i) => {
+    const el = document.getElementById('mstep-' + i);
+    if (el) el.querySelector('span:last-child').innerHTML = txt;
+  });
   const w = document.getElementById('missionWidget');
   if (w) w.style.display = 'block';
   _missionRender();
@@ -976,10 +1006,14 @@ function _missionActivate(inc) {
     if (el) el.textContent = missionState.mttd + 's';
     if (missionState.mttd === 120 && !missionState.hint120) {
       missionState.hint120 = true;
-      if (!missionState.termDone)  _missionHint('💡 Abre la Terminal y corre netstat o top');
-      else if (!missionState.iocDone) _missionHint('💡 Abre Logs y marca líneas sospechosas como IOC');
-      else if (!missionState.fwDone)  _missionHint('💡 Abre el Firewall y aplica una regla de bloqueo');
-      else                             _missionHint('💡 Vuelve a la Terminal y verifica que bajó el tráfico');
+      if (isNetwork) {
+        if (!missionState.termDone)       _missionHint('💡 Abre la Terminal y corre netstat o top');
+        else if (!missionState.iocDone)   _missionHint('💡 Abre Logs y marca líneas sospechosas como IOC');
+        else if (!missionState.fwDone)    _missionHint('💡 Abre el Firewall y aplica una regla de bloqueo');
+        else                              _missionHint('💡 Vuelve a la Terminal y verifica que bajó el tráfico');
+      } else {
+        _missionHint('💡 Responde el panel guiado y completa la bitácora');
+      }
     }
   }, 1000);
 }
@@ -1030,9 +1064,10 @@ function _missionTick(action) {
     guidedState.score = Math.min(100, guidedState.score + 5);
     _updateGuidedHUD();
   }
-  if (action === 'verify' && missionState.fwApplied && !missionState.verifyDone) {
-    missionState.verifyDone = true; changed = true;
-    _missionHint('¡Incidente mitigado!');
+  if (action === 'verify' && !missionState.verifyDone) {
+    // Red: requiere haber aplicado FW primero. SST/hardware: completa directo.
+    if (missionState.isNetwork && !missionState.fwApplied) { /* esperar */ }
+    else { missionState.verifyDone = true; changed = true; _missionHint('¡Incidente mitigado!'); }
   }
   if (changed) {
     _missionRender();
@@ -2580,9 +2615,9 @@ const GUIDED_STAGES = [
     const cat = _gCategory(inc);
     const ctx = {
       red:     'Usa la <strong>Terminal</strong> para investigar, marca líneas IOC en <strong>Logs</strong>, aplica una regla en el <strong>Firewall</strong> y verifica que el tráfico bajó.',
-      hardware:'Usa la <strong>Terminal</strong> para diagnosticar el proceso o disco, documenta en <strong>Logs</strong>, aplica la acción correcta en el <strong>Firewall</strong> o terminal, y verifica.',
-      ssl:     'Usa la <strong>Terminal</strong> para inspeccionar el certificado, documenta en <strong>Logs</strong>, aplica la corrección vía <strong>Firewall</strong> o reinicio, y verifica.',
-      sst:     'Usa la <strong>Terminal</strong> para revisar sensores, documenta en <strong>Logs</strong>, aplica el protocolo de aislamiento en el <strong>Firewall</strong> y verifica el estado.',
+      hardware:'Usa la <strong>Terminal</strong> para diagnosticar el proceso o disco, documenta en <strong>Logs</strong>, aplica la acción correcta y verifica con terminal.',
+      ssl:     'Usa la <strong>Terminal</strong> para inspeccionar el certificado, aplica la corrección vía reinicio o certbot, y verifica.',
+      sst:     'Aplica el <strong>protocolo de respuesta SST</strong> (evacuación, notificación, extinción). Cuando termines, documenta en la <strong>Bitácora</strong>.',
     };
     setTimeout(() => _missionActivate(inc), 100);
     return {
@@ -2739,6 +2774,8 @@ function guidedNext() {
 
 function showGuidedResults() {
   for(let i=0;i<4;i++){const t=document.getElementById('gtab-'+i);if(t)t.className='guided-stage-tab done';}
+  // Para SST/hardware: completar la misión al terminar el panel guiado
+  if (missionState.active && !missionState.isNetwork) _missionTick('verify');
   const dur=Math.round((Date.now()-guidedState.startTime)/1000);
   const ok=guidedState.answers.filter(a=>a.correct).length;
   const sc=Math.max(20,guidedState.score);
