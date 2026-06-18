@@ -4145,6 +4145,28 @@ let termCmdHistory = [];
 let termHistIdx = -1;
 let termLineBuf = '';
 const TERM_PROMPT = () => `\x1b[32mroot@${(document.getElementById('termNodeSel')?.value || 'WEB-01').toLowerCase()}\x1b[0m:~# `;
+let aiTerminalEnabled = false;
+
+// Verificar disponibilidad de IA al cargar
+(async () => {
+  try {
+    const s = await apiFetch('/api/ai/bitacora-feedback/status');
+    aiTerminalEnabled = s?.available === true;
+  } catch (_) {}
+})();
+
+async function _termShowAiHint(cmd, output, attackType, nodeId) {
+  try {
+    const r = await apiFetch('/api/ai/terminal-hint', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ command: cmd, output: output.slice(0, 800), attack_type: attackType, node_id: nodeId })
+    });
+    if (r?.hint) {
+      term.writeln('\x1b[36m💡 IA: ' + r.hint + '\x1b[0m');
+    }
+  } catch (_) {}
+}
 
 function toggleTerminal() { _openToolsDrawer('term'); }
 
@@ -4223,6 +4245,7 @@ async function _termRunCommand(cmd) {
     term.write(TERM_PROMPT());
     return;
   }
+  let rawOutput = '';
   try {
     const nodeId = document.getElementById('termNodeSel').value || 'WEB-01';
     const data = await apiFetch('/api/terminal/exec', {
@@ -4230,8 +4253,15 @@ async function _termRunCommand(cmd) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ command: cmd, node_id: nodeId })
     });
-    const output = (data.output || '').replace(/\n/g, '\r\n');
+    rawOutput = data.output || '';
+    const output = rawOutput.replace(/\n/g, '\r\n');
     if (output) term.writeln(output);
+
+    // IA: pista contextual si hay ataque activo y AI disponible
+    const attackType = guidedState?.incident?.attack?.attack_type || '';
+    if (attackType && aiTerminalEnabled) {
+      _termShowAiHint(cmd, rawOutput, attackType, nodeId);
+    }
   } catch (e) {
     term.writeln('\x1b[31mError de conexión con el servidor\x1b[0m');
   }

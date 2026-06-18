@@ -118,3 +118,72 @@ async def get_bitacora_feedback(req: FeedbackRequest):
     except Exception as ex:
         logger.error(f"Error llamando Claude API: {ex}")
         return {"error": f"Error de conexión con IA: {str(ex)}", "available": False}
+
+
+TERMINAL_HINT_PROMPT = """Eres un asistente técnico de ciberseguridad en un datacenter educativo.
+Un aprendiz acaba de ejecutar un comando en la terminal mientras responde a un incidente.
+
+Ataque activo: {attack_type}
+Nodo afectado: {node_id}
+Comando ejecutado: {command}
+Output obtenido:
+{output}
+
+Da UNA sola pista breve (máximo 20 palabras) que ayude al aprendiz a entender qué debe buscar
+o qué acción tomar a continuación. Sé concreto y educativo.
+NO des la respuesta directa — guía al aprendiz a descubrirla.
+Responde SOLO la pista, sin prefijos ni explicaciones adicionales."""
+
+
+class TerminalHintRequest(BaseModel):
+    command: str
+    output: str
+    attack_type: str
+    node_id: str
+
+
+@router.post("/terminal-hint")
+async def get_terminal_hint(req: TerminalHintRequest):
+    if not ANTHROPIC_API_KEY:
+        return {"hint": None, "available": False}
+
+    # Solo dar pista para comandos de diagnóstico relevantes
+    diagnostic_cmds = ["netstat", "ps", "top", "tcpdump", "ss", "iptables", "cat", "tail", "grep", "df", "free"]
+    if not any(req.command.strip().startswith(c) for c in diagnostic_cmds):
+        return {"hint": None, "available": True}
+
+    prompt = TERMINAL_HINT_PROMPT.format(
+        attack_type=req.attack_type,
+        node_id=req.node_id,
+        command=req.command[:200],
+        output=req.output[:800],
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                _ANTHROPIC_URL,
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": _MODEL,
+                    "max_tokens": 80,
+                    "temperature": 0.3,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+            )
+
+        if resp.status_code != 200:
+            return {"hint": None, "available": False}
+
+        data = resp.json()
+        hint = data["content"][0]["text"].strip()
+        logger.info(f"Terminal hint OK para {req.command[:30]}")
+        return {"hint": hint, "available": True}
+
+    except Exception as ex:
+        logger.warning(f"Terminal hint error: {ex}")
+        return {"hint": None, "available": False}
