@@ -1,8 +1,9 @@
 """
-DC Monitoring Simulator - Feedback IA de Bitácora via Gemini
+DC Monitoring Simulator - Feedback IA de Bitácora via Anthropic Claude
 """
 import os
 import httpx
+import json
 import logging
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -11,13 +12,9 @@ logger = logging.getLogger("dc.ai_feedback")
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1/models/"
-_MODELS = [
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-pro",
-]
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+_ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+_MODEL = "claude-haiku-4-5"
 
 PROMPT_TEMPLATE = """Eres un evaluador técnico de bitácoras de incidentes de ciberseguridad en un datacenter educativo.
 
@@ -53,14 +50,14 @@ class FeedbackRequest(BaseModel):
 
 @router.get("/bitacora-feedback/status")
 async def get_feedback_status():
-    """Verifica si la funcionalidad IA está disponible (para que el frontend no muestre el botón si no hay clave)."""
-    return {"available": bool(GEMINI_API_KEY)}
+    """Verifica si la funcionalidad IA está disponible."""
+    return {"available": bool(ANTHROPIC_API_KEY)}
 
 
 @router.post("/bitacora-feedback")
 async def get_bitacora_feedback(req: FeedbackRequest):
-    if not GEMINI_API_KEY:
-        return {"error": "GEMINI_API_KEY no configurada en el servidor.", "available": False}
+    if not ANTHROPIC_API_KEY:
+        return {"error": "ANTHROPIC_API_KEY no configurada en el servidor.", "available": False}
 
     texto = req.texto.strip()
     if len(texto) < 20:
@@ -76,40 +73,48 @@ async def get_bitacora_feedback(req: FeedbackRequest):
         }
 
     prompt = PROMPT_TEMPLATE.format(texto=texto[:2000])
-    import json
 
-    errors = []
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        for model in _MODELS:
-            url = f"{_GEMINI_BASE}{model}:generateContent?key={GEMINI_API_KEY}"
-            try:
-                resp = await client.post(
-                    url,
-                    json={
-                        "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 300}
-                    }
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    if raw.startswith("```"):
-                        raw = raw.split("```")[1]
-                        if raw.startswith("json"):
-                            raw = raw[4:]
-                    result = json.loads(raw.strip())
-                    result["available"] = True
-                    result["model_used"] = model
-                    logger.info(f"AI feedback OK usando modelo {model}")
-                    return result
-                else:
-                    body = resp.text[:400]
-                    logger.warning(f"Gemini {model} → HTTP {resp.status_code}: {body}")
-                    errors.append(f"{model}: HTTP {resp.status_code} — {body[:120]}")
-            except Exception as ex:
-                logger.warning(f"Gemini {model} excepción: {ex}")
-                errors.append(f"{model}: {ex}")
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                _ANTHROPIC_URL,
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": _MODEL,
+                    "max_tokens": 400,
+                    "temperature": 0.2,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+            )
 
-    summary = " | ".join(errors)
-    logger.error(f"Todos los modelos Gemini fallaron: {summary}")
-    return {"error": f"Todos los modelos fallaron: {summary}", "available": False}
+        if resp.status_code != 200:
+            body = resp.text[:400]
+            logger.error(f"Claude API HTTP {resp.status_code}: {body}")
+            return {"error": f"Error de IA: HTTP {resp.status_code} — {body[:200]}", "available": False}
+
+        data = resp.json()
+        raw = data["content"][0]["text"].strip()
+
+        # Limpiar bloque markdown si viene envuelto en ```json
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
+
+        result = json.loads(raw)
+        result["available"] = True
+        result["model_used"] = _MODEL
+        logger.info(f"AI feedback OK con {_MODEL}")
+        return result
+
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON inválido de Claude: {e} — raw: {raw[:200]}")
+        return {"error": "La IA devolvió una respuesta con formato inválido.", "available": False}
+    except Exception as ex:
+        logger.error(f"Error llamando Claude API: {ex}")
+        return {"error": f"Error de conexión con IA: {str(ex)}", "available": False}

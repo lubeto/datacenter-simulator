@@ -214,10 +214,17 @@ async def detect_incident(
         "mttd_seconds": incident.mttd_seconds,
         "timestamp": datetime.utcnow().isoformat(),
     })
+    # Buscar IP atacante del ataque activo asociado al incidente
+    node_id = getattr(incident, "node_id", None)
+    attacker_ip = None
+    if node_id and node_id in sim_state.active_attacks:
+        attacker_ip = sim_state.active_attacks[node_id].get("attacker_ip")
+
     return {
         "incident_id": incident_id,
         "mttd_seconds": incident.mttd_seconds,
-        "message": f"Detectado en {incident.mttd_seconds:.1f}s"
+        "message": f"Detectado en {incident.mttd_seconds:.1f}s",
+        "attacker_ip": attacker_ip,
     }
 
 

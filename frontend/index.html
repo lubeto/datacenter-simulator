@@ -1461,7 +1461,7 @@ async function detectIncident(id, attackType, nodeId) {
     // Acción explícita → marcar nodo rojo + abrir panel guiado directamente
     if (STUDENT?.role !== 'instructor' && attackType && nodeId) {
       if (nodeId) { nmAttacked.add(nodeId); renderNetworkMap(); }
-      setTimeout(() => _openGuidedPanel(id, attackType, nodeId, r.mttd_seconds), 500);
+      setTimeout(() => _openGuidedPanel(id, attackType, nodeId, r.mttd_seconds, r.attacker_ip || null), 500);
     }
   } catch(e) { notify('Error', 'No se pudo detectar el incidente', 'crit'); }
 }
@@ -2342,6 +2342,9 @@ function _gBuildAnalyzeStage(inc){
   if(correctKey === 'conn' && conn <= 400) conn = Math.floor(420 + Math.random()*2000);
   if(correctKey === 'cpu'  && cpu  <= 70)  cpu  = +(72 + Math.random()*20).toFixed(1);
   if(correctKey === 'ram'  && ram  <= 80)  ram  = +(82 + Math.random()*10).toFixed(1);
+  const ipBadge = guidedState.attackerIp
+    ? `<br>&bull; IP sospechosa detectada: <strong style="color:#f97316;font-family:monospace">${guidedState.attackerIp}</strong> <span style="font-size:.72rem;color:#71717a">(bloquear en Firewall)</span>`
+    : '';
   return {
     q:`${_getQVariant('analyze','red')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
     ctx:`Métricas en tiempo real de ${id}:<br>
@@ -2349,7 +2352,7 @@ function _gBuildAnalyzeStage(inc){
       &bull; RAM: <strong style="${col(ram,80)}">${ram}%</strong> (normal &lt; 80%)<br>
       &bull; Net IN: <strong style="${col(net,200)}">${net} Mbps</strong> (normal &lt; 200)<br>
       &bull; Conexiones: <strong style="${col(conn,400)}">${conn}</strong> (normal &lt; 400)<br>
-      &bull; Latencia: <strong style="${col(lat,200)}">${lat} ms</strong> (normal &lt; 200 ms)`,
+      &bull; Latencia: <strong style="${col(lat,200)}">${lat} ms</strong> (normal &lt; 200 ms)${ipBadge}`,
     opts:[
       {label:'🌊 Tráfico de red anormal — volumetría elevada',value:'net'},
       {label:'🔗 Conexiones masivas desde múltiples IPs',value:'conn'},
@@ -2649,7 +2652,7 @@ function startGuidedMode(incident) {
 }
 
 // Versión directa usada por "Detectar" (sin guards de cooldown)
-function _openGuidedPanel(incId, attackType, nodeId, mttdSeconds) {
+function _openGuidedPanel(incId, attackType, nodeId, mttdSeconds, attackerIp) {
   // Cerrar SST si estaba abierto
   document.getElementById('sstPanel')?.classList.remove('open', 'minimized');
   sstState.active = false;
@@ -2661,7 +2664,8 @@ function _openGuidedPanel(incId, attackType, nodeId, mttdSeconds) {
     incident: { incident_id: incId, attack: { attack_type: attackType, node_id: nodeId }, mttd_seconds: mttdSeconds || null },
     stage: 0, hintsUsed: 0, answers: [],
     startTime: Date.now(), score: 100,
-    lastIncidentId: incId, lastClosedAt: guidedState?.lastClosedAt || 0
+    lastIncidentId: incId, lastClosedAt: guidedState?.lastClosedAt || 0,
+    attackerIp: attackerIp || null,
   };
   XSESSION.activeType = 'guided';
   _pickVariants(); // Nueva variante de preguntas cada sesión
