@@ -1,6 +1,66 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-16 (cierre) — SST flow fix + 10 nuevos tipos de ataque
+## Última sesión: 2026-06-17 — IA en bitácora (Claude Haiku), terminal y sala colaborativa
+
+---
+
+## Sesión 2026-06-17 — IA completa: bitácora + terminal + sala colaborativa
+
+### Migración Gemini → Claude API (Anthropic)
+- `backend/api/routes_ai_feedback.py` reescrito para usar `POST https://api.anthropic.com/v1/messages`
+- Modelo: `claude-haiku-4-5` (más barato y rápido, suficiente para el uso educativo)
+- Sin nueva dependencia — usa `httpx` que ya estaba instalado
+- Variable de entorno: `ANTHROPIC_API_KEY` (agregada en Render Dashboard)
+- `GEMINI_API_KEY` se conserva pero ya no se usa
+- **Costo estimado total del ciclo** (19 aprendices, 5-6 sesiones, evaluaciones): ~$1.30 USD
+- Precios Haiku 4.5: $1.00/1M tokens entrada, $5.00/1M tokens salida
+
+### Fix: Ataques persisten mientras el aprendiz investiga
+- **Problema:** ataques se auto-eliminaban por timeout (ej. SYN Flood en 3 min) antes de que el aprendiz terminara de investigar en terminal/logs/firewall
+- **Fix en `backend/simulation/engine.py`** (`tick_attacks()`):
+  - Si el ataque tiene `detected=True` → usa `investigation_deadline_sec` (1200s = 20 min) en lugar del `max_duration_sec` original
+- **Fix en `backend/api/routes_attacks.py`** (`/incidents/detect`):
+  - Al detectar, marca `attack["detected"] = True`, reinicia `elapsed_sec = 0`, establece `investigation_deadline_sec = 1200`
+  - También devuelve `attacker_ip` en el response para que el frontend lo muestre
+
+### IP del atacante visible en panel guiado
+- `_openGuidedPanel` ahora acepta parámetro `attackerIp`
+- Guardado en `guidedState.attackerIp`
+- Stage 2 "Analizar" (categoría red) muestra badge naranja: **"IP sospechosa detectada: 203.0.113.X (bloquear en Firewall)"**
+- Flujo correcto: Detectar → ver IP en Stage 2 → ir al terminal a confirmar → bloquear en firewall
+
+### IA en Terminal
+- Nuevo endpoint `POST /api/ai/terminal-hint`
+  - Recibe: `command`, `output`, `attack_type`, `node_id`
+  - Solo responde a comandos de diagnóstico: `netstat`, `ps`, `top`, `tcpdump`, `ss`, `iptables`, `cat`, `tail`, `grep`, `df`, `free`
+  - Devuelve pista máx. 20 palabras — guía sin dar la respuesta directa
+- Frontend: después de cada comando, si hay ataque activo y IA disponible, llama al endpoint
+- Output en terminal en **cyan**: `💡 IA: Busca conexiones desde rangos 203.x.x.x — no pertenecen a la red interna.`
+- Variable `aiTerminalEnabled` inicializada al cargar (consulta `/api/ai/bitacora-feedback/status`)
+
+### IA en Sala Colaborativa
+- Nuevo endpoint `POST /api/ai/collab-hint`
+  - Recibe: `question`, `attack_type`, `node_id`
+  - Responde máx. 3 oraciones educativas — no da la respuesta directa
+- Frontend: `sendCollabChat()` detecta mensajes que empiezan con `@IA` o `?`
+  - Envía el mensaje del aprendiz normalmente
+  - Luego llama al endpoint y publica la respuesta como `🤖 IA: ...` en el chat de la sala
+  - Visible para **todos** los miembros en tiempo real vía WebSocket
+- Ejemplo de uso: `@IA ¿por qué hay tantas conexiones en SYN_RECV?`
+
+### Commits sesión 2026-06-17
+- `4d08996` — fix: switch AI feedback from Gemini to Claude Haiku, show attacker IP in guided panel
+- `7f5dd78` — fix: attacks persist while student is actively investigating
+- `f653542` — feat: add AI hints in terminal during active incidents
+- `991ceae` — feat: add AI assistant in collaborative room
+
+### Variables de entorno en Render
+- `ANTHROPIC_API_KEY` — clave API de Anthropic (console.anthropic.com, cuenta Google de Lubeto)
+- `GEMINI_API_KEY` — conservada, ya no se usa activamente
+
+---
+
+## Última sesión anterior: 2026-06-16 (cierre) — SST flow fix + 10 nuevos tipos de ataque
 
 ---
 
