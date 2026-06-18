@@ -123,6 +123,13 @@ def _cmd_netstat(node_id: str) -> str:
             src_ip = attacker_ip or f"198.51.100.{random.randint(1,254)}"
             foreign = f"{src_ip}:{random.randint(1,1024)}"
             local_state = "SYN_SENT"
+        elif atype in ("vlan_hopping", "rogue_dhcp", "dns_spoofing",
+                       "spanning_tree_attack", "arp_spoofing") and attacker_ip and i < n_lines - 3:
+            foreign = f"{attacker_ip}:{random.randint(1024,65000)}"
+            local_state = "ESTABLISHED"
+        elif atype in ("privilege_escalation", "data_exfiltration") and attacker_ip and i < n_lines - 3:
+            foreign = f"{attacker_ip}:{random.randint(1024,65000)}"
+            local_state = "ESTABLISHED"
         else:
             foreign = f"10.0.{random.randint(1,5)}.{random.randint(2,250)}:{random.randint(1024,65000)}"
             local_state = "ESTABLISHED"
@@ -139,6 +146,12 @@ def _cmd_netstat(node_id: str) -> str:
         lines.append(f"⚠ múltiples intentos ESTABLISHED desde {attacker_ip} (puerto 22/SSH)")
     if atype == "port_scan" and attacker_ip:
         lines.append(f"⚠ escaneo de puertos desde {attacker_ip} — actividad de reconocimiento")
+    if atype in ("vlan_hopping", "rogue_dhcp", "dns_spoofing", "spanning_tree_attack", "arp_spoofing") and attacker_ip:
+        lines.append(f"⚠ tráfico anómalo desde {attacker_ip} — IP interna no autorizada")
+    if atype == "data_exfiltration" and attacker_ip:
+        lines.append(f"⚠ conexiones masivas salientes desde {attacker_ip} — posible exfiltración")
+    if atype == "privilege_escalation" and attacker_ip:
+        lines.append(f"⚠ actividad sospechosa desde {attacker_ip} — revisar con ps aux")
     return "\n".join(lines)
 
 

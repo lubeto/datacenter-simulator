@@ -459,10 +459,21 @@ class AttackManager:
 
         # IP atacante única por incidente para que el aprendiz la identifique en logs/netstat
         _ATTACKER_RANGES = {
+            # Ataques de volumetría (externos)
             "dos": "203.0.113", "ddos": "203.0.113", "syn_flood": "203.0.113",
+            # Ataques de autenticación (externos)
             "brute_force": "198.51.100", "port_scan": "198.51.100",
+            # Acceso no autorizado
             "unauthorized_access": "185.220.101", "unauth_access": "185.220.101",
+            # SSL/TLS
             "ssl_tls_downgrade": "91.108.4", "tls_downgrade": "91.108.4",
+            # ARP / red interna (usamos rango interno para simular atacante interno)
+            "arp_spoofing": "10.0.9",
+            # Nuevos ataques de red interna
+            "vlan_hopping": "10.0.9", "rogue_dhcp": "10.0.9",
+            "dns_spoofing": "10.0.9", "spanning_tree_attack": "10.0.9",
+            # Insider threat (IP interna del atacante)
+            "privilege_escalation": "10.0.8", "data_exfiltration": "10.0.8",
         }
         base = _ATTACKER_RANGES.get(attack_type)
         attacker_ip = f"{base}.{random.randint(2, 254)}" if base else None
