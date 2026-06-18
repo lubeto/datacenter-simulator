@@ -4285,11 +4285,11 @@ async function _termRunCommand(cmd) {
     const output = rawOutput.replace(/\n/g, '\r\n');
     if (output) term.writeln(output);
 
-    // IA: pista contextual si hay ataque activo en este nodo y AI disponible
+    // IA: pista contextual si hay ataque activo en este nodo
     const attackType = activeAttacksMap[nodeId]?.type
       || guidedState?.incident?.attack?.attack_type
       || '';
-    if (attackType && aiTerminalEnabled) {
+    if (attackType) {
       _termShowAiHint(cmd, rawOutput, attackType, nodeId);
     }
   } catch (e) {
