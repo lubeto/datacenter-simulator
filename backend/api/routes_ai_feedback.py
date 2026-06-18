@@ -15,9 +15,10 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 _GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models/"
 # Orden de preferencia: flash estable → flash exp → pro como último recurso
 _MODELS = [
-    "gemini-1.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash-8b",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-001",
+    "gemini-1.5-pro-latest",
+    "gemini-pro",
 ]
 
 PROMPT_TEMPLATE = """Eres un evaluador técnico de bitácoras de incidentes de ciberseguridad en un datacenter educativo.
@@ -79,7 +80,7 @@ async def get_bitacora_feedback(req: FeedbackRequest):
     prompt = PROMPT_TEMPLATE.format(texto=texto[:2000])
     import json
 
-    last_error = "Error desconocido"
+    errors = []
     async with httpx.AsyncClient(timeout=20.0) as client:
         for model in _MODELS:
             url = f"{_GEMINI_BASE}{model}:generateContent?key={GEMINI_API_KEY}"
@@ -104,19 +105,13 @@ async def get_bitacora_feedback(req: FeedbackRequest):
                     logger.info(f"AI feedback OK usando modelo {model}")
                     return result
                 else:
-                    body = resp.text[:300]
+                    body = resp.text[:400]
                     logger.warning(f"Gemini {model} → HTTP {resp.status_code}: {body}")
-                    if resp.status_code == 429:
-                        last_error = f"Cuota agotada en modelo {model}. (HTTP 429)"
-                    elif resp.status_code == 403:
-                        last_error = f"Clave sin acceso al modelo {model}. (HTTP 403) — verifica que la API esté habilitada en Google Cloud."
-                    elif resp.status_code == 404:
-                        last_error = f"Modelo {model} no existe o no está disponible en tu región."
-                    else:
-                        last_error = f"HTTP {resp.status_code} en {model}: {body}"
+                    errors.append(f"{model}: HTTP {resp.status_code} — {body[:120]}")
             except Exception as ex:
                 logger.warning(f"Gemini {model} excepción: {ex}")
-                last_error = str(ex)
+                errors.append(f"{model}: {ex}")
 
-    logger.error(f"Todos los modelos Gemini fallaron. Último error: {last_error}")
-    return {"error": last_error, "available": False}
+    summary = " | ".join(errors)
+    logger.error(f"Todos los modelos Gemini fallaron: {summary}")
+    return {"error": f"Todos los modelos fallaron: {summary}", "available": False}
