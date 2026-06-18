@@ -23,7 +23,7 @@ class SimulatorState:
         self.maintenance_nodes: set = set()           # nodos en mantenimiento
         self.sst_overrides: Dict[str, dict] = {}      # sensor_id -> forced values
         self.simulation_time_offset: int = 0          # offset en horas (simula hora del día)
-        self.is_paused: bool = False                  # pausa global (Modo Clase en Vivo)
+        self.is_paused: bool = True                   # pausa global — activo por defecto hasta que el instructor inicie
 
     def get_simulated_hour(self) -> int:
         """Hora del día para patrones de carga (0-23)."""

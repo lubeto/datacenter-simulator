@@ -335,8 +335,19 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
       <span style="font-size:.7rem;color:var(--muted)" id="liveConnectedCount">— conectados</span>
     </div>
     <div class="card-body">
+      <!-- Banner de estado de simulación -->
+      <div id="simStateBanner" style="display:flex;align-items:center;gap:12px;background:#1a0a00;border:2px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:10px">
+        <span id="simStateBannerIcon" style="font-size:1.6rem">🔴</span>
+        <div style="flex:1">
+          <div id="simStateBannerTitle" style="font-weight:800;font-size:.95rem;color:#fde68a">Simulación detenida — aprendices en espera</div>
+          <div id="simStateBannerSub" style="font-size:.75rem;color:#a16207;margin-top:1px">Los aprendices ven "Esperando al instructor". Presiona Iniciar para comenzar la clase.</div>
+        </div>
+        <button id="livePauseBtn" onclick="toggleSimPause()"
+          style="background:#16a34a;border:none;border-radius:8px;color:#fff;font-size:.9rem;font-weight:800;padding:10px 20px;cursor:pointer;white-space:nowrap;box-shadow:0 0 12px rgba(22,163,74,.4)">
+          ▶ Iniciar clase
+        </button>
+      </div>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-warn btn-sm" id="livePauseBtn" onclick="toggleSimPause()">⏸ Pausar Simulación</button>
         <span id="livePauseStatus" style="font-size:.78rem;color:var(--muted)"></span>
         <div style="flex:1"></div>
         <input id="liveNotifInput" type="text" placeholder="Mensaje para todos los aprendices..."
@@ -1797,10 +1808,26 @@ async function loadLiveStatus() {
     liveSimPaused = r.paused;
     const cnt = document.getElementById('liveConnectedCount');
     if (cnt) cnt.textContent = `${r.connected_count} aprendiz(es) conectado(s)`;
-    const btn = document.getElementById('livePauseBtn');
-    const status = document.getElementById('livePauseStatus');
-    if (btn) btn.textContent = liveSimPaused ? '▶️ Reanudar Simulación' : '⏸ Pausar Simulación';
-    if (status) status.textContent = liveSimPaused ? '⏸ Simulación en pausa' : '';
+
+    // Actualizar banner de estado
+    const btn   = document.getElementById('livePauseBtn');
+    const icon  = document.getElementById('simStateBannerIcon');
+    const title = document.getElementById('simStateBannerTitle');
+    const sub   = document.getElementById('simStateBannerSub');
+    const banner = document.getElementById('simStateBanner');
+    if (liveSimPaused) {
+      if (banner) banner.style.borderColor = '#f59e0b';
+      if (icon)  icon.textContent  = '🔴';
+      if (title) title.textContent = 'Simulación detenida — aprendices en espera';
+      if (sub)   sub.textContent   = 'Los aprendices ven "Esperando al instructor". Presiona Iniciar para comenzar la clase.';
+      if (btn) { btn.textContent = '▶ Iniciar clase'; btn.style.background = '#16a34a'; btn.style.boxShadow = '0 0 12px rgba(22,163,74,.4)'; }
+    } else {
+      if (banner) banner.style.borderColor = '#22c55e';
+      if (icon)  icon.textContent  = '🟢';
+      if (title) { title.textContent = 'Simulación activa'; title.style.color = '#86efac'; }
+      if (sub)   sub.textContent   = 'Los aprendices tienen acceso completo al simulador.';
+      if (btn) { btn.textContent = '⏸ Pausar clase'; btn.style.background = '#b45309'; btn.style.boxShadow = 'none'; }
+    }
 
     const det = document.getElementById('liveDetectionStatus');
     if (det) {

@@ -349,10 +349,14 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
   <span style="color:#fef3c7;font-size:.75rem">El instructor pausó la clase. La simulación se reanudará en breve.</span>
 </div>
 
-<div id="pauseOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,14,26,0.6);z-index:9000;backdrop-filter:blur(2px);align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:12px">
-  <div style="font-size:3rem">⏸</div>
-  <div style="font-size:1.3rem;font-weight:700;color:#fde68a">Simulación en pausa</div>
-  <div style="font-size:.9rem;color:#fef3c7;max-width:360px">El instructor pausó la clase. No puedes interactuar con el panel mientras dure la pausa.</div>
+<div id="pauseOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,14,26,0.92);z-index:9000;backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:16px">
+  <div id="pauseOverlayIcon" style="font-size:3.5rem">🎓</div>
+  <div id="pauseOverlayTitle" style="font-size:1.4rem;font-weight:800;color:#fde68a;letter-spacing:.02em">Esperando al instructor</div>
+  <div id="pauseOverlayMsg" style="font-size:.92rem;color:#fef3c7;max-width:380px;line-height:1.6">El simulador estará disponible cuando el instructor inicie la clase. Mantente atento.</div>
+  <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+    <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;animation:blink .9s infinite"></span>
+    <span style="font-size:.78rem;color:#a78bfa">Conectado — en espera</span>
+  </div>
 </div>
 
 <div id="scenarioBar" style="display:none;background:linear-gradient(90deg,#1e3a8a,#312e81);padding:6px 24px;align-items:center;gap:12px;font-size:.8rem;color:#dbeafe;position:sticky;top:60px;z-index:140">
@@ -1086,14 +1090,37 @@ function _missionComplete() {
 }
 
 let _simPausedState = false;
+let _classStarted = false; // false = nunca iniciada, true = instructor ya inició al menos una vez
+
 function setPauseBar(active, silent){
   const bar = document.getElementById('pauseBar');
   if (bar) bar.style.display = active ? 'flex' : 'none';
   const overlay = document.getElementById('pauseOverlay');
   if (overlay) overlay.style.display = active ? 'flex' : 'none';
+
+  // Ajustar contenido del overlay según contexto
+  if (active) {
+    const icon  = document.getElementById('pauseOverlayIcon');
+    const title = document.getElementById('pauseOverlayTitle');
+    const msg   = document.getElementById('pauseOverlayMsg');
+    if (!_classStarted) {
+      // Estado inicial — nunca ha iniciado
+      if (icon)  icon.textContent  = '🎓';
+      if (title) title.textContent = 'Esperando al instructor';
+      if (msg)   msg.textContent   = 'El simulador estará disponible cuando el instructor inicie la clase. Mantente atento.';
+    } else {
+      // Pausa durante clase activa
+      if (icon)  icon.textContent  = '⏸';
+      if (title) title.textContent = 'Simulación en pausa';
+      if (msg)   msg.textContent   = 'El instructor pausó la clase. No puedes interactuar con el panel mientras dure la pausa.';
+    }
+  } else {
+    _classStarted = true; // al reanudar, marcamos que la clase ya comenzó
+  }
+
   if (!silent && active !== _simPausedState) {
     if (active) notify('⏸ Simulación pausada', 'El instructor pausó la clase', 'warn');
-    else notify('▶️ Simulación reanudada', 'La clase continúa', 'ok');
+    else notify('▶️ Clase iniciada', 'El instructor inició la simulación — ¡comencemos!', 'ok');
   }
   _simPausedState = active;
 }
