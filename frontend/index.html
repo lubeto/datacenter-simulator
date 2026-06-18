@@ -4512,11 +4512,35 @@ async function sendCollabChat() {
   const msg = input.value.trim();
   if (!msg || !_collabRoom) return;
   input.value = '';
+
+  // Enviar mensaje del aprendiz
   await fetch(`/api/collab/rooms/${_collabRoom.id}/actions`, {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || ''), 'Content-Type': 'application/json' },
     body: JSON.stringify({ action_type: 'chat', detail: msg, is_chat: true })
   });
+
+  // IA: responde si el mensaje empieza con @IA o ?
+  const isAiQuery = msg.startsWith('@IA') || msg.startsWith('@ia') || msg.startsWith('?');
+  if (isAiQuery && aiTerminalEnabled) {
+    const attackType = guidedState?.incident?.attack?.attack_type || '';
+    const nodeId = guidedState?.incident?.attack?.node_id || '';
+    try {
+      const r = await apiFetch('/api/ai/collab-hint', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ question: msg, attack_type: attackType, node_id: nodeId })
+      });
+      if (r?.hint) {
+        // Publicar respuesta de la IA como mensaje del sistema visible para todos
+        await fetch(`/api/collab/rooms/${_collabRoom.id}/actions`, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || ''), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action_type: 'chat', detail: '🤖 IA: ' + r.hint, is_chat: true })
+        });
+      }
+    } catch (_) {}
+  }
 }
 
 async function postCollabAction(actionType, detail) {

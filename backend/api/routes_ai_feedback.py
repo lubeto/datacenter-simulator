@@ -187,3 +187,72 @@ async def get_terminal_hint(req: TerminalHintRequest):
     except Exception as ex:
         logger.warning(f"Terminal hint error: {ex}")
         return {"hint": None, "available": False}
+
+
+COLLAB_HINT_PROMPT = """Eres un asistente técnico de ciberseguridad en una sala colaborativa de aprendices de datacenter.
+El grupo está respondiendo a un incidente en vivo.
+
+Incidente activo: {attack_type} en nodo {node_id}
+Pregunta del aprendiz: {question}
+
+Responde de forma breve y educativa (máximo 3 oraciones).
+Guía al grupo hacia la solución — no la des directamente.
+Usa terminología técnica correcta. Responde en español."""
+
+
+class CollabHintRequest(BaseModel):
+    question: str
+    attack_type: str = ""
+    node_id: str = ""
+
+
+@router.post("/collab-hint")
+async def get_collab_hint(req: CollabHintRequest):
+    if not ANTHROPIC_API_KEY:
+        return {"hint": None, "available": False}
+
+    question = req.question.strip()
+    # Quitar prefijos @IA o ?
+    for prefix in ["@ia", "@IA", "@Ia"]:
+        if question.lower().startswith(prefix.lower()):
+            question = question[len(prefix):].strip()
+    if question.startswith("?"):
+        question = question[1:].strip()
+
+    if len(question) < 3:
+        return {"hint": "¿Tienes alguna pregunta sobre el incidente? Escribe @IA seguido de tu pregunta.", "available": True}
+
+    prompt = COLLAB_HINT_PROMPT.format(
+        attack_type=req.attack_type or "desconocido",
+        node_id=req.node_id or "—",
+        question=question[:400],
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                _ANTHROPIC_URL,
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": _MODEL,
+                    "max_tokens": 150,
+                    "temperature": 0.4,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+            )
+
+        if resp.status_code != 200:
+            return {"hint": None, "available": False}
+
+        data = resp.json()
+        hint = data["content"][0]["text"].strip()
+        logger.info(f"Collab hint OK para pregunta: {question[:40]}")
+        return {"hint": hint, "available": True}
+
+    except Exception as ex:
+        logger.warning(f"Collab hint error: {ex}")
+        return {"hint": None, "available": False}
