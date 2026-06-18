@@ -240,7 +240,7 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
 
 <!-- ═══════════════ SIDEBAR ═══════════════ -->
 <aside id="sidebar">
-  <div class="logo">DC Simulator<span>Manual del Estudiante v1.0</span></div>
+  <div class="logo">DC Simulator<span>Manual del Estudiante v2.0</span></div>
   <nav>
     <div class="nav-section">Inicio</div>
     <a href="#intro">Introducción</a>
@@ -263,6 +263,26 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
     <a class="sub" href="#s4-unauth">Acceso Físico No Autorizado</a>
     <a class="session-link" href="#sesion5">Sesión 5 — SSL &amp; Evaluación</a>
     <a class="sub" href="#s5-ssl">SSL Expirado / TLS Downgrade</a>
+
+    <div class="nav-section">Sesión 6 — Nuevos Ataques</div>
+    <a class="session-link" href="#sesion6">Red Interna e Insider Threat</a>
+    <a class="sub" href="#s6-vlan">VLAN Hopping</a>
+    <a class="sub" href="#s6-dhcp">Rogue DHCP</a>
+    <a class="sub" href="#s6-dns">DNS Spoofing</a>
+    <a class="sub" href="#s6-stp">STP Attack</a>
+    <a class="sub" href="#s6-privesc">Escalación de Privilegios</a>
+    <a class="sub" href="#s6-exfil">Exfiltración de Datos</a>
+    <a class="session-link" href="#sesion7">Seguridad Física Avanzada</a>
+    <a class="sub" href="#s7-bio">Violación Biométrica</a>
+    <a class="sub" href="#s7-tail">Tailgating</a>
+    <a class="sub" href="#s7-badge">Clonación de Badge</a>
+    <a class="sub" href="#s7-cctv">Sabotaje CCTV</a>
+
+    <div class="nav-section">Herramientas IA</div>
+    <a class="session-link" href="#ia-tools">IA en el Simulador</a>
+    <a class="sub" href="#ia-bitacora">IA en Bitácora</a>
+    <a class="sub" href="#ia-terminal">IA en Terminal</a>
+    <a class="sub" href="#ia-collab">IA en Sala Colaborativa</a>
 
     <div class="nav-section">Sala Colaborativa</div>
     <a class="session-link" href="#collab">¿Qué es la Sala?</a>
@@ -301,6 +321,22 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
     <span class="icon">ℹ️</span>
     <p><strong>URL de acceso:</strong> El instructor proporciona la URL en cada clase. Inicia sesión con tu correo y la contraseña que te asignó. Si olvidaste la contraseña, comunícate con el instructor.</p>
   </div>
+
+  <div class="alert-box warn">
+    <span class="icon">🎓</span>
+    <p><strong>El simulador inicia bloqueado.</strong> Cuando ingreses verás la pantalla <em>"Esperando al instructor"</em>. No podrás interactuar con el dashboard hasta que el instructor presione <strong>Iniciar clase</strong> desde su panel. Esto es intencional — espera su señal.</p>
+  </div>
+
+  <h3>Herramientas de IA disponibles</h3>
+  <p>El simulador cuenta con asistencia de inteligencia artificial en tres momentos clave. La IA <strong>guía sin dar la respuesta directa</strong> — es un tutor, no una hoja de trampa.</p>
+  <table class="node-table">
+    <thead><tr><th>Dónde</th><th>Cómo activarla</th><th>Qué hace</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Bitácora</strong></td><td>Botón <code>✨ Revisar con IA</code></td><td>Evalúa claridad, completitud y terminología (1-5). Da 3 sugerencias concretas.</td></tr>
+      <tr><td><strong>Terminal</strong></td><td>Automático al ejecutar comandos diagnósticos</td><td>Aparece <code>💡 IA: ...</code> en cyan orientando qué buscar en el output.</td></tr>
+      <tr><td><strong>Sala colaborativa</strong></td><td>Escribe <code>@IA pregunta</code> o <code>? pregunta</code> en el chat</td><td>Responde máx. 3 oraciones educativas visibles para todo el equipo.</td></tr>
+    </tbody>
+  </table>
 
   <h3>Roles en el sistema</h3>
   <table class="node-table">
@@ -404,7 +440,7 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
     <thead><tr><th>Fase</th><th>Pregunta que responde</th><th>Qué buscar</th></tr></thead>
     <tbody>
       <tr><td><strong>DETECTAR</strong></td><td>¿Qué anomalía observas?</td><td>Métricas fuera de rango (CPU, RAM, red, latencia)</td></tr>
-      <tr><td><strong>ANALIZAR</strong></td><td>¿Cuáles son los IOCs?</td><td>IPs sospechosas, procesos extraños, mensajes de syslog</td></tr>
+      <tr><td><strong>ANALIZAR</strong></td><td>¿Cuáles son los IOCs?</td><td>IPs sospechosas, procesos extraños, mensajes de syslog. En ataques de red aparece la <strong style="color:#f97316">IP sospechosa detectada</strong> en naranja — úsala para bloquear en el firewall.</td></tr>
       <tr><td><strong>CLASIFICAR</strong></td><td>¿Qué tipo de incidente es?</td><td>Categoría: ataque de red / hardware / SST / SSL</td></tr>
       <tr><td><strong>MITIGAR</strong></td><td>¿Qué acción tomas?</td><td>Bloqueo de IP, reinicio de servicio, escalada, etc.</td></tr>
     </tbody>
@@ -1556,6 +1592,313 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
   </div>
 </section>
 
+<!-- ═══ SESIÓN 6 — RED INTERNA E INSIDER THREAT ═══ -->
+<section class="section" id="sesion6">
+  <p style="color:var(--muted);font-size:13px;margin-bottom:4px">SESIÓN 6</p>
+  <h2><span class="icon">🕸️</span>Red Interna e Insider Threat</h2>
+  <p>Ataques que ocurren <strong>desde dentro</strong> de la red o que explotan protocolos de la infraestructura interna. Requieren terminal + logs + firewall (flujo normal de red).</p>
+
+  <div class="attack-card" id="s6-vlan">
+    <div class="attack-header" style="background:rgba(239,68,68,.1)">
+      <div class="attack-type-icon dos">🔀</div>
+      <div class="attack-header-info">
+        <h3>VLAN Hopping</h3>
+        <p>Salto entre VLANs sin autorización via doble encapsulación 802.1Q</p>
+      </div>
+      <span class="badge critical">Red Interna</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>Un atacante interno envía tramas 802.1Q doblemente encapsuladas para saltar a una VLAN restringida (ej: VLAN de administración) sin tener acceso legítimo.</p>
+      <h4>Síntomas en métricas</h4>
+      <ul><li>Tráfico inter-VLAN anómalo en SW-CORE o SW-ACC-01/02</li><li>Conexiones desde IPs de segmentos que no deberían comunicarse</li><li>Paquetes broadcast inusuales en la red</li></ul>
+      <h4>Comandos en terminal</h4>
+      <div class="terminal"><div class="terminal-body">
+        <div class="term-line cmd">$ netstat -an</div>
+        <div class="term-line">⚠ IP más frecuente: 203.0.113.X — considera bloquearla en el firewall</div>
+        <div class="term-line cmd">$ tail -f /var/log/syslog</div>
+        <div class="term-line">VLAN_HOPPING: double-tagged frame detected from 203.0.113.X</div>
+      </div></div>
+      <h4>Mitigación</h4>
+      <ul><li>Bloquear IP origen en el firewall</li><li>Configurar puertos de acceso en modo <code>switchport mode access</code> (no trunk)</li><li>Habilitar VLAN nativa diferente en todos los trunks</li></ul>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s6-dhcp">
+    <div class="attack-header" style="background:rgba(245,158,11,.1)">
+      <div class="attack-type-icon bf">📡</div>
+      <div class="attack-header-info">
+        <h3>Rogue DHCP</h3>
+        <p>Servidor DHCP falso que redirige tráfico interno</p>
+      </div>
+      <span class="badge warning">Red Interna</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>Un atacante levanta un servidor DHCP no autorizado que responde más rápido que el legítimo. Los equipos que se conectan reciben una puerta de enlace falsa (gateway del atacante), permitiéndole interceptar todo el tráfico.</p>
+      <h4>Síntomas</h4>
+      <ul><li>Equipos con IPs fuera del rango esperado</li><li>Gateway inusual en la configuración de red</li><li>Latencia alta sin causa aparente en métricas de red</li></ul>
+      <h4>Mitigación</h4>
+      <ul><li>Habilitar <strong>DHCP Snooping</strong> en los switches</li><li>Identificar y apagar el puerto del servidor DHCP no autorizado</li><li>Bloquear la IP del servidor falso en el firewall</li></ul>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s6-dns">
+    <div class="attack-header" style="background:rgba(6,182,212,.1)">
+      <div class="attack-type-icon ps">🌐</div>
+      <div class="attack-header-info">
+        <h3>DNS Spoofing</h3>
+        <p>Envenenamiento de caché DNS para redirigir dominios</p>
+      </div>
+      <span class="badge info">Red Interna</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>El atacante inyecta respuestas DNS falsas en la caché del servidor. Cuando los usuarios resuelven un dominio legítimo (ej: banco.com), son redirigidos a la IP del atacante.</p>
+      <h4>Síntomas</h4>
+      <ul><li>Consultas DNS con respuestas hacia IPs externas sospechosas</li><li>TTL inusualmente bajo en respuestas DNS</li><li>Usuarios reportan sitios que "no cargan" o parecen distintos</li></ul>
+      <h4>Mitigación</h4>
+      <ul><li>Limpiar caché DNS: <code>rndc flush</code></li><li>Habilitar DNSSEC en el servidor</li><li>Bloquear consultas DNS hacia resolvers no autorizados en el firewall</li></ul>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s6-stp">
+    <div class="attack-header" style="background:rgba(124,58,237,.1)">
+      <div class="attack-type-icon ssl">🌲</div>
+      <div class="attack-header-info">
+        <h3>STP Attack (Spanning Tree)</h3>
+        <p>Manipulación del protocolo STP para tomar el Root Bridge</p>
+      </div>
+      <span class="badge critical">Red Interna</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>El atacante envía BPDUs (Bridge Protocol Data Units) con prioridad 0 para convertirse en el Root Bridge de la red. Esto hace que todo el tráfico pase por él, permitiendo interceptación masiva.</p>
+      <h4>Síntomas</h4>
+      <ul><li>Reconvergencia STP inesperada (micro-cortes de red)</li><li>Cambios en la topología de red sin mantenimiento programado</li><li>Tráfico inusual en SW-CORE</li></ul>
+      <h4>Mitigación</h4>
+      <ul><li>Habilitar <strong>BPDU Guard</strong> en puertos de acceso</li><li>Configurar <strong>Root Guard</strong> en puertos de distribución</li><li>Bloquear el puerto donde se originan los BPDUs no autorizados</li></ul>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s6-privesc">
+    <div class="attack-header" style="background:rgba(239,68,68,.1)">
+      <div class="attack-type-icon dos">🔑</div>
+      <div class="attack-header-info">
+        <h3>Escalación de Privilegios</h3>
+        <p>Usuario o proceso obtiene permisos root sin autorización</p>
+      </div>
+      <span class="badge critical">Insider Threat</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>Un usuario con acceso limitado explota una vulnerabilidad del sistema (SUID, sudo mal configurado, CVE de kernel) para obtener permisos de administrador.</p>
+      <h4>Síntomas</h4>
+      <ul><li>Proceso ejecutándose como root que normalmente no debería</li><li>Intentos de <code>sudo</code> fallidos seguidos de éxito repentino</li><li>Modificación de archivos de sistema (<code>/etc/passwd</code>, <code>/etc/sudoers</code>)</li></ul>
+      <h4>Comandos clave</h4>
+      <div class="terminal"><div class="terminal-body">
+        <div class="term-line cmd">$ ps aux</div>
+        <div class="term-line">⚠ proceso sospechoso con UID=0 detectado: /tmp/.hidden_shell</div>
+        <div class="term-line cmd">$ tail -f /var/log/auth.log</div>
+        <div class="term-line">sudo: pam_unix: session opened for user root by attacker_user</div>
+      </div></div>
+      <h4>Mitigación</h4>
+      <ul><li>Terminar el proceso: <code>kill -9 &lt;PID&gt;</code></li><li>Revocar privilegios: <code>usermod -L &lt;usuario&gt;</code></li><li>Auditar <code>/etc/sudoers</code> y archivos SUID</li></ul>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s6-exfil">
+    <div class="attack-header" style="background:rgba(245,158,11,.1)">
+      <div class="attack-type-icon bf">📤</div>
+      <div class="attack-header-info">
+        <h3>Exfiltración de Datos</h3>
+        <p>Transferencia masiva de datos a destino externo no autorizado</p>
+      </div>
+      <span class="badge warning">Insider Threat</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>Un usuario interno (o malware) copia grandes volúmenes de datos hacia una IP externa usando protocolos como HTTPS, FTP o DNS tunneling para evadir detección.</p>
+      <h4>Síntomas</h4>
+      <ul><li>Tráfico de red saliente (net_out) anormalmente alto</li><li>Conexiones prolongadas hacia IPs externas desconocidas</li><li>Actividad de disco elevada en DB-01 o STORAGE-01</li></ul>
+      <h4>Mitigación</h4>
+      <ul><li>Bloquear la IP destino en el firewall inmediatamente</li><li>Aislar el nodo origen: <code>iptables -A OUTPUT -j DROP</code></li><li>Preservar evidencia antes de limpiar (no borrar logs)</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SESIÓN 7 — SEGURIDAD FÍSICA AVANZADA ═══ -->
+<section class="section" id="sesion7">
+  <p style="color:var(--muted);font-size:13px;margin-bottom:4px">SESIÓN 7</p>
+  <h2><span class="icon">🚪</span>Seguridad Física Avanzada</h2>
+  <p>Ataques físicos al datacenter. A diferencia de los ataques de red, estos <strong>no requieren terminal ni firewall</strong> — se responden con el protocolo SST del panel guiado y la bitácora.</p>
+
+  <div class="alert-box info">
+    <span class="icon">ℹ️</span>
+    <p>Cuando ocurre un ataque físico, el panel guiado te llevará directamente a las 4 preguntas (DETECTAR → ANALIZAR → CLASIFICAR → PROTOCOLO). No se abre la terminal ni el firewall.</p>
+  </div>
+
+  <div class="attack-card" id="s7-bio">
+    <div class="attack-header" style="background:rgba(239,68,68,.1)">
+      <div class="attack-type-icon sst">🔬</div>
+      <div class="attack-header-info">
+        <h3>Violación de Seguridad Biométrica</h3>
+        <p>Huella dactilar o reconocimiento de retina clonado/falsificado</p>
+      </div>
+      <span class="badge critical">Físico</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>Un atacante utiliza una huella dactilar clonada (impresión 3D o silicona) o un modelo de retina falsificado para engañar al lector biométrico y obtener acceso físico al datacenter.</p>
+      <h4>Indicadores en sensores SST</h4>
+      <ul><li>Control de acceso: <strong>⚠️ ALERTA — evento no autorizado</strong></li><li>Acceso concedido a biometría que no corresponde a ningún empleado autorizado</li><li>Logs de acceso con horario inusual (madrugada, fines de semana)</li></ul>
+      <h4>Protocolo de respuesta</h4>
+      <ol><li>Activar alerta al equipo de seguridad física</li><li>Revocar temporalmente el perfil biométrico comprometido</li><li>Revisar cámaras CCTV del punto de acceso</li><li>Documentar en la bitácora: hora exacta, zona de acceso, ID de lector</li></ol>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s7-tail">
+    <div class="attack-header" style="background:rgba(245,158,11,.1)">
+      <div class="attack-type-icon sst">🚶</div>
+      <div class="attack-header-info">
+        <h3>Tailgating (Piggybacking)</h3>
+        <p>Persona no autorizada entra siguiendo a un empleado legítimo</p>
+      </div>
+      <span class="badge warning">Físico</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>Una persona sin credenciales aprovecha que un empleado autorizado abre la puerta para entrar inmediatamente detrás, sin que el sistema de control registre un segundo acceso.</p>
+      <h4>Indicadores</h4>
+      <ul><li>Cámaras muestran dos personas entrando con un solo evento de badge</li><li>Sensores de presencia detectan más personas de las registradas</li><li>Personal reporta ver a alguien desconocido en zonas restringidas</li></ul>
+      <h4>Protocolo de respuesta</h4>
+      <ol><li>Notificar al guardia de seguridad de inmediato</li><li>Revisar grabaciones CCTV del último acceso registrado</li><li>Verificar si hay objetos o equipos no autorizados en la sala</li><li>Reforzar protocolo: una persona = un badge</li></ol>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s7-badge">
+    <div class="attack-header" style="background:rgba(239,68,68,.1)">
+      <div class="attack-type-icon sst">💳</div>
+      <div class="attack-header-info">
+        <h3>Clonación de Badge RFID</h3>
+        <p>Tarjeta de acceso duplicada ilegalmente</p>
+      </div>
+      <span class="badge critical">Físico</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>Con un lector RFID de corto alcance, un atacante copia el UID de una tarjeta de acceso legítima y lo graba en una tarjeta en blanco. El sistema no distingue el original de la copia.</p>
+      <h4>Indicadores</h4>
+      <ul><li>Mismo badge registra accesos en dos lugares al mismo tiempo o en tiempos imposibles</li><li>El empleado reporta no haber estado en esa zona en ese horario</li><li>Accesos fuera del horario laboral del empleado</li></ul>
+      <h4>Protocolo de respuesta</h4>
+      <ol><li>Revocar inmediatamente el badge comprometido en el sistema de control</li><li>Emitir nuevo badge al empleado afectado</li><li>Investigar todos los accesos registrados con ese badge en las últimas 48h</li><li>Evaluar upgrade a tecnología RFID con criptografía (MIFARE DESFire)</li></ol>
+    </div>
+  </div>
+
+  <div class="attack-card" id="s7-cctv">
+    <div class="attack-header" style="background:rgba(124,58,237,.1)">
+      <div class="attack-type-icon ssl">📷</div>
+      <div class="attack-header-info">
+        <h3>Sabotaje de Cámaras CCTV</h3>
+        <p>Interferencia, bloqueo o manipulación del sistema de videovigilancia</p>
+      </div>
+      <span class="badge warning">Físico</span>
+    </div>
+    <div class="attack-body">
+      <h4>¿Qué ocurre?</h4>
+      <p>El atacante inutiliza las cámaras de seguridad antes de ejecutar otro ataque físico. Métodos: spray en la lente, interferencia de señal inalámbrica, desconexión de cables PoE o ataque al NVR.</p>
+      <h4>Indicadores</h4>
+      <ul><li>Feed de cámara perdido o con imagen congelada</li><li>NVR (grabador) sin respuesta o con almacenamiento borrado</li><li>Alertas de señal de video interrumpida en zonas críticas</li></ul>
+      <h4>Protocolo de respuesta</h4>
+      <ol><li>Activar protocolo de alerta de seguridad física</li><li>Enviar personal de seguridad a verificar físicamente las zonas sin cámara</li><li>Revisar si hay actividad simultánea en control de acceso (el sabotaje suele preceder otro ataque)</li><li>Documentar zona afectada, hora de pérdida de señal y posible causa</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HERRAMIENTAS IA ═══ -->
+<section class="section" id="ia-tools">
+  <h2><span class="icon">🤖</span>Herramientas de IA en el Simulador</h2>
+  <p>La IA del simulador usa <strong>Claude Haiku</strong> (Anthropic) para asistirte en tres momentos del flujo de trabajo. Recuerda: la IA guía, no resuelve por ti.</p>
+
+  <div class="attack-card" id="ia-bitacora">
+    <div class="attack-header" style="background:rgba(124,58,237,.1)">
+      <div class="attack-type-icon ssl">📝</div>
+      <div class="attack-header-info">
+        <h3>IA en la Bitácora</h3>
+        <p>Evaluación automática de la calidad de tu documentación</p>
+      </div>
+    </div>
+    <div class="attack-body">
+      <h4>¿Cómo funciona?</h4>
+      <p>Antes de guardar la bitácora, haz clic en <code>✨ Revisar con IA</code>. La IA evalúa tu texto en tres dimensiones y te da sugerencias concretas.</p>
+      <table class="node-table">
+        <thead><tr><th>Dimensión</th><th>Qué evalúa</th><th>Puntaje</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Claridad</strong></td><td>¿Es fácil de entender? ¿Bien redactada?</td><td>1–5</td></tr>
+          <tr><td><strong>Completitud</strong></td><td>¿Describe qué pasó, por qué y cómo se resolvió?</td><td>1–5</td></tr>
+          <tr><td><strong>Terminología</strong></td><td>¿Usa términos técnicos correctamente?</td><td>1–5</td></tr>
+        </tbody>
+      </table>
+      <div class="alert-box info" style="margin-top:12px">
+        <span class="icon">💡</span>
+        <p>Una bitácora de calidad menciona: la IP del atacante, el tipo de ataque, los comandos ejecutados, el timestamp y el resultado verificado. Evita frases como "me imagino" o "creo que".</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="attack-card" id="ia-terminal">
+    <div class="attack-header" style="background:rgba(6,182,212,.1)">
+      <div class="attack-type-icon ps">💻</div>
+      <div class="attack-header-info">
+        <h3>IA en la Terminal</h3>
+        <p>Pistas contextuales después de cada comando diagnóstico</p>
+      </div>
+    </div>
+    <div class="attack-body">
+      <h4>¿Cómo funciona?</h4>
+      <p>Cuando hay un ataque activo y ejecutas un comando de diagnóstico, la IA analiza el output y muestra una pista en <strong style="color:#06b6d4">cyan</strong> debajo del resultado.</p>
+      <div class="terminal"><div class="terminal-body">
+        <div class="term-line cmd">root@web-02:~# netstat -an</div>
+        <div class="term-line">Proto  Local Address        Foreign Address      State</div>
+        <div class="term-line">tcp    10.0.1.11:443        10.0.3.75:15638      ESTABLISHED</div>
+        <div class="term-line">tcp    10.0.1.11:80         203.0.113.47:9823    ESTABLISHED</div>
+        <div class="term-line">...</div>
+        <div class="term-line" style="color:#06b6d4">💡 IA: Fíjate en las conexiones desde 203.x.x.x — ese rango no pertenece a la red interna del datacenter.</div>
+      </div></div>
+      <h4>Comandos que activan la IA</h4>
+      <p><code>netstat</code>, <code>ps</code>, <code>top</code>, <code>tcpdump</code>, <code>ss</code>, <code>iptables -L</code>, <code>cat</code>, <code>tail</code>, <code>grep</code>, <code>df</code>, <code>free</code></p>
+      <p style="margin-top:6px">Si el comando no es de diagnóstico (ej: <code>clear</code>, <code>ping</code>) o no hay ataque activo, la pista no aparece.</p>
+    </div>
+  </div>
+
+  <div class="attack-card" id="ia-collab">
+    <div class="attack-header" style="background:rgba(16,185,129,.1)">
+      <div class="attack-type-icon hw">🤝</div>
+      <div class="attack-header-info">
+        <h3>IA en la Sala Colaborativa</h3>
+        <p>Asistente compartido que responde preguntas del equipo</p>
+      </div>
+    </div>
+    <div class="attack-body">
+      <h4>¿Cómo activarla?</h4>
+      <p>En el chat de la sala, escribe tu pregunta con el prefijo <code>@IA</code> o <code>?</code>:</p>
+      <div class="terminal"><div class="terminal-body">
+        <div class="term-line" style="color:#5eead4">Tú · 14:23</div>
+        <div class="term-line" style="background:#0d9488;border-radius:6px;padding:3px 8px;display:inline-block">@IA ¿por qué el CPU sube tanto en un SYN Flood?</div>
+        <div class="term-line" style="color:#5eead4;margin-top:6px">🤖 IA · 14:23</div>
+        <div class="term-line" style="background:#1e293b;border-radius:6px;padding:3px 8px">En un SYN Flood, el kernel procesa cada paquete SYN generando una entrada en la tabla de conexiones semi-abiertas. El CPU sube porque maneja miles de conexiones que nunca completan el handshake. Revisa cuántas están en estado SYN_RECV con netstat.</div>
+      </div></div>
+      <h4>Características</h4>
+      <ul>
+        <li>La respuesta es visible para <strong>todos los miembros</strong> del equipo en tiempo real</li>
+        <li>La IA conoce el ataque activo actual y adapta la respuesta</li>
+        <li>Máximo 3 oraciones — guía sin resolver directamente</li>
+        <li>Disponible solo si el instructor configuró la API de IA</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ SALA COLABORATIVA ═══ -->
 <section class="section" id="collab">
   <h2><span class="icon">🤝</span>Sala Colaborativa</h2>
@@ -1573,7 +1916,7 @@ li { font-size: 14px; color: var(--muted); line-height: 1.8; }
     <tbody>
       <tr>
         <td><strong>Tu equipo</strong> — lista de compañeros con su rol asignado. Tu rol aparece resaltado con un banner de color que indica en qué panel debes enfocarte.</td>
-        <td><strong>Chat de sala</strong> — mensajes en tiempo real entre los miembros del equipo. También aparecen aquí las acciones técnicas que cada compañero ejecuta (bloqueos de IP, reinicios de servicio).</td>
+        <td><strong>Chat de sala</strong> — mensajes en tiempo real entre los miembros del equipo. También aparecen aquí las acciones técnicas que cada compañero ejecuta (bloqueos de IP, reinicios de servicio). Escribe <code>@IA pregunta</code> para consultar al asistente de IA — responde para todo el equipo.</td></tr>
       </tr>
     </tbody>
   </table>
