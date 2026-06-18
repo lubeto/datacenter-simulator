@@ -12,12 +12,10 @@ logger = logging.getLogger("dc.ai_feedback")
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models/"
-# Orden de preferencia: flash estable → flash exp → pro como último recurso
+_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1/models/"
 _MODELS = [
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash-001",
-    "gemini-1.5-pro-latest",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
     "gemini-pro",
 ]
 
