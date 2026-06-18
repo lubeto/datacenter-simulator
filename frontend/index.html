@@ -1190,7 +1190,7 @@ function handleMetrics(data) {
   setPauseBar(!!data.paused, true);
 
   // Construir mapa de ataques activos desde los nodos (el backend lo pone en has_attack/attack_type)
-  const activeAttacksMap = {};
+  activeAttacksMap = {};
   Object.entries(allNodes).forEach(([nodeId, node]) => {
     if (node.has_attack) activeAttacksMap[nodeId] = { node_id: nodeId, type: node.attack_type };
   });
@@ -4173,6 +4173,7 @@ let termHistIdx = -1;
 let termLineBuf = '';
 const TERM_PROMPT = () => `\x1b[32mroot@${(document.getElementById('termNodeSel')?.value || 'WEB-01').toLowerCase()}\x1b[0m:~# `;
 let aiTerminalEnabled = false;
+let activeAttacksMap = {};
 
 // Verificar disponibilidad de IA al cargar
 (async () => {
@@ -4284,8 +4285,10 @@ async function _termRunCommand(cmd) {
     const output = rawOutput.replace(/\n/g, '\r\n');
     if (output) term.writeln(output);
 
-    // IA: pista contextual si hay ataque activo y AI disponible
-    const attackType = guidedState?.incident?.attack?.attack_type || '';
+    // IA: pista contextual si hay ataque activo en este nodo y AI disponible
+    const attackType = activeAttacksMap[nodeId]?.type
+      || guidedState?.incident?.attack?.attack_type
+      || '';
     if (attackType && aiTerminalEnabled) {
       _termShowAiHint(cmd, rawOutput, attackType, nodeId);
     }
