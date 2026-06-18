@@ -344,9 +344,15 @@ def generate_full_snapshot() -> Dict[str, Any]:
 def tick_attacks():
     """Actualiza el tiempo transcurrido de ataques activos."""
     for node_id in list(state.active_attacks.keys()):
-        state.active_attacks[node_id]["elapsed_sec"] = \
-            state.active_attacks[node_id].get("elapsed_sec", 0) + 2
-        # Auto-resolver ataques después de su duración máxima
-        max_dur = state.active_attacks[node_id].get("max_duration_sec", 300)
-        if state.active_attacks[node_id]["elapsed_sec"] >= max_dur:
+        attack = state.active_attacks[node_id]
+        attack["elapsed_sec"] = attack.get("elapsed_sec", 0) + 2
+
+        # Si el aprendiz ya detectó el ataque, darle 20 min para investigar
+        # en lugar del timeout corto original — el ataque no desaparece mientras trabaja
+        if attack.get("detected"):
+            max_dur = attack.get("investigation_deadline_sec", 1200)
+        else:
+            max_dur = attack.get("max_duration_sec", 300)
+
+        if attack["elapsed_sec"] >= max_dur:
             del state.active_attacks[node_id]
