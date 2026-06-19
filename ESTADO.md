@@ -1,6 +1,42 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-17 — IA en bitácora (Claude Haiku), terminal y sala colaborativa
+## Última sesión: 2026-06-17 — netstat fix + AI terminal hint fix
+
+---
+
+## Sesión 2026-06-17 (continuación) — Fixes netstat + IA terminal
+
+### Fix: netstat muestra IP del atacante para todos los tipos de ataque
+
+**Problema:** `netstat -an` en nodos bajo ataque de tipo `vlan_hopping`, `rogue_dhcp`, `dns_spoofing`, `spanning_tree_attack`, `arp_spoofing`, `privilege_escalation`, `data_exfiltration` solo mostraba IPs internas (10.0.x.x). Los 5 tipos originales (dos/ddos/syn_flood/brute_force/port_scan) sí mostraban la IP del atacante.
+
+**Causa raíz (2 archivos):**
+1. `backend/simulation/attacks.py` — `_ATTACKER_RANGES` no tenía entradas para los 7 nuevos tipos → `attacker_ip` nunca se asignaba al crear el ataque
+2. `backend/simulation/command_engine.py` — `_cmd_netstat()` solo tenía `elif` para los 5 tipos originales
+
+**Fix aplicado:**
+- `attacks.py`: agregadas entradas para `arp_spoofing`, `vlan_hopping`, `rogue_dhcp`, `dns_spoofing`, `spanning_tree_attack` (rango 10.0.9.x) y `privilege_escalation`, `data_exfiltration` (rango 10.0.8.x)
+- `command_engine.py`: nuevo bloque `elif` para los 7 tipos nuevos — muestra conexiones ESTABLISHED con `attacker_ip` + mensaje de advertencia específico por categoría
+
+**Nota importante:** el fix aplica solo a **ataques nuevos** creados después del deploy. Ataques en curso antes del fix no tienen `attacker_ip` guardado → requiere reiniciar simulador (Pausar + Iniciar desde instructor.html) para ver el efecto.
+
+**Commits:** `a6ee6f3` — fix: netstat shows attacker IP for all new attack types
+
+---
+
+### Fix: IA en terminal no aparecía aunque había ataque activo
+
+**Problema 1:** `aiTerminalEnabled` se consultaba al cargar la página (IIFE async). Si Render estaba desplegando en ese momento, la variable quedaba `false` para toda la sesión — la IA nunca aparecía sin importar el estado real de la API.
+
+**Problema 2:** `activeAttacksMap` era una variable `const` local dentro de `loadLiveStatus()`. La función `_termRunCommand()` no podía accederla, por lo que `attackType` siempre era `''` cuando el panel guiado no estaba abierto.
+
+**Fix:**
+- `activeAttacksMap` promovida a variable global (declarada junto a `aiTerminalEnabled`)
+- La asignación dentro de `loadLiveStatus()` cambiada de `const` a asignación a la global
+- Eliminado el guard `if (attackType && aiTerminalEnabled)` → simplificado a `if (attackType)` (el backend maneja la ausencia de clave silenciosamente)
+- Ahora el hint de IA aparece en cian `💡 IA: ...` tan pronto hay ataque en el nodo, sin importar cuándo cargó la página ni si el panel guiado está abierto
+
+**Commits:** `5e58fe5`, `159d67e`
 
 ---
 
@@ -53,6 +89,9 @@
 - `7f5dd78` — fix: attacks persist while student is actively investigating
 - `f653542` — feat: add AI hints in terminal during active incidents
 - `991ceae` — feat: add AI assistant in collaborative room
+- `a6ee6f3` — fix: netstat shows attacker IP for all new attack types
+- `5e58fe5` — fix: AI terminal hint fires even without guided panel open
+- `159d67e` — fix: remove aiTerminalEnabled gate so AI hint always fires
 
 ### Variables de entorno en Render
 - `ANTHROPIC_API_KEY` — clave API de Anthropic (console.anthropic.com, cuenta Google de Lubeto)
