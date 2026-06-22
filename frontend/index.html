@@ -231,6 +231,10 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 .bm-field textarea.error{border-color:#ef4444}
 .bm-char{font-size:.63rem;color:#71717a;text-align:right;transition:color .2s}
 .bm-char.ok{color:#4ade80}
+.bm-ai-btn{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.35);color:#22d3ee;border-radius:6px;padding:1px 8px;font-size:.66rem;font-weight:700;cursor:pointer;margin-left:6px}
+.bm-ai-btn:hover{background:rgba(34,211,238,.22)}
+.bm-tutor-hint{display:none;font-size:.74rem;color:#67e8f9;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.25);border-radius:6px;padding:6px 9px;line-height:1.4}
+.bm-tutor-hint.show{display:block}
 .bm-footer{padding:12px 20px;border-top:1px solid #3f3f46;display:flex;gap:8px;flex-shrink:0;background:#232326}
 .bm-btn-submit{flex:1;padding:11px;background:#8b5cf6;border:none;border-radius:8px;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;transition:background .15s}
 .bm-btn-submit:hover{background:#7c3aed}
@@ -3482,6 +3486,42 @@ function generateLabReport(){const plan=labState.current.plan,type=labState.curr
 // BITÁCORA DE INCIDENTE
 // ══════════════════════════════════════════════════════════════
 let _bitacoraData = {};
+let _bmPastedFields = new Set();
+let _bmTutorCooldown = {};
+
+async function _bmAskTutor(campo, fieldId, hintId) {
+  const now = Date.now();
+  if (_bmTutorCooldown[campo] && now - _bmTutorCooldown[campo] < 10000) return;
+  _bmTutorCooldown[campo] = now;
+  const hintEl = document.getElementById(hintId);
+  const textarea = document.getElementById(fieldId);
+  if (!hintEl || !textarea) return;
+  hintEl.textContent = '🤖 Pensando...';
+  hintEl.classList.add('show');
+  try {
+    const r = await apiFetch('/api/ai/bitacora-tutor', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        campo,
+        texto_actual: textarea.value.trim(),
+        attack_type: _bitacoraData.attack_type || '',
+        node_id: _bitacoraData.node_id || '',
+      })
+    });
+    hintEl.textContent = r?.hint ? ('🤖 ' + r.hint) : '🤖 IA no disponible en este momento.';
+  } catch (_) {
+    hintEl.textContent = '🤖 IA no disponible en este momento.';
+  }
+}
+const _BM_FIELD_IDS = ['bmSintomas','bmCausa','bmAcciones','bmLecciones'];
+
+// Detección de Ctrl+C/Ctrl+V: el evento 'paste' del navegador es disparado
+// siempre que se pega contenido, sin importar el método (mouse, teclado, menú).
+document.addEventListener('paste', (e) => {
+  const id = e.target?.id;
+  if (_BM_FIELD_IDS.includes(id)) _bmPastedFields.add(id);
+});
 
 const ATTACK_LABELS = {
   ddos:'DDoS', dos:'DoS', ransomware:'Ransomware', brute_force:'Fuerza Bruta',
@@ -3492,6 +3532,7 @@ const ATTACK_LABELS = {
 
 function _openBitacoraModal(data) {
   _bitacoraData = data;
+  _bmPastedFields.clear();
   // Auto-llenar datos técnicos
   document.getElementById('bmNode').textContent    = data.node_id || '—';
   document.getElementById('bmType').textContent    = ATTACK_LABELS[data.attack_type] || data.attack_type || '—';
@@ -3503,6 +3544,10 @@ function _openBitacoraModal(data) {
   ['bmSintomas','bmCausa','bmAcciones','bmLecciones'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.value = ''; el.classList.remove('error'); }
+  });
+  ['bmTutor1','bmTutor2','bmTutor3','bmTutor4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.classList.remove('show'); }
   });
   ['bmC1','bmC2','bmC3','bmC4'].forEach(id => {
     const el = document.getElementById(id);
@@ -3729,15 +3774,19 @@ async function submitBitacora() {
     acciones_tomadas:    document.getElementById('bmAcciones').value.trim(),
     lecciones:           document.getElementById('bmLecciones').value.trim(),
     collab_room_id:      _collabRoom ? _collabRoom.id : null,
+    pasted_fields:       Array.from(_bmPastedFields),
   };
 
   let qualityInfo = null;
   try {
     const resp = await apiFetch('/api/bitacoras', { method: 'POST', body: JSON.stringify(payload) });
+    if (resp.paste_detected) {
+      notify('🚫 Procedimiento irregular', `Has realizado Ctrl+C / Ctrl+V en tu bitácora — se te restaron ${resp.paste_penalty||15} puntos. Escribe tu propio análisis.`, 'crit');
+    }
     if (resp.score_penalized) {
       qualityInfo = { penalized: true, original: resp.score_original, adjusted: resp.score_adjusted, label: resp.quality_label };
       notify('⚠️ Calidad de texto', `Nota reducida por texto no válido: ${resp.score_adjusted?.toFixed(0)}/100 (calidad: ${resp.quality_label})`, 'warn');
-    } else {
+    } else if (!resp.paste_detected) {
       notify('📋 Bitácora guardada', 'Tu análisis quedó registrado correctamente.', 'ok');
     }
   } catch(e) {
@@ -4848,24 +4897,28 @@ setInterval(checkMyCollabRoom, 60000);
       </div>
       <!-- Campos de análisis -->
       <div class="bm-field">
-        <label>🔍 Síntomas observados <span>*</span></label>
+        <label>🔍 Síntomas observados <span>*</span> <button type="button" class="bm-ai-btn" onclick="_bmAskTutor('sintomas','bmSintomas','bmTutor1')">🤖 Pista IA</button></label>
         <textarea id="bmSintomas" rows="3" placeholder="¿Qué indicadores te alertaron? ¿Qué métricas estaban anómalas? ¿Cómo lo detectaste?" oninput="bmCount(this,'bmC1',30)"></textarea>
         <div class="bm-char" id="bmC1">0 / mín. 30 caracteres</div>
+        <div class="bm-tutor-hint" id="bmTutor1"></div>
       </div>
       <div class="bm-field">
-        <label>🧩 Análisis de causa raíz <span>*</span></label>
+        <label>🧩 Análisis de causa raíz <span>*</span> <button type="button" class="bm-ai-btn" onclick="_bmAskTutor('causa','bmCausa','bmTutor2')">🤖 Pista IA</button></label>
         <textarea id="bmCausa" rows="3" placeholder="¿Por qué ocurrió el incidente? ¿Qué condición o vulnerabilidad lo permitió?" oninput="bmCount(this,'bmC2',30)"></textarea>
         <div class="bm-char" id="bmC2">0 / mín. 30 caracteres</div>
+        <div class="bm-tutor-hint" id="bmTutor2"></div>
       </div>
       <div class="bm-field">
-        <label>🔧 Acciones tomadas y resultado <span>*</span></label>
+        <label>🔧 Acciones tomadas y resultado <span>*</span> <button type="button" class="bm-ai-btn" onclick="_bmAskTutor('acciones','bmAcciones','bmTutor3')">🤖 Pista IA</button></label>
         <textarea id="bmAcciones" rows="3" placeholder="¿Qué hiciste para mitigar el ataque? ¿Qué comandos o pasos aplicaste? ¿Funcionó?" oninput="bmCount(this,'bmC3',30)"></textarea>
         <div class="bm-char" id="bmC3">0 / mín. 30 caracteres</div>
+        <div class="bm-tutor-hint" id="bmTutor3"></div>
       </div>
       <div class="bm-field">
-        <label>💡 Lecciones aprendidas y recomendaciones <span>*</span></label>
+        <label>💡 Lecciones aprendidas y recomendaciones <span>*</span> <button type="button" class="bm-ai-btn" onclick="_bmAskTutor('lecciones','bmLecciones','bmTutor4')">🤖 Pista IA</button></label>
         <textarea id="bmLecciones" rows="3" placeholder="¿Qué aprendiste? ¿Qué harías diferente? ¿Cómo prevenir este incidente en el futuro?" oninput="bmCount(this,'bmC4',30)"></textarea>
         <div class="bm-char" id="bmC4">0 / mín. 30 caracteres</div>
+        <div class="bm-tutor-hint" id="bmTutor4"></div>
       </div>
       <div class="bm-err" id="bmErr">⚠️ Completa todos los campos con al menos 30 caracteres.</div>
 

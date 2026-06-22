@@ -256,3 +256,76 @@ async def get_collab_hint(req: CollabHintRequest):
     except Exception as ex:
         logger.warning(f"Collab hint error: {ex}")
         return {"hint": None, "available": False}
+
+
+BITACORA_TUTOR_PROMPT = """Eres un tutor socrático de ciberseguridad ayudando a un aprendiz a ESCRIBIR su propia
+bitácora de incidente — nunca le redactas el texto, solo le haces preguntas que lo guíen a pensar y describir
+con sus propias palabras.
+
+Campo de la bitácora que está completando: {campo}
+Ataque: {attack_type} en nodo {node_id}
+Lo que el aprendiz ha escrito hasta ahora en este campo: "{texto_actual}"
+
+Responde con 1-2 preguntas breves (máximo 25 palabras en total) que lo ayuden a profundizar o corregir
+ese campo específico. NO le digas qué escribir, NO redactes frases para que copie. Solo preguntas guía.
+Si el campo ya está vacío o muy corto, pregunta por lo más básico (qué observó, qué nodo, qué hizo).
+Responde en español, solo las preguntas, sin prefijos."""
+
+
+class BitacoraTutorRequest(BaseModel):
+    campo: str            # "sintomas" | "causa" | "acciones" | "lecciones"
+    texto_actual: str = ""
+    attack_type: str = ""
+    node_id: str = ""
+
+
+_CAMPO_LABELS = {
+    "sintomas": "Síntomas observados",
+    "causa": "Causa raíz identificada",
+    "acciones": "Acciones tomadas",
+    "lecciones": "Lecciones aprendidas",
+}
+
+
+@router.post("/bitacora-tutor")
+async def get_bitacora_tutor_hint(req: BitacoraTutorRequest):
+    """Tutor socrático: hace preguntas guía para que el aprendiz redacte su propia
+    bitácora, en vez de generar el texto por él (evita que la IA reemplace el copia-pega)."""
+    if not ANTHROPIC_API_KEY:
+        return {"hint": None, "available": False}
+
+    prompt = BITACORA_TUTOR_PROMPT.format(
+        campo=_CAMPO_LABELS.get(req.campo, req.campo),
+        attack_type=req.attack_type or "desconocido",
+        node_id=req.node_id or "—",
+        texto_actual=(req.texto_actual or "(vacío)")[:500],
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                _ANTHROPIC_URL,
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": _MODEL,
+                    "max_tokens": 120,
+                    "temperature": 0.4,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+            )
+
+        if resp.status_code != 200:
+            return {"hint": None, "available": False}
+
+        data = resp.json()
+        hint = data["content"][0]["text"].strip()
+        logger.info(f"Bitacora tutor OK para campo: {req.campo}")
+        return {"hint": hint, "available": True}
+
+    except Exception as ex:
+        logger.warning(f"Bitacora tutor error: {ex}")
+        return {"hint": None, "available": False}

@@ -36,6 +36,7 @@ class BitacoraCreate(BaseModel):
     duration_sec:        float = 0.0
     incident_id:         Optional[int] = None
     collab_room_id:      Optional[int] = None
+    pasted_fields:       List[str] = []
 
     sintomas_observados: str = Field(..., min_length=20)
     causa_raiz:          str = Field(..., min_length=20)
@@ -172,6 +173,12 @@ async def create_bitacora(
     else:
         final_score = min(base_score, 20.0)
 
+    # Penalización adicional por Ctrl+C/Ctrl+V detectado en algún campo
+    paste_penalty = 0.0
+    if data.pasted_fields:
+        paste_penalty = 15.0
+        final_score = max(final_score - paste_penalty, 0.0)
+
     b = Bitacora(
         student_id          = me.id,
         incident_id         = data.incident_id,
@@ -205,6 +212,8 @@ async def create_bitacora(
     out_dict["score_original"] = base_score
     out_dict["score_adjusted"] = final_score
     out_dict["score_penalized"] = final_score < base_score
+    out_dict["paste_detected"]  = bool(data.pasted_fields)
+    out_dict["paste_penalty"]   = paste_penalty
 
     # Notificar al instructor en tiempo real
     try:
@@ -216,6 +225,7 @@ async def create_bitacora(
             "score":         final_score,
             "quality_label": quality_label,
             "penalized":     final_score < base_score,
+            "paste_detected": bool(data.pasted_fields),
             "timestamp":     iso_utc(datetime.utcnow()),
         })
     except Exception:
