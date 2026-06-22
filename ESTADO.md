@@ -1,6 +1,66 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-17 — netstat fix + AI terminal hint fix
+## Última sesión: 2026-06-20/21 — Auditoría de bitácoras reales + fixes de zona horaria, sesiones, MTTD, anti-plagio e IA tutor
+
+---
+
+## Sesión 2026-06-20/21 — Diagnóstico desde bitácoras reales + 7 fixes
+
+### Origen: análisis de "Bitácoras Consolidadas" y "Reporte del Día" (2026-06-20)
+El instructor reportó caos en clase (terminal sin escribir, bitácoras sin guardar, ataques sin disparar) entre 2-3 PM hora Colombia. Los PDFs reales de esa clase revelaron 4 bugs concretos que la revisión de logs de Render (sin errores, CPU pico moderado) no había explicado:
+
+1. **Horas desfasadas ~5h**: bitácoras mostraban 19:27/21:05 en vez de la hora real de Colombia (~14:27). Causa: `datetime.utcnow().isoformat()` sin sufijo `Z` — el navegador interpreta el string como hora LOCAL en vez de UTC.
+2. **100% de las sesiones "Activa"/0 min**: cada recarga de página (`initSession()`) creaba una sesión nueva sin cerrar la anterior — confirmado con 8 sesiones huérfanas en una hora para un mismo aprendiz.
+3. **MTTD corrupto** (35165s ≈ 9.7h en un aprendiz): un incidente fantasma del scheduler, sin detectar por horas, corrompía el promedio permanentemente.
+4. **Mensaje SST/Terminal mezclado**: una bitácora de alarma de incendio quedó etiquetada como `rogue_dhcp` (ataque de red) — confirmó en datos reales el bug de categoría ya sospechado.
+
+### Fixes aplicados
+
+**1. Zona horaria (UTC explícito)**
+- `backend/utils_time.py` (nuevo): `iso_utc(dt)` añade `Z` a datetimes naive
+- `.isoformat()` reemplazado por `iso_utc()` en ~73 sitios (routes_*, scheduler, engine, attacks, mitigation, pdf_generator)
+- `main.py`: parche de `fastapi.encoders.ENCODERS_BY_TYPE[datetime]` para dicts crudos
+- `routes_bitacoras.py`: `BitacoraOut.created_at` usa `@field_serializer` (Pydantic v2 ignora el encoder global de FastAPI para modelos `BaseModel` — verificado empíricamente)
+- Frontend: `toLocaleTimeString/toLocaleDateString/toLocaleString` fuerzan `timeZone:'America/Bogota'` explícito (34 sitios en `instructor.html` + `index.html`)
+
+**2. Sesiones huérfanas**
+- `crud.create_session`: cierra automáticamente cualquier sesión previa activa del mismo estudiante antes de crear una nueva
+- `index.html`: handler `pagehide`/`beforeunload` cierra sesión al salir (best-effort, complementa el fix de backend)
+- `instructor.html`: usa `sessionInfo.elapsed_min` del backend en vez de recalcular con `Date.now() - new Date(started_at)`, eliminando "En sesión: -295 min"
+
+**3. MTTD corrupto**
+- `crud.detect_incident`: cap de `mttd_seconds` a 1800s (30 min) en la fuente
+
+**4. Badge de conexión inconsistente**
+- `instructor.html`: monitor en vivo distingue "🔵 Conectado (sin sesión formal)" de "🟢 En sesión"/"⚫ Sin sesión", usando `/api/students/online` (antes el contador de WS conectados no se reflejaba en las tarjetas)
+
+**5. Mensaje SST/Terminal mezclado** (panel guiado)
+- `index.html`: el banner de "panel de misión" en Stage 4 ahora distingue categoría SST (protocolo de respuesta) de categorías de red (Terminal→Logs→Firewall) — antes mostraba ambos textos contradictorios para incidentes SST
+
+**6. Detección de Ctrl+C/Ctrl+V + penalización**
+- `routes_bitacoras.py`: campo `pasted_fields` en `BitacoraCreate` → penalización -15 pts si se detecta paste en cualquier campo, después de la penalización por calidad textual
+- `index.html`: listener global de evento `paste` sobre los 4 textareas, mensaje "🚫 Procedimiento irregular... se te restaron N puntos" al enviar
+
+**7. Tutor IA socrático en bitácora**
+- Nuevo endpoint `POST /api/ai/bitacora-tutor`: a diferencia de terminal-hint/collab-hint, NO redacta texto — responde con 1-2 preguntas guía por campo (síntomas/causa/acciones/lecciones) para que el aprendiz piense y escriba con sus propias palabras
+- `index.html`: botón "🤖 Pista IA" por campo, cooldown 10s, caja de respuesta en cian
+
+### Verificaciones
+- `python -m py_compile` en todos los archivos backend modificados — sin errores
+- Test empírico con FastAPI+Pydantic v2 real (`TestClient`) para confirmar que `ENCODERS_BY_TYPE` NO afecta `response_model` con Pydantic v2 (requiere `field_serializer` explícito) — solo 1 campo en todo el backend tenía este patrón (`BitacoraOut.created_at`)
+- Sintaxis JS de `instructor.html` e `index.html` verificada con `node -e "new Function(...)"`
+
+### Pendiente / mejora futura
+- Detección de paste extendida solo a la bitácora individual (la pieza calificada principal); no cubre aún `sstReportInput` ni los textareas dinámicos de la bitácora colaborativa (`cbInput-*`)
+- Revisar en la próxima clase en vivo que las horas se vean correctas y que no reaparezcan sesiones huérfanas
+
+### Commits sesión
+- `12859df` — fix: corregir zona horaria UTC, sesiones huérfanas y MTTD corrupto
+- `5d76b95` — feat: detección de Ctrl+C/Ctrl+V con penalización + tutor IA socrático en bitácora
+
+---
+
+## Última sesión anterior: 2026-06-17 — netstat fix + AI terminal hint fix
 
 ---
 
