@@ -15,12 +15,13 @@ from ..database.models import (
     GuidedSession, SSTProtocolSession, PracticeSession,
     MitigationAction, Alert, Report, EvalGroup
 )
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 def _dt(v):
-    return v.isoformat() if isinstance(v, datetime) else v
+    return iso_utc(v) if isinstance(v, datetime) else v
 
 
 def _row(obj, fields):
@@ -118,7 +119,7 @@ async def export_data(
     ]) for g in groups]
 
     export = {
-        "exported_at": datetime.utcnow().isoformat(),
+        "exported_at": iso_utc(datetime.utcnow()),
         "version": "1.0",
         "counts": {
             "students": len(students_data),

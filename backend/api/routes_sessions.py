@@ -25,6 +25,7 @@ from ..database.models import (
     GuidedSession, PracticeSession, SSTProtocolSession, Bitacora
 )
 from .routes_students import get_current_student, require_instructor
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
@@ -68,11 +69,11 @@ async def start_session(
         "active":     True,
         "mode":       "individual",
         "session_id": session.id,
-        "started_at": session.started_at.isoformat(),
+        "started_at": iso_utc(session.started_at),
         "message":    "El instructor ha iniciado tu sesión evaluativa",
     })
 
-    return {"id": session.id, "student_id": data.student_id, "started_at": session.started_at.isoformat()}
+    return {"id": session.id, "student_id": data.student_id, "started_at": iso_utc(session.started_at)}
 
 
 # ── Terminar sesión evaluativa ─────────────────────────────────
@@ -242,7 +243,7 @@ async def get_active_sessions(
             "id":           s.id,
             "student_id":   s.student_id,
             "student_name": student.name,
-            "started_at":   s.started_at.isoformat(),
+            "started_at":   iso_utc(s.started_at),
             "elapsed_min":  int(elapsed),
             "session_type": session_type,
             "notes":        s.notes or "",
@@ -287,8 +288,8 @@ async def my_sessions(
     return [
         {
             "id":           s.id,
-            "started_at":   s.started_at.isoformat() if s.started_at else None,
-            "ended_at":     s.ended_at.isoformat()   if s.ended_at   else None,
+            "started_at":   iso_utc(s.started_at) if s.started_at else None,
+            "ended_at":     iso_utc(s.ended_at)   if s.ended_at   else None,
             "duration_min": round(s.duration_min, 1) if s.duration_min else None,
             "score":        s.score,
             "is_active":    s.is_active,
@@ -403,7 +404,7 @@ async def start_group_session(
         "name":        group.name,
         "student_ids": data.student_ids,
         "session_ids": session_ids,
-        "started_at":  now.isoformat(),
+        "started_at":  iso_utc(now),
     }
 
 
@@ -510,7 +511,7 @@ async def get_active_groups(
             "student_ids": sids,
             "student_names": names,
             "elapsed_min": elapsed,
-            "started_at":  g.started_at.isoformat(),
+            "started_at":  iso_utc(g.started_at),
         })
     return out
 
@@ -734,27 +735,27 @@ async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool =
         result["practice"]["guided_detail"] = [
             {"score": gs.score or 0, "attack": gs.attack_type, "node": gs.node_id,
              "correct": gs.correct_answers, "total": gs.total_questions,
-             "hints": gs.hints_used, "date": gs.completed_at.isoformat() if gs.completed_at else None}
+             "hints": gs.hints_used, "date": iso_utc(gs.completed_at) if gs.completed_at else None}
             for gs in g_all[:20]
         ]
         result["practice"]["bitacora_detail"] = [
             {"score": bs.score or 0, "attack": bs.attack_type, "node": bs.node_id,
              "correct": bs.correct_answers, "total": bs.total_questions,
-             "hints": bs.hints_used, "date": bs.created_at.isoformat() if bs.created_at else None}
+             "hints": bs.hints_used, "date": iso_utc(bs.created_at) if bs.created_at else None}
             for bs in b_all[:20]
         ]
         result["practice"]["lab_detail"] = [
             {"score": ls.score or 0, "scenario": ls.scenario_name,
              "steps": ls.steps_completed, "total": ls.total_steps,
-             "date": ls.completed_at.isoformat() if ls.completed_at else None}
+             "date": iso_utc(ls.completed_at) if ls.completed_at else None}
             for ls in l_all[:10]
         ]
         result["formal"]["individual"]["history"] = [
-            {"score": s.score or 0, "date": s.started_at.isoformat() if s.started_at else None,
+            {"score": s.score or 0, "date": iso_utc(s.started_at) if s.started_at else None,
              "duration_min": round(s.duration_min or 0, 1)} for s in ind_sessions[:10]
         ]
         result["formal"]["group"]["history"] = [
-            {"score": s.score or 0, "date": s.started_at.isoformat() if s.started_at else None,
+            {"score": s.score or 0, "date": iso_utc(s.started_at) if s.started_at else None,
              "notes": s.notes or ""} for s in grp_sessions[:10]
         ]
 
@@ -790,8 +791,8 @@ async def all_groups_report(
         out.append({
             "id":           g.id,
             "name":         g.name,
-            "started_at":   g.started_at.isoformat() if g.started_at else None,
-            "ended_at":     g.ended_at.isoformat()   if g.ended_at   else None,
+            "started_at":   iso_utc(g.started_at) if g.started_at else None,
+            "ended_at":     iso_utc(g.ended_at)   if g.ended_at   else None,
             "is_active":    g.is_active,
             "student_count": len(sids),
             "student_names": names,
@@ -984,7 +985,7 @@ async def student_live_monitor(
         [g.completed_at for g in guided[:1] if g.completed_at]
     )
     if all_times:
-        last_activity = max(all_times).isoformat()
+        last_activity = iso_utc(max(all_times))
 
     return {
         "student": {
@@ -998,7 +999,7 @@ async def student_live_monitor(
         "session": {
             "active":       active_sess is not None,
             "session_id":   active_sess.id if active_sess else None,
-            "started_at":   sess_start.isoformat(),
+            "started_at":   iso_utc(sess_start),
             "elapsed_min":  elapsed_min,
             "type":         "Práctica" if active_sess and "[practice]" in (active_sess.notes or "") else "Formal",
         },

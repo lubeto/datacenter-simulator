@@ -10,6 +10,7 @@ from ..database import crud
 from ..simulation.engine import generate_full_snapshot, state as sim_state
 from ..simulation.nodes import get_all_nodes, get_all_sensors
 from ..api.routes_students import get_current_student
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/metrics", tags=["metrics"])
 
@@ -57,7 +58,7 @@ async def get_node_history(
 
     return [
         {
-            "timestamp":       m.timestamp.isoformat() if hasattr(m.timestamp, "isoformat") else str(m.timestamp),
+            "timestamp":       iso_utc(m.timestamp) if hasattr(m.timestamp, "isoformat") else str(m.timestamp),
             "cpu_pct":         m.cpu_pct,
             "ram_pct":         m.ram_pct,
             "net_in_mbps":     m.net_in_mbps,

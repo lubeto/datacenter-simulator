@@ -11,6 +11,7 @@ from typing import Callable, Optional
 from .attacks import attack_manager, ATTACK_CATALOG
 from .nodes import DC_NODES
 from .engine import state as sim_state
+from ..utils_time import iso_utc
 
 logger = logging.getLogger("dc.scheduler")
 
@@ -139,7 +140,7 @@ class EventScheduler:
                 await self._broadcast_cb("new_incident", {
                     "type": "auto_attack",
                     "attack": result,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": iso_utc(datetime.utcnow()),
                     "message": f"NUEVO INCIDENTE: {result['name']} detectado en {scenario['node_id']}"
                 })
 
@@ -204,7 +205,7 @@ class EventScheduler:
                         "tls_version": tls_version,
                         "cipher_suite": "TLS_AES_256_GCM_SHA384",
                         "days_to_expire": days,
-                        "expires_at": expires_at.isoformat(),
+                        "expires_at": iso_utc(expires_at),
                         "is_expired": is_expired,
                         "is_self_signed": is_self_signed,
                         "is_valid": not is_expired and not is_self_signed,
@@ -219,7 +220,7 @@ class EventScheduler:
                             "domain": cert_data["domain"],
                             "alert_level": alert_level,
                             "message": alert_msg,
-                            "timestamp": now.isoformat(),
+                            "timestamp": iso_utc(now),
                         })
 
                 if self._broadcast_cb:
@@ -260,7 +261,7 @@ class EventScheduler:
                 if sst_alerts and self._broadcast_cb:
                     await self._broadcast_cb("sst_alerts", {
                         "alerts": sst_alerts,
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": iso_utc(datetime.utcnow())
                     })
 
                 if self._db_save_cb:
@@ -315,7 +316,7 @@ class EventScheduler:
                                 "elapsed_sec": round(elapsed, 0),
                                 "penalty":     ESCALATION_CONFIG["score_penalty_pct"],
                                 "message":     f"Sistema auto-detecto: {inc.incident_type} en {inc.node_affected} tras {elapsed:.0f}s. Penalizacion {ESCALATION_CONFIG['score_penalty_pct']}%",
-                                "timestamp":   datetime.utcnow().isoformat(),
+                                "timestamp":   iso_utc(datetime.utcnow()),
                             })
                         elif elapsed >= critical_t and self._broadcast_cb:
                             await self._broadcast_cb("incident_escalated", {
@@ -325,7 +326,7 @@ class EventScheduler:
                                 "attack_type": inc.incident_type,
                                 "elapsed_sec": round(elapsed, 0),
                                 "message":     f"CRITICO: {inc.incident_type} en {inc.node_affected} sin detectar por {elapsed:.0f}s",
-                                "timestamp":   datetime.utcnow().isoformat(),
+                                "timestamp":   iso_utc(datetime.utcnow()),
                             })
                         elif elapsed >= warning_t and self._broadcast_cb:
                             await self._broadcast_cb("incident_escalated", {
@@ -335,7 +336,7 @@ class EventScheduler:
                                 "attack_type": inc.incident_type,
                                 "elapsed_sec": round(elapsed, 0),
                                 "message":     f"Alerta: {inc.incident_type} en {inc.node_affected} sin detectar por {elapsed:.0f}s",
-                                "timestamp":   datetime.utcnow().isoformat(),
+                                "timestamp":   iso_utc(datetime.utcnow()),
                             })
             except Exception as e:
                 logger.warning(f"Error en escalation_loop: {e}")
@@ -474,7 +475,7 @@ class EventScheduler:
                 f"{'Detectado por ' + detected_by if detected_by else 'Sin deteccion'} . "
                 f"MTTD: {mttd_fmt} . {active_students} activos"
             ),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": iso_utc(datetime.utcnow()),
         }
 
     async def _guided_session_loop(self):
@@ -511,7 +512,7 @@ class EventScheduler:
                         "node_id": step["node_id"],
                         "delay_before_sec": delay,
                         "message": f"Paso {i+1}/{total}: '{step['attack_type']}' en {step['node_id']} en {delay}s",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": iso_utc(datetime.utcnow()),
                     })
 
                 # Esperar delay (en trozos de 5s para poder cancelar)
@@ -589,7 +590,7 @@ class EventScheduler:
                         "node_id": step["node_id"],
                         "incident_id": incident_id,
                         "message": f"[Clase Guiada] Paso {i+1}/{total}: {result.get('name')} en {step['node_id']}",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": iso_utc(datetime.utcnow()),
                     })
 
         except asyncio.CancelledError:
@@ -614,7 +615,7 @@ class EventScheduler:
                         "name": self._guided_name,
                         "total_steps": len(self._guided_steps),
                         "message": f"Sesion guiada '{self._guided_name}' completada",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": iso_utc(datetime.utcnow()),
                     })
                 logger.info(f"Sesion guiada '{self._guided_name}' completada")
 

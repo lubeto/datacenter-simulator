@@ -13,6 +13,7 @@ from ..database.db import get_db
 from ..database.models import CollabRoom, CollabMember, CollabAction, CollabBitacora, Student
 from ..api.routes_students import get_current_student
 from ..api.websocket import manager as ws_manager
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/collab", tags=["collab"])
 
@@ -56,8 +57,8 @@ def _room_dict(room: CollabRoom) -> dict:
         "attack_type": room.attack_type,
         "node_id": room.node_id,
         "is_active": room.is_active,
-        "created_at": room.created_at.isoformat() if room.created_at else None,
-        "ended_at": room.ended_at.isoformat() if room.ended_at else None,
+        "created_at": iso_utc(room.created_at) if room.created_at else None,
+        "ended_at": iso_utc(room.ended_at) if room.ended_at else None,
     }
 
 
@@ -68,7 +69,7 @@ def _member_dict(m: CollabMember, name: str = "") -> dict:
         "student_id": m.student_id,
         "student_name": name,
         "role": m.role,
-        "joined_at": m.joined_at.isoformat() if m.joined_at else None,
+        "joined_at": iso_utc(m.joined_at) if m.joined_at else None,
     }
 
 
@@ -81,7 +82,7 @@ def _action_dict(a: CollabAction, student_name: str = "") -> dict:
         "action_type": a.action_type,
         "detail": a.detail,
         "is_chat": a.is_chat,
-        "timestamp": a.timestamp.isoformat() if a.timestamp else None,
+        "timestamp": iso_utc(a.timestamp) if a.timestamp else None,
     }
 
 
@@ -362,13 +363,13 @@ def _bitacora_dict(b: CollabBitacora, names: dict) -> dict:
         "incident_type": b.incident_type,
         "node_id": b.node_id,
         "sections": {
-            "T1-Monitor":  {"text": b.t1_sintomas,   "student_id": b.t1_student_id,   "name": names.get(b.t1_student_id),   "saved_at": b.t1_saved_at.isoformat()   if b.t1_saved_at   else None},
-            "T2-Analista": {"text": b.t2_causa,       "student_id": b.t2_student_id,   "name": names.get(b.t2_student_id),   "saved_at": b.t2_saved_at.isoformat()   if b.t2_saved_at   else None},
-            "Responder":   {"text": b.resp_acciones,  "student_id": b.resp_student_id, "name": names.get(b.resp_student_id), "saved_at": b.resp_saved_at.isoformat() if b.resp_saved_at else None},
-            "Comunicador": {"text": b.com_lecciones,  "student_id": b.com_student_id,  "name": names.get(b.com_student_id),  "saved_at": b.com_saved_at.isoformat()  if b.com_saved_at  else None},
+            "T1-Monitor":  {"text": b.t1_sintomas,   "student_id": b.t1_student_id,   "name": names.get(b.t1_student_id),   "saved_at": iso_utc(b.t1_saved_at)   if b.t1_saved_at   else None},
+            "T2-Analista": {"text": b.t2_causa,       "student_id": b.t2_student_id,   "name": names.get(b.t2_student_id),   "saved_at": iso_utc(b.t2_saved_at)   if b.t2_saved_at   else None},
+            "Responder":   {"text": b.resp_acciones,  "student_id": b.resp_student_id, "name": names.get(b.resp_student_id), "saved_at": iso_utc(b.resp_saved_at) if b.resp_saved_at else None},
+            "Comunicador": {"text": b.com_lecciones,  "student_id": b.com_student_id,  "name": names.get(b.com_student_id),  "saved_at": iso_utc(b.com_saved_at)  if b.com_saved_at  else None},
         },
-        "created_at": b.created_at.isoformat() if b.created_at else None,
-        "completed_at": b.completed_at.isoformat() if b.completed_at else None,
+        "created_at": iso_utc(b.created_at) if b.created_at else None,
+        "completed_at": iso_utc(b.completed_at) if b.completed_at else None,
     }
 
 

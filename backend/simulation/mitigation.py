@@ -4,6 +4,7 @@ Reglas inteligentes de contramedida por tipo de ataque.
 """
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+from ..utils_time import iso_utc
 
 
 # ── REGLAS DE MITIGACION POR TIPO DE ATAQUE ──────────────────────────────────
@@ -390,7 +391,7 @@ class MitigationEngine:
             "auto_actions":         rule["auto_actions"],
             "expected_recovery_sec":rule["expected_recovery_sec"],
             "severity_impact":      rule["severity_impact"],
-            "generated_at":         datetime.utcnow().isoformat(),
+            "generated_at":         iso_utc(datetime.utcnow()),
         }
 
     def get_auto_actions(self, attack_type: str) -> List[Dict]:

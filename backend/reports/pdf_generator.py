@@ -5,6 +5,7 @@ Usa ReportLab para generar reportes profesionales
 import os
 from datetime import datetime
 from typing import List, Dict, Any
+from ..utils_time import iso_utc
 
 try:
     from reportlab.lib.pagesizes import A4, letter
@@ -493,7 +494,7 @@ def _generate_txt_fallback(title: str, data: List[Dict], path: str) -> bool:
     try:
         with open(path, "w", encoding="utf-8") as f:
             f.write(f"{'='*60}\n{title}\n{'='*60}\n")
-            f.write(f"Generado: {datetime.utcnow().isoformat()}\n\n")
+            f.write(f"Generado: {iso_utc(datetime.utcnow())}\n\n")
             for i, item in enumerate(data, 1):
                 f.write(f"[{i}] {item}\n")
         return True

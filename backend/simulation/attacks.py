@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional, List
 
 from .engine import state as sim_state
 from .nodes import DC_NODES, SST_SENSORS
+from ..utils_time import iso_utc
 
 
 # ============================================================
@@ -485,7 +486,7 @@ class AttackManager:
             "node_id": node_id,
             "severity": catalog["severity"],
             "intensity": _clamp(intensity, 0.1, 1.0),
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": iso_utc(datetime.utcnow()),
             "elapsed_sec": 0,
             "max_duration_sec": duration,
             "auto_injected": auto,

@@ -17,6 +17,14 @@ from .middleware.security import SecurityHeadersMiddleware, RequestLoggingMiddle
 from dotenv import load_dotenv
 load_dotenv()
 
+# Parchar el encoder de datetime de FastAPI: el backend guarda todo en UTC naive
+# (datetime.utcnow()). Sin esto, cualquier campo `datetime` en un modelo Pydantic
+# (response_model) se serializa sin sufijo de zona y el navegador lo interpreta
+# como hora LOCAL en vez de UTC, desfasando las horas mostradas (~5h en Colombia).
+from fastapi import encoders as _fastapi_encoders
+from .utils_time import iso_utc as _iso_utc
+_fastapi_encoders.ENCODERS_BY_TYPE[datetime] = _iso_utc
+
 from .database.db import init_db, get_db, AsyncSessionLocal
 from .database import crud
 from .database.models import Student
@@ -38,6 +46,7 @@ from .api.routes_collab      import router as collab_router
 from .api.routes_export import router as export_router
 from .api.routes_import import router as import_router
 from .api.websocket       import manager as ws_manager
+from .utils_time import iso_utc
 from .simulation.scheduler import scheduler
 from .simulation.engine   import generate_full_snapshot
 
@@ -304,7 +313,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await ws_manager.send_to(websocket, "connected", {
             "message": "Conectado al DC Monitoring Simulator",
             "student": student_info,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": iso_utc(datetime.utcnow()),
         })
     except Exception as e:
         logger.error(f"Error enviando snapshot inicial: {e}")
@@ -318,7 +327,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 msg = json.loads(data)
                 cmd = msg.get("cmd")
                 if cmd == "ping":
-                    await ws_manager.send_to(websocket, "pong", {"ts": datetime.utcnow().isoformat()})
+                    await ws_manager.send_to(websocket, "pong", {"ts": iso_utc(datetime.utcnow())})
             except Exception:
                 pass
     except WebSocketDisconnect:
@@ -403,7 +412,7 @@ async def health():
         "status": "ok",
         "simulator": "running",
         "ws_clients": ws_manager.count,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
     }
 
 
@@ -417,5 +426,5 @@ async def api_status():
         "active_attacks": len(sim_state.active_attacks),
         "ws_clients": ws_manager.count,
         "simulated_hour": sim_state.get_simulated_hour(),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
     }

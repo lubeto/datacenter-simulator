@@ -173,12 +173,14 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
 .student-monitor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.8rem;margin-bottom:1rem}
 .stu-mon-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;transition:all .2s;position:relative}
 .stu-mon-card.online{border-color:rgba(34,197,94,.3)}
+.stu-mon-card.connected{border-color:rgba(59,130,246,.35)}
 .stu-mon-card.warning{border-color:rgba(234,179,8,.5);animation:stu-pulse 2s ease-in-out infinite}
 .stu-mon-card.offline{opacity:.55}
 @keyframes stu-pulse{0%,100%{box-shadow:0 0 0 0 rgba(234,179,8,.2)}50%{box-shadow:0 0 0 6px rgba(234,179,8,0)}}
 .stu-mon-name{font-size:.9rem;font-weight:700;margin-bottom:.25rem}
 .stu-mon-status{font-size:.7rem;padding:.15rem .5rem;border-radius:8px;display:inline-flex;align-items:center;gap:.3rem;margin-bottom:.5rem}
 .stu-mon-status.online{background:rgba(34,197,94,.12);color:var(--green)}
+.stu-mon-status.connected{background:rgba(59,130,246,.12);color:#3b82f6}
 .stu-mon-status.idle{background:rgba(100,116,139,.12);color:var(--muted)}
 .stu-mon-status.warning{background:rgba(234,179,8,.12);color:var(--yellow)}
 .stu-mon-meta{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;font-size:.72rem;color:var(--muted);margin-top:.4rem}
@@ -2039,7 +2041,7 @@ async function loadAllIncidents() {
     list.innerHTML = r.slice(0,15).map(i => {
       const sc  = i.severity==='critical'?'badge-crit':i.severity==='warning'?'badge-warn':'badge-blue';
       const stc = i.status==='resolved'?'badge-ok':i.status==='detected'?'badge-warn':'badge-crit';
-      const t   = i.started_at ? new Date(i.started_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const t   = i.started_at ? new Date(i.started_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'}) : '—';
       // Compatibilidad: el nuevo endpoint devuelve attack_type+node_id, el viejo devuelve incident_type+node_affected
       const attk = (i.attack_type || i.incident_type || '?').toUpperCase();
       const node = i.node_id || i.node_affected || '?';
@@ -2065,7 +2067,7 @@ async function loadAllIncidents() {
 function addTimeline(icon, title, sub, type) {
   const tl = document.getElementById('eventTimeline');
   if (tl.querySelector('[data-empty]')) tl.innerHTML = '';
-  const t = new Date().toLocaleTimeString('es');
+  const t = new Date().toLocaleTimeString('es',{timeZone:'America/Bogota'});
   const colors = {crit:'var(--red)',warn:'var(--yellow)',ok:'var(--green)',info:'var(--accent)'};
   const div = document.createElement('div');
   div.className = 'tl-item';
@@ -2388,7 +2390,7 @@ async function loadBitacoras() {
     }
     tbody.innerHTML = bs.map(b => {
       const scoreColor = b.score >= 80 ? '#4ade80' : b.score >= 60 ? '#facc15' : '#f87171';
-      const date = new Date(b.created_at).toLocaleDateString('es-CO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const date = new Date(b.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'});
       // Evaluar calidad textual del lado del instructor
       const texts = [b.sintomas_observados||'', b.causa_raiz||'', b.acciones_tomadas||'', b.lecciones||''];
       const avgQual = texts.reduce((s,t) => {
@@ -2528,7 +2530,7 @@ function printClassReport() {
   const body = document.getElementById('classReportBody');
   const table = body && body.querySelector('table');
   if (!table) { alert('Primero haz clic en "Actualizar" para cargar el reporte.'); return; }
-  const now = new Date().toLocaleString('es-CO');
+  const now = new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'});
   const win = window.open('', '_blank', 'width=900,height=700');
   win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte de Clase</title>
     <style>
@@ -2570,8 +2572,8 @@ async function generateConsolidatedReport() {
       if (!byStudent[key]) byStudent[key] = [];
       byStudent[key].push(b);
     });
-    const now      = new Date().toLocaleDateString('es-CO', {day:'2-digit',month:'long',year:'numeric'});
-    const dayLabel = dateVal ? `Día: <strong>${new Date(dateVal+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</strong>` : 'Todas las fechas';
+    const now      = new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric',timeZone:'America/Bogota'});
+    const dayLabel = dateVal ? `Día: <strong>${new Date(dateVal+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'America/Bogota'})}</strong>` : 'Todas las fechas';
     let body = '';
     Object.entries(byStudent).forEach(([name, recs]) => {
       const avg  = recs.reduce((s,r)=>s+(r.score||0),0)/recs.length;
@@ -2594,7 +2596,7 @@ async function generateConsolidatedReport() {
           </div>
           ${recs.map((b,i) => {
             const sc = b.score||0;
-            const bdate = new Date(b.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+            const bdate = new Date(b.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'});
             return `<div style="margin-top:.75rem;padding:.75rem;background:#f9fafb;border-radius:6px;font-size:.78rem;border-left:3px solid ${sc>=80?'#16a34a':sc>=60?'#d97706':'#dc2626'}">
               <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
                 <strong style="color:#1e3a5f">${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type} — ${b.node_id}</strong>
@@ -2748,7 +2750,7 @@ function addGuidedLog(icon, text, level) {
   if (!log) return;
   const colors = { ok: '#22c55e', warn: '#f59e0b', crit: '#ef4444', info: '#60a5fa', stats: '#a78bfa' };
   const color = colors[level] || '#9ca3af';
-  const ts = new Date().toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const ts = new Date().toLocaleTimeString('es-CO',{hour:'2-digit', minute:'2-digit', second:'2-digit',timeZone:'America/Bogota'});
   // Remove placeholder
   const placeholder = log.querySelector('span[style*="4b5563"]');
   if (placeholder) placeholder.remove();
@@ -2813,7 +2815,7 @@ function handleGuidedWsEvent(evt, data) {
           background:${detected?'#052e16':'#1c0a00'};
           border-radius:6px;margin:.4rem 0;padding:.5rem .7rem;
         `;
-        const ts = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        const ts = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/Bogota'});
         card.innerHTML = `
           <div style="display:flex;justify-content:space-between;margin-bottom:.25rem">
             <span style="color:${detected?'#86efac':'#fbbf24'};font-weight:700;font-size:.82rem">
@@ -2858,7 +2860,7 @@ async function printDayReport() {
   try {
     const data = await apiFetch(`/api/sessions/class-report?date_str=${dateVal}`);
     const students = data.students || [];
-    const dayFmt = new Date(dateVal+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    const dayFmt = new Date(dateVal+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'America/Bogota'});
     const win = window.open('', '_blank', 'width=1000,height=750');
     win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte del Día — ${dateVal}</title>
     <style>
@@ -3040,7 +3042,7 @@ async function loadEvalReports() {
 async function generateStudentReport(studentId, studentName) {
   try {
     const r = await apiFetch(`/api/sessions/report/${studentId}`);
-    const date = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+    const date = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric',timeZone:'America/Bogota'});
     const win = window.open('', '_blank', 'width=860,height:700');
     win.document.write(`<!DOCTYPE html><html lang="es"><head>
 <meta charset="UTF-8"><title>Reporte — ${r.student.name}</title>
@@ -3163,7 +3165,7 @@ async function generateStudentReport(studentId, studentName) {
     ${r.formal.individual.history?.length ? `
     <div class="activity-table"><table>
       <tr><th>Fecha</th><th>Duración</th><th>Score</th></tr>
-      ${r.formal.individual.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO')}</td><td>${h.duration_min} min</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
+      ${r.formal.individual.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO',{timeZone:'America/Bogota'})}</td><td>${h.duration_min} min</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
     </table></div>` : ''}
   </div>
 
@@ -3181,7 +3183,7 @@ async function generateStudentReport(studentId, studentName) {
     ${r.formal.group.history?.length ? `
     <div class="activity-table"><table>
       <tr><th>Fecha</th><th>Grupo</th><th>Score</th></tr>
-      ${r.formal.group.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO')}</td><td>${h.notes?.replace(/\[.*?\]/g,'').trim()||'Grupal'}</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
+      ${r.formal.group.history.map(h=>`<tr><td>${new Date(h.date).toLocaleDateString('es-CO',{timeZone:'America/Bogota'})}</td><td>${h.notes?.replace(/\[.*?\]/g,'').trim()||'Grupal'}</td><td><b>${(h.score||0).toFixed(1)}</b></td></tr>`).join('')}
     </table></div>` : ''}
   </div>
 
@@ -3213,7 +3215,7 @@ async function generateStudentReport(studentId, studentName) {
 async function generateGroupsReport() {
   try {
     const groups = await apiFetch('/api/sessions/report/groups/all');
-    const date = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+    const date = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric',timeZone:'America/Bogota'});
     const win = window.open('', '_blank', 'width=860,height:700');
     win.document.write(`<!DOCTYPE html><html lang="es"><head>
 <meta charset="UTF-8"><title>Reporte de Grupos</title>
@@ -3245,8 +3247,8 @@ ${groups.length === 0 ? '<p style="color:#64748b">No hay grupos evaluativos regi
         <div class="group-meta">
           <span class="badge ${g.is_active?'active':'done'}">${g.is_active?'ACTIVO':'CERRADO'}</span>
           &nbsp;${g.student_count} aprendices
-          &nbsp;·&nbsp; Inicio: ${g.started_at ? new Date(g.started_at).toLocaleDateString('es-CO') : '—'}
-          ${g.ended_at ? `· Fin: ${new Date(g.ended_at).toLocaleDateString('es-CO')}` : ''}
+          &nbsp;·&nbsp; Inicio: ${g.started_at ? new Date(g.started_at).toLocaleDateString('es-CO',{timeZone:'America/Bogota'}) : '—'}
+          ${g.ended_at ? `· Fin: ${new Date(g.ended_at).toLocaleDateString('es-CO',{timeZone:'America/Bogota'})}` : ''}
         </div>
       </div>
       <div style="text-align:right">
@@ -3290,13 +3292,15 @@ let monitorIntervalId = null;
 
 async function loadMonitor() {
   try {
-    const [students, sessions, activeSess] = await Promise.all([
+    const [students, sessions, activeSess, online] = await Promise.all([
       apiFetch('/api/students/'),
       apiFetch('/api/sessions/active').catch(() => []),
       apiFetch('/api/attacks/active').catch(() => []),
+      apiFetch('/api/students/online').catch(() => []),
     ]);
     const aprendices = students.filter(s => s.role === 'student');
     const activeIds = new Set((sessions||[]).map(s => s.student_id));
+    const onlineIds = new Set((online||[]).map(s => s.id));
     const now = Date.now();
 
     // KPIs
@@ -3328,6 +3332,7 @@ async function loadMonitor() {
 
     grid.innerHTML = aprendices.map(stu => {
       const inSession = activeIds.has(stu.id);
+      const isOnline = onlineIds.has(stu.id);
       const sessionInfo = (sessions||[]).find(s => s.student_id === stu.id);
       const lastBit = bitByStudent[stu.id];
       const lastBitTime = lastBit ? new Date(lastBit.created_at) : null;
@@ -3335,11 +3340,11 @@ async function loadMonitor() {
       const isStuck = inSession && (!lastBitTime || minsSinceActivity > 5);
       if (isStuck) alertCount++;
 
-      const statusCls = isStuck ? 'warning' : inSession ? 'online' : 'idle';
-      const statusLabel = isStuck ? '⚠️ Sin actividad' : inSession ? '🟢 En sesión' : '⚫ Sin sesión';
-      const statusLabelCls = isStuck ? 'warning' : inSession ? 'online' : 'idle';
+      const statusCls = isStuck ? 'warning' : inSession ? 'online' : isOnline ? 'connected' : 'idle';
+      const statusLabel = isStuck ? '⚠️ Sin actividad' : inSession ? '🟢 En sesión' : isOnline ? '🔵 Conectado (sin sesión formal)' : '⚫ Sin sesión';
+      const statusLabelCls = isStuck ? 'warning' : inSession ? 'online' : isOnline ? 'connected' : 'idle';
 
-      const elapsed = sessionInfo ? Math.floor((now - new Date(sessionInfo.started_at).getTime()) / 60000) : null;
+      const elapsed = sessionInfo ? sessionInfo.elapsed_min : null;
       const score = stu.avg_score ? stu.avg_score.toFixed(1) : '—';
       const mttd = stu.avg_mttd_seconds ? stu.avg_mttd_seconds.toFixed(0) + 's' : '—';
 
@@ -3404,7 +3409,7 @@ async function loadRecentActivity() {
     feed.innerHTML = bits.map(b => {
       const sc = b.score||0;
       const cls = sc>=80?'ok':sc>=50?'warn':'crit';
-      const date = new Date(b.created_at).toLocaleTimeString('es-CO', {hour:'2-digit',minute:'2-digit'});
+      const date = new Date(b.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'});
       return `<div class="act-item ${cls}">
         <span style="font-size:1.1rem">${sc>=80?'✅':sc>=50?'⚠️':'❌'}</span>
         <div style="flex:1">
@@ -3621,7 +3626,7 @@ async function loadIncidentHistory() {
     const statusColor = { resolved:'#4ade80', detected:'#facc15', active:'#f87171', missed:'#ef4444', mitigating:'#60a5fa' };
     tbody.innerHTML = incidents.map(inc => {
       const sc   = inc.score;
-      const date = new Date(inc.started_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const date = new Date(inc.started_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'});
       const st   = inc.status || 'active';
       return `<tr>
         <td style="padding:.5rem .7rem">${inc.student_name||'—'}</td>
@@ -3688,7 +3693,7 @@ async function loadRepBitacoras() {
     if (!bits.length) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1rem">Sin bitácoras</td></tr>'; return; }
     tbody.innerHTML = bits.map(b => {
       const sc = b.score||0;
-      const date = new Date(b.created_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const date = new Date(b.created_at).toLocaleDateString('es-CO',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'});
       return `<tr>
         <td style="padding:.5rem .8rem">${stuMap[b.student_id]||'#'+b.student_id}</td>
         <td style="padding:.5rem .8rem">${b.attack_type||'?'}</td>
@@ -3715,7 +3720,7 @@ async function loadSessionHistory() {
       return `<tr>
         <td style="padding:.5rem .8rem;font-weight:600">${s.student_name||stuMap[s.student_id]||'#'+s.student_id}</td>
         <td style="padding:.5rem .8rem"><span class="badge badge-ok">Individual</span></td>
-        <td style="padding:.5rem .8rem;font-size:.7rem">${new Date(s.started_at).toLocaleTimeString('es-CO')}</td>
+        <td style="padding:.5rem .8rem;font-size:.7rem">${new Date(s.started_at).toLocaleTimeString('es-CO',{timeZone:'America/Bogota'})}</td>
         <td style="padding:.5rem .8rem">${elapsed} min</td>
         <td style="padding:.5rem .8rem;color:var(--muted)">—</td>
         <td style="padding:.5rem .8rem"><span class="badge badge-ok">Activa</span></td>
@@ -4175,7 +4180,7 @@ async function refreshGuidedStatus() {
 
 function guidedLogAdd(msg) {
   const log = document.getElementById('guidedLog');
-  const ts = new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const ts = new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/Bogota'});
   const first = log.querySelector('span[style*="4b5563"]');
   if (first) first.remove();
   const line = document.createElement('div');

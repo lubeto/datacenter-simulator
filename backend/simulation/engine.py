@@ -9,6 +9,7 @@ from typing import Dict, Any, List
 import numpy as np
 
 from .nodes import DC_NODES, SST_SENSORS, Node, SSTSensor
+from ..utils_time import iso_utc
 
 
 # ============================================================
@@ -291,7 +292,7 @@ def generate_sst_reading(sensor: SSTSensor) -> Dict[str, Any]:
 # ============================================================
 def generate_full_snapshot() -> Dict[str, Any]:
     """Genera el estado completo de todos los nodos y sensores."""
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = iso_utc(datetime.utcnow())
 
     nodes_data = {}
     for node_id, node in DC_NODES.items():

@@ -1217,7 +1217,7 @@ function handleMetrics(data) {
   document.getElementById('badge-warn').textContent = `${warns} warning`;
 
   // Update history
-  const ts = new Date().toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const ts = new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/Bogota'});
   for (const [id, node] of Object.entries(allNodes)) {
     if (!nodeHistory[id]) nodeHistory[id] = {cpu:[],ram:[],net_in:[],net_out:[],latency:[],labels:[]};
     const h = nodeHistory[id];
@@ -1429,7 +1429,7 @@ async function loadSSL() {
         <td style="color:var(--accent2)">${c.domain||'—'}</td>
         <td><span class="badge ${sc}">${label}</span></td>
         <td style="color:var(--muted)">${c.algorithm||c.signature_algorithm||'RSA'}</td>
-        <td style="color:var(--muted)">${c.expires_at ? new Date(c.expires_at).toLocaleDateString('es') : '—'}</td>
+        <td style="color:var(--muted)">${c.expires_at ? new Date(c.expires_at).toLocaleDateString('es',{timeZone:'America/Bogota'}) : '—'}</td>
         <td style="${dColor};font-weight:700">${days} días</td>
       </tr>`;
     }).join('');
@@ -1460,7 +1460,7 @@ async function loadIncidents() {
     r.forEach(i => { if(i.node_affected) nmAttacked.add(i.node_affected); });
     updatePropagation();
     list.innerHTML = r.map(i => {
-      const since = i.started_at ? new Date(i.started_at).toLocaleTimeString('es') : '—';
+      const since = i.started_at ? new Date(i.started_at).toLocaleTimeString('es',{timeZone:'America/Bogota'}) : '—';
       const sevClass = i.severity === 'critical' ? 'badge-crit' : i.severity === 'warning' ? 'badge-warn' : 'badge-blue';
       return `<div class="incident-item ${i.status}">
         <div class="inc-info">
@@ -1527,7 +1527,7 @@ async function loadAlerts() {
     const severityIcon = { critical:'🔴', warning:'🟡', info:'🔵' };
 
     list.innerHTML = r.slice(0,20).map(a => {
-      const t = a.timestamp ? new Date(a.timestamp).toLocaleTimeString('es') : '';
+      const t = a.timestamp ? new Date(a.timestamp).toLocaleTimeString('es',{timeZone:'America/Bogota'}) : '';
       const cls = a.severity === 'critical' ? 'critical' : a.severity === 'warning' ? 'warning' : 'info';
       const icon = severityIcon[a.severity] || '🔵';
       const typeLabel = typeLabels[a.alert_type] || (a.alert_type||'').replace(/_/g,' ');
@@ -2275,7 +2275,7 @@ function _gBuildAnalyzeStage(inc){
       proto = real.tls_version || 'TLSv1.3';
       days  = real.days_to_expire !== undefined ? real.days_to_expire : 120;
     }
-    expDate = new Date(Date.now() + days*86400000).toLocaleDateString('es-CO');
+    expDate = new Date(Date.now() + days*86400000).toLocaleDateString('es-CO',{timeZone:'America/Bogota'});
 
     return {
       q:`${_getQVariant('analyze','ssl')} — Nodo: <strong style="color:#fbbf24">${id}</strong>`,
@@ -2755,11 +2755,18 @@ function renderGuidedStage(stage) {
   const optH = stg.isMission ? '' : stg.opts.map((o,i)=>
     `<button class="guided-option" id="gopt-${i}" data-val="${o.value}" onclick="checkGuidedAnswer('${o.value}','${stg.correct}')">${o.label}</button>`
   ).join('');
+  const missionCat = guidedState.incident ? _gCategory(guidedState.incident) : 'red';
   const missionBanner = stg.isMission
-    ? `<div style="margin-top:.75rem;background:#0f172a;border:1px solid #1e3a8a;border-radius:6px;padding:.6rem .8rem;font-size:.78rem;color:#93c5fd">
-         ⚔️ Sigue los 4 pasos en el <strong>panel de misión</strong> (abajo a la derecha).<br>
-         Abre: <strong>Terminal</strong> → <strong>Logs</strong> → <strong>Firewall</strong> → verifica de nuevo en <strong>Terminal</strong>.
-       </div>` : '';
+    ? (missionCat === 'sst'
+      ? `<div style="margin-top:.75rem;background:#0f172a;border:1px solid #1e3a8a;border-radius:6px;padding:.6rem .8rem;font-size:.78rem;color:#93c5fd">
+           ⚔️ Sigue los pasos en el <strong>panel de misión</strong> (abajo a la derecha).<br>
+           Aplica el <strong>protocolo de respuesta SST</strong> y documenta en la <strong>Bitácora</strong>.
+         </div>`
+      : `<div style="margin-top:.75rem;background:#0f172a;border:1px solid #1e3a8a;border-radius:6px;padding:.6rem .8rem;font-size:.78rem;color:#93c5fd">
+           ⚔️ Sigue los 4 pasos en el <strong>panel de misión</strong> (abajo a la derecha).<br>
+           Abre: <strong>Terminal</strong> → <strong>Logs</strong> → <strong>Firewall</strong> → verifica de nuevo en <strong>Terminal</strong>.
+         </div>`)
+    : '';
   document.getElementById('guidedBody').innerHTML=`
     <div class="guided-question">${stg.q}</div>
     <div class="guided-context">${stg.ctx}</div>
@@ -2878,14 +2885,14 @@ async function generateBitacoraReport() {
     const r  = await fetch('/api/bitacoras', { headers:{ 'Authorization':'Bearer '+token } });
     const bs = await r.json();
     if (!Array.isArray(bs) || bs.length === 0) { alert('No tienes bitácoras guardadas aún.'); return; }
-    const now = new Date().toLocaleString('es-CO');
+    const now = new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'});
     const ALBL = { ddos:'DDoS', dos:'DoS', ransomware:'Ransomware', brute_force:'Fuerza Bruta',
       port_scan:'Escaneo de Puertos', sql_injection:'SQL Injection', mitm:'Man-in-the-Middle',
       cryptomining:'Cryptomining', lateral_movement:'Movimiento Lateral', unknown:'Desconocido' };
     const rows = bs.map((b,i) => {
       const sc = parseFloat(b.score||0).toFixed(1);
       const col = sc>=80?'#16a34a':sc>=50?'#d97706':'#dc2626';
-      const date = new Date(b.created_at).toLocaleDateString('es-CO');
+      const date = new Date(b.created_at).toLocaleDateString('es-CO',{timeZone:'America/Bogota'});
       return `<div style="page-break-inside:avoid;border:1px solid #fafafa;border-radius:8px;padding:16px 20px;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #fafafa;padding-bottom:8px">
           <div><strong style="color:#1e3a8a">Bitácora #${b.id}</strong> &nbsp;·&nbsp; ${ALBL[b.attack_type]||b.attack_type} &nbsp;·&nbsp; Nodo: ${b.node_id}</div>
@@ -2968,9 +2975,9 @@ const XSESSION = {
   canOpen() { return this.practiceMode && !this.activeType && Date.now() > this.lockUntil; },
   setActive(type) { this.activeType = type; },
   lock(mins) { this.lockUntil = Date.now() + mins * 60 * 1000; this.activeType = null; updatePracticeBadge(); },
-  saveGuided(d) { this.log.guided.push({...d, ts: new Date().toLocaleString('es-CO')}); updateSessionBadge(); },
-  saveSST(d) { this.log.sst.push({...d, ts: new Date().toLocaleString('es-CO')}); updateSessionBadge(); },
-  saveLab(d) { this.log.lab.push({...d, ts: new Date().toLocaleString('es-CO')}); updateSessionBadge(); },
+  saveGuided(d) { this.log.guided.push({...d, ts: new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'})}); updateSessionBadge(); },
+  saveSST(d) { this.log.sst.push({...d, ts: new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'})}); updateSessionBadge(); },
+  saveLab(d) { this.log.lab.push({...d, ts: new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'})}); updateSessionBadge(); },
   total() { return this.log.guided.length + this.log.sst.length + this.log.lab.length; }
 };
 function updateSessionBadge() {
@@ -3174,6 +3181,22 @@ document.addEventListener('click', e => {
   });
 })();
 
+// Cerrar la sesión al salir/recargar (best-effort; el backend también
+// auto-cierra sesiones previas activas al crear una nueva, por si esto no dispara)
+function _closeSessionOnExit() {
+  if (!currentSessionId) return;
+  try {
+    fetch('/api/students/sessions/close', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: currentSessionId }),
+      keepalive: true
+    });
+  } catch (_) {}
+}
+window.addEventListener('pagehide', _closeSessionOnExit);
+window.addEventListener('beforeunload', _closeSessionOnExit);
+
 // ── INIT ──────────────────────────────────────────────────────
 initSession();
 loadSSTStatus();
@@ -3303,7 +3326,7 @@ function resetLab(){clearInterval(labState.timerInterval);document.getElementByI
 // ── REPORTE DE SESIÓN PDF ──────────────────────────────────────
 function generateSessionReport() {
   const sname = STUDENT?.name || STUDENT?.email || 'Estudiante';
-  const now = new Date().toLocaleString('es-CO');
+  const now = new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'});
   const dur = Math.round((Date.now() - XSESSION.start) / 60000);
   const avgScore = (() => {
     const all = [...XSESSION.log.guided.map(x=>x.score), ...XSESSION.log.sst.map(x=>x.score), ...XSESSION.log.lab.map(x=>x.score)];
@@ -3454,7 +3477,7 @@ function completeSSTProtocol(){const ok=sstState.answers.filter(a=>a.correct).le
   apiFetch('/api/analytics/sst/complete',{method:'POST',body:JSON.stringify({protocol:sstState.ptype,name:sstState.protocol?.name||'—',sensor:sstState.alert?.name||'—',value:(sstState.alert?.value||'')+(sstState.alert?.unit||''),score:sc,correct:ok,total:sstState.answers.length,bitacora:sstState.bitacoraText||'',duration:Math.round((Date.now()-sstState.startTime)/1000)})}).catch(()=>{});
   XSESSION.lock(15);const dur=Math.round((Date.now()-sstState.startTime)/1000);const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Aceptable':'⚠️ Repasar protocolo';const col=sc>=90?'#22c55e':sc>=75?'#f97316':sc>=60?'#fbbf24':'#ef4444';for(let i=0;i<4;i++){const t=document.getElementById('sstab-'+i);if(t)t.className='sst-stage-tab done';}document.getElementById('sstNextBtn').style.display='none';document.getElementById('sstBody').innerHTML=`<div style="text-align:center;padding:12px 0 16px"><div style="font-size:3rem;font-weight:900;color:${col}">${sc}<span style="font-size:1.5rem">/100</span></div><div style="font-size:1.1rem;font-weight:700;margin:4px 0;color:#fed7aa">${grade}</div><div style="font-size:.76rem;color:#92400e;margin-bottom:14px">${ok}/${sstState.answers.length} etapas correctas · ${dur}s</div></div><div style="background:#1a0e00;border:1px solid #f97316;border-radius:8px;padding:12px 14px;font-size:.78rem;line-height:1.8"><div style="color:#fb923c;font-weight:700;margin-bottom:6px">📋 Protocolo: ${sstState.protocol.name}</div><div style="color:#a1a1aa">Sensor: <strong style="color:#fafafa">${sstState.alert.name}${sstState.alert.zone?' · '+sstState.alert.zone:''}</strong></div><div style="color:#a1a1aa">Valor detectado: <strong style="color:#fbbf24">${sstState.alert.value}${sstState.alert.unit||''}</strong></div><div style="color:#a1a1aa;margin-top:4px">📞 Notificar: ${sstState.protocol.contact}</div></div><div style="text-align:center;margin-top:14px"><button style="background:#ea580c;border:none;border-radius:8px;color:white;font-size:.85rem;font-weight:700;padding:10px 28px;cursor:pointer" onclick="closeSSTPanel()">✓ Cerrar protocolo</button></div>`;}
 function submitTypedCmd(){const inp=document.getElementById('labTypingInput');const fb=document.getElementById('labTypingFb');const typed=(inp.value||'').trim();if(!typed||labState.executingStep)return;const step=labState.steps[labState.currentStep];const correct=step.command||step.action||'';if(cmdMatch(typed,correct)){fb.className='lab-typing-fb ok';fb.textContent='✅ ¡Correcto! Ejecutando...';inp.disabled=true;setTimeout(()=>execStep(labState.currentStep),700);}else{fb.className='lab-typing-fb err';const norm=s=>s.toLowerCase().replace(/^\$\s*/,'').replace(/\s+/g,' ').trim();const hint=norm(correct).split(' ').slice(0,3).join(' ');fb.textContent=`❌ Incorrecto. Pista: el comando comienza con "${hint}"`;inp.select();}}
-function generateLabReport(){const plan=labState.current.plan,type=labState.current.type,score=document.getElementById('labScoreNum').textContent,grade=document.getElementById('labScoreGrade').textContent,ttime=document.getElementById('labStatTime').textContent,sname=STUDENT.name||STUDENT.email||'Estudiante',now=new Date().toLocaleString('es-CO');const sc=parseInt(score)>=90?'#16a34a':parseInt(score)>=75?'#d97706':parseInt(score)>=60?'#d97706':'#dc2626';const stepsHtml=labState.steps.map((s,i)=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #fafafa;text-align:center">${i+1}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa">${s.desc||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa;font-family:monospace;font-size:.85em">${s.command||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa;color:green;text-align:center">✅ Completado</td></tr>`).join('');const explHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div style="background:#f8fafc;border-left:4px solid #8b5cf6;border-radius:4px;padding:10px 14px;margin-bottom:8px"><div style="font-weight:700;font-size:.82rem;margin-bottom:2px">Paso ${i+1}: ${s.desc||s.action}</div><div style="font-family:monospace;font-size:.78rem;color:#1e40af;margin-bottom:4px">$ ${s.command||s.action}</div><div style="font-size:.8rem;color:#475569;line-height:1.5">${expl}</div></div>`;}).join('');const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Lab</title><style>body{font-family:'Segoe UI',Arial,sans-serif;color:#3f3f46;margin:0}.cover{background:linear-gradient(135deg,#1e3a8a,#8b5cf6);color:white;padding:40px 48px}.cover h1{margin:0 0 4px;font-size:1.8rem}.section{padding:0 48px 24px}h2{color:#1e3a8a;border-bottom:2px solid #fafafa;padding-bottom:6px}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.meta-item{background:#f8fafc;border-radius:6px;padding:10px 14px}.meta-item .label{font-size:.72rem;color:#71717a;text-transform:uppercase}.meta-item .value{font-size:1rem;font-weight:700;margin-top:2px}.score-box{text-align:center;padding:20px;background:#f0fdf4;border:2px solid #6ee7b7;border-radius:12px;margin-bottom:20px}.score-big{font-size:4rem;font-weight:900;color:${sc};line-height:1}table{width:100%;border-collapse:collapse;font-size:.88rem}thead th{background:#1e3a8a;color:white;padding:10px 12px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.footer{margin-top:32px;padding:16px 48px;background:#f1f5f9;font-size:.75rem;color:#71717a;display:flex;justify-content:space-between}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem"><strong>Reporte listo</strong> — Ctrl+P → Guardar como PDF<button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir</button></div><div class="cover"><div style="font-size:.8rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div><h1>Reporte de Práctica</h1><div style="opacity:.8">${plan.mitigation_name||type} · ${now}</div></div><div class="section"><h2>Información</h2><div class="meta-grid"><div class="meta-item"><div class="label">Estudiante</div><div class="value">${sname}</div></div><div class="meta-item"><div class="label">Escenario</div><div class="value">${plan.mitigation_name||type}</div></div><div class="meta-item"><div class="label">Tiempo empleado</div><div class="value">${ttime} min:seg</div></div><div class="meta-item"><div class="label">Fecha</div><div class="value">${now}</div></div></div><h2>Calificación</h2><div class="score-box"><div class="score-big">${score}<span style="font-size:2rem">/100</span></div><div style="font-size:1.2rem;font-weight:700;margin-top:4px">${grade}</div></div><h2>Pasos Ejecutados</h2><table><thead><tr><th>#</th><th>Descripción</th><th>Comando</th><th>Estado</th></tr></thead><tbody>${stepsHtml}</tbody></table><h2 style="margin-top:24px">📖 ¿Qué hizo cada comando?</h2>${explHtml}</div><div class="footer"><span>DC Monitoring Simulator · Diseñado por Ing. Luis Alberto Vasquez Campos</span><span>${now}</span></div></body></html>`);win.document.close();}
+function generateLabReport(){const plan=labState.current.plan,type=labState.current.type,score=document.getElementById('labScoreNum').textContent,grade=document.getElementById('labScoreGrade').textContent,ttime=document.getElementById('labStatTime').textContent,sname=STUDENT.name||STUDENT.email||'Estudiante',now=new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'});const sc=parseInt(score)>=90?'#16a34a':parseInt(score)>=75?'#d97706':parseInt(score)>=60?'#d97706':'#dc2626';const stepsHtml=labState.steps.map((s,i)=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #fafafa;text-align:center">${i+1}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa">${s.desc||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa;font-family:monospace;font-size:.85em">${s.command||s.action}</td><td style="padding:8px 12px;border-bottom:1px solid #fafafa;color:green;text-align:center">✅ Completado</td></tr>`).join('');const explHtml=labState.steps.map((s,i)=>{const expl=LAB_EXPLAIN[s.action]||'Comando de mitigación para el escenario seleccionado.';return`<div style="background:#f8fafc;border-left:4px solid #8b5cf6;border-radius:4px;padding:10px 14px;margin-bottom:8px"><div style="font-weight:700;font-size:.82rem;margin-bottom:2px">Paso ${i+1}: ${s.desc||s.action}</div><div style="font-family:monospace;font-size:.78rem;color:#1e40af;margin-bottom:4px">$ ${s.command||s.action}</div><div style="font-size:.8rem;color:#475569;line-height:1.5">${expl}</div></div>`;}).join('');const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Lab</title><style>body{font-family:'Segoe UI',Arial,sans-serif;color:#3f3f46;margin:0}.cover{background:linear-gradient(135deg,#1e3a8a,#8b5cf6);color:white;padding:40px 48px}.cover h1{margin:0 0 4px;font-size:1.8rem}.section{padding:0 48px 24px}h2{color:#1e3a8a;border-bottom:2px solid #fafafa;padding-bottom:6px}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.meta-item{background:#f8fafc;border-radius:6px;padding:10px 14px}.meta-item .label{font-size:.72rem;color:#71717a;text-transform:uppercase}.meta-item .value{font-size:1rem;font-weight:700;margin-top:2px}.score-box{text-align:center;padding:20px;background:#f0fdf4;border:2px solid #6ee7b7;border-radius:12px;margin-bottom:20px}.score-big{font-size:4rem;font-weight:900;color:${sc};line-height:1}table{width:100%;border-collapse:collapse;font-size:.88rem}thead th{background:#1e3a8a;color:white;padding:10px 12px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.footer{margin-top:32px;padding:16px 48px;background:#f1f5f9;font-size:.75rem;color:#71717a;display:flex;justify-content:space-between}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="background:#1e3a8a;color:white;padding:10px 24px;font-size:.85rem"><strong>Reporte listo</strong> — Ctrl+P → Guardar como PDF<button onclick="window.print()" style="float:right;background:white;color:#1e3a8a;border:none;border-radius:4px;padding:4px 14px;cursor:pointer;font-weight:700">🖨️ Imprimir</button></div><div class="cover"><div style="font-size:.8rem;opacity:.7;margin-bottom:8px">🖥️ DC Monitoring Simulator</div><h1>Reporte de Práctica</h1><div style="opacity:.8">${plan.mitigation_name||type} · ${now}</div></div><div class="section"><h2>Información</h2><div class="meta-grid"><div class="meta-item"><div class="label">Estudiante</div><div class="value">${sname}</div></div><div class="meta-item"><div class="label">Escenario</div><div class="value">${plan.mitigation_name||type}</div></div><div class="meta-item"><div class="label">Tiempo empleado</div><div class="value">${ttime} min:seg</div></div><div class="meta-item"><div class="label">Fecha</div><div class="value">${now}</div></div></div><h2>Calificación</h2><div class="score-box"><div class="score-big">${score}<span style="font-size:2rem">/100</span></div><div style="font-size:1.2rem;font-weight:700;margin-top:4px">${grade}</div></div><h2>Pasos Ejecutados</h2><table><thead><tr><th>#</th><th>Descripción</th><th>Comando</th><th>Estado</th></tr></thead><tbody>${stepsHtml}</tbody></table><h2 style="margin-top:24px">📖 ¿Qué hizo cada comando?</h2>${explHtml}</div><div class="footer"><span>DC Monitoring Simulator · Diseñado por Ing. Luis Alberto Vasquez Campos</span><span>${now}</span></div></body></html>`);win.document.close();}
 // ══════════════════════════════════════════════════════════════
 // BITÁCORA DE INCIDENTE
 // ══════════════════════════════════════════════════════════════
@@ -4665,7 +4688,7 @@ function _renderCollabBitacora() {
     const sec = _cbData.sections[role] || {};
     const isMine = role === _collabRole;
     const text = sec.text || '';
-    const savedBy = sec.name ? `${sec.name} — ${sec.saved_at ? new Date(sec.saved_at).toLocaleTimeString('es') : ''}` : null;
+    const savedBy = sec.name ? `${sec.name} — ${sec.saved_at ? new Date(sec.saved_at).toLocaleTimeString('es',{timeZone:'America/Bogota'}) : ''}` : null;
     if (text) filled++;
 
     return `<div style="background:${isMine?'rgba(13,148,136,.08)':'#0c1a2e'};border:1px solid ${isMine?cfg.color:'#1e3a5f'};border-radius:10px;padding:12px 14px">

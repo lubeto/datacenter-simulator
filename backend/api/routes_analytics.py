@@ -16,6 +16,7 @@ from ..database.models import (Student, Session, Incident, MitigationAction,
                                GuidedSession, PracticeSession, SSTProtocolSession, Bitacora)
 from ..api.routes_students import get_current_student, require_instructor
 from ..simulation.mitigation import mitigation_engine, MITIGATION_RULES, ATTACK_CHAINS, ESCALATION_CONFIG
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -177,8 +178,8 @@ async def get_student_stats(
         "sessions": [
             {
                 "id": s.id,
-                "started_at": s.started_at.isoformat() if s.started_at else None,
-                "ended_at":   s.ended_at.isoformat() if s.ended_at else None,
+                "started_at": iso_utc(s.started_at) if s.started_at else None,
+                "ended_at":   iso_utc(s.ended_at) if s.ended_at else None,
                 "duration_min": s.duration_min,
                 "score":        s.score,
                 "is_active":    s.ended_at is None,
@@ -194,7 +195,7 @@ async def get_student_stats(
                 "status":        i.status,
                 "mttd_seconds":  round(i.mttd_seconds, 1) if i.mttd_seconds else None,
                 "mttr_seconds":  round(i.mttr_seconds, 1) if i.mttr_seconds else None,
-                "started_at":    i.started_at.isoformat() if i.started_at else None,
+                "started_at":    iso_utc(i.started_at) if i.started_at else None,
             }
             for i in incidents
         ],
@@ -319,7 +320,7 @@ async def launch_attack_chain(
                 "node":        phase["node"],
                 "description": phase["desc"],
                 "incident_id": incident.id,
-                "timestamp":   datetime.utcnow().isoformat(),
+                "timestamp":   iso_utc(datetime.utcnow()),
             })
 
     asyncio.create_task(run_chain())
@@ -382,7 +383,7 @@ async def export_incidents_csv(
         writer.writerow([
             i.id, i.incident_type, i.category, i.severity,
             i.node_affected, i.status,
-            i.started_at.isoformat() if i.started_at else "",
+            iso_utc(i.started_at) if i.started_at else "",
             round(i.mttd_seconds, 1) if i.mttd_seconds else "",
             round(i.mttr_seconds, 1) if i.mttr_seconds else "",
             i.description or "",
@@ -415,7 +416,7 @@ async def export_metrics_csv(
     writer.writerow(["Timestamp","CPU_%","RAM_%","Disk_Used_%","Disk_IO_Mbps","Net_IN_Mbps","Net_OUT_Mbps","Latency_ms","Packet_Loss_%","Connections","Online"])
     for m in metrics:
         writer.writerow([
-            m.timestamp.isoformat() if m.timestamp else "",
+            iso_utc(m.timestamp) if m.timestamp else "",
             m.cpu_pct, m.ram_pct, m.disk_used_pct, m.disk_io_mbps,
             m.net_in_mbps, m.net_out_mbps, m.latency_ms,
             m.packet_loss_pct, m.connections, m.is_online
@@ -472,7 +473,7 @@ async def my_practice_history(
             "duration_sec": s.duration_sec,
             "steps_completed": s.steps_completed,
             "total_steps": s.total_steps,
-            "completed_at": s.completed_at.isoformat() if s.completed_at else None
+            "completed_at": iso_utc(s.completed_at) if s.completed_at else None
         }
         for s in sessions
     ]
@@ -499,7 +500,7 @@ async def all_practice_sessions(
             "duration_sec": s.duration_sec,
             "steps_completed": s.steps_completed,
             "total_steps": s.total_steps,
-            "completed_at": s.completed_at.isoformat() if s.completed_at else None
+            "completed_at": iso_utc(s.completed_at) if s.completed_at else None
         }
         for s in sessions
     ]
@@ -681,7 +682,7 @@ async def start_practice_mode(
     await ws_manager.broadcast("practice_mode", {
         "active": True,
         "duration_min": duration_min,
-        "started_at": datetime.utcnow().isoformat()
+        "started_at": iso_utc(datetime.utcnow())
     })
     return {"ok": True, "duration_min": duration_min}
 

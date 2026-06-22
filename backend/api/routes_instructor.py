@@ -17,6 +17,7 @@ from ..simulation.engine import state as sim_state
 from ..simulation.attacks import ATTACK_CATALOG
 from ..api.routes_students import require_instructor
 from ..api.websocket import manager as ws_manager
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/instructor", tags=["instructor"])
 
@@ -32,12 +33,12 @@ async def broadcast_command(req: BroadcastRequest, _=Depends(require_instructor)
     """Envía un comando en vivo a todos los aprendices conectados."""
     if req.cmd == "pause_sim":
         sim_state.is_paused = True
-        await ws_manager.broadcast("sim_paused", {"timestamp": datetime.utcnow().isoformat()})
+        await ws_manager.broadcast("sim_paused", {"timestamp": iso_utc(datetime.utcnow())})
         return {"message": "Simulación pausada", "paused": True}
 
     if req.cmd == "resume_sim":
         sim_state.is_paused = False
-        await ws_manager.broadcast("sim_resumed", {"timestamp": datetime.utcnow().isoformat()})
+        await ws_manager.broadcast("sim_resumed", {"timestamp": iso_utc(datetime.utcnow())})
         return {"message": "Simulación reanudada", "paused": False}
 
     if req.cmd == "reveal_solution":
@@ -63,7 +64,7 @@ async def broadcast_command(req: BroadcastRequest, _=Depends(require_instructor)
         raise HTTPException(status_code=400, detail="Se requiere 'message'")
     await ws_manager.broadcast("instructor_notification", {
         "message": req.message,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
     })
     return {"message": "Notificación enviada"}
 

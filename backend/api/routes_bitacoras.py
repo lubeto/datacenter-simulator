@@ -9,7 +9,7 @@ import math
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional, List
 from datetime import datetime, date, timedelta
 
@@ -17,6 +17,7 @@ from ..database.db import get_db
 from ..database.models import Bitacora, Student
 from .routes_students import get_current_student
 from ..api.websocket import manager as ws_manager
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/bitacoras", tags=["bitacoras"])
 
@@ -63,6 +64,10 @@ class BitacoraOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_serializer("created_at")
+    def _serialize_created_at(self, dt: datetime) -> str:
+        return iso_utc(dt)
 
 
 # -- Analisis de calidad textual -------------------------------
@@ -211,7 +216,7 @@ async def create_bitacora(
             "score":         final_score,
             "quality_label": quality_label,
             "penalized":     final_score < base_score,
-            "timestamp":     datetime.utcnow().isoformat(),
+            "timestamp":     iso_utc(datetime.utcnow()),
         })
     except Exception:
         pass  # no bloquear si falla el broadcast

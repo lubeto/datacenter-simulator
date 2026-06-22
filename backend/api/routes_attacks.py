@@ -14,6 +14,7 @@ from ..simulation.attacks import attack_manager, ATTACK_CATALOG
 from ..simulation.engine import state as sim_state
 from ..api.routes_students import get_current_student, require_instructor
 from ..api.websocket import manager as ws_manager
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/attacks", tags=["attacks"])
 
@@ -104,7 +105,7 @@ async def inject_attack(
         "incident_id": incident.id,
         "attack": result,
         "message": f"🚨 {result['name']} inyectado en {req.node_id}",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
     })
 
     return {"incident_id": incident.id, "attack": result}
@@ -123,7 +124,7 @@ async def resolve_attack(
 
     await ws_manager.broadcast("attack_resolved", {
         "node_id": node_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
         "message": f"✅ Ataque resuelto en {node_id}"
     })
     return {"resolved": True, "node_id": node_id}
@@ -175,9 +176,9 @@ async def get_incidents(
             "node_id":      inc.node_affected,
             "severity":     inc.severity,
             "status":       inc.status,
-            "started_at":   inc.started_at.isoformat() if inc.started_at else None,
-            "detected_at":  inc.detected_at.isoformat() if inc.detected_at else None,
-            "resolved_at":  inc.resolved_at.isoformat() if inc.resolved_at else None,
+            "started_at":   iso_utc(inc.started_at) if inc.started_at else None,
+            "detected_at":  iso_utc(inc.detected_at) if inc.detected_at else None,
+            "resolved_at":  iso_utc(inc.resolved_at) if inc.resolved_at else None,
             "mttd_seconds": round(inc.mttd_seconds, 1) if inc.mttd_seconds else None,
             "mttr_seconds": round(inc.mttr_seconds, 1) if inc.mttr_seconds else None,
             "student_id":   student_id,
@@ -212,7 +213,7 @@ async def detect_incident(
         "incident_id": incident_id,
         "detected_by": current.name,
         "mttd_seconds": incident.mttd_seconds,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
     })
     # Buscar IP atacante y marcar ataque como "en investigación"
     # para que no se auto-elimine mientras el aprendiz trabaja en él
@@ -247,7 +248,7 @@ async def resolve_incident(
         "incident_id": req.incident_id,
         "resolved_by": current.name,
         "mttr_seconds": incident.mttr_seconds,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
     })
     return {
         "incident_id": req.incident_id,
@@ -286,7 +287,7 @@ async def set_node_status(
     await ws_manager.broadcast("node_status_change", {
         "node_id": req.node_id,
         "is_online": req.online,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
     })
     return {"node_id": req.node_id, "is_online": req.online}
 
@@ -383,7 +384,7 @@ async def start_guided_session(
         "name": req.name,
         "briefing": req.briefing,
         "total_steps": len(req.steps),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
         "message": f"🎓 Sesión guiada '{req.name}' iniciada — {len(req.steps)} ataques programados",
     })
     return {"started": True, "name": req.name, "total_steps": len(req.steps)}
@@ -395,7 +396,7 @@ async def stop_guided_session(_=Depends(require_instructor)):
     from ..simulation.scheduler import scheduler
     scheduler.stop_guided_session()
     await ws_manager.broadcast("guided_session_stopped", {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": iso_utc(datetime.utcnow()),
         "message": "🛑 Sesión guiada detenida por el instructor",
     })
     return {"stopped": True}

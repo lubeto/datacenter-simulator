@@ -14,6 +14,7 @@ from ..database.db import get_db
 from ..database import crud
 from ..database.models import Report
 from ..api.routes_students import get_current_student, require_instructor
+from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -112,7 +113,7 @@ def _serialize_report(r) -> dict:
         "report_type":  r.report_type,
         "format":       r.file_format or "pdf",   # alias para el frontend
         "file_format":  r.file_format or "pdf",
-        "generated_at": r.generated_at.isoformat() if r.generated_at else None,
+        "generated_at": iso_utc(r.generated_at) if r.generated_at else None,
         "student_id":   r.student_id,
         "student_name": r.student.name if r.student else None,
         "download_url": f"/api/reports/download/{r.id}",

@@ -54,6 +54,17 @@ async def update_student_stats(db: AsyncSession, student_id: int,
 # SESSIONS
 # ============================================================
 async def create_session(db: AsyncSession, student_id: int) -> Session:
+    # Cerrar cualquier sesión previa activa del mismo aprendiz (recargas/reconexiones
+    # nunca llamaban a close_session, dejando sesiones huérfanas "Activa" para siempre)
+    prev_result = await db.execute(
+        select(Session).where(Session.student_id == student_id, Session.is_active == True)
+    )
+    now = datetime.utcnow()
+    for prev in prev_result.scalars().all():
+        prev.is_active = False
+        prev.ended_at = now
+        prev.duration_min = round((now - prev.started_at).total_seconds() / 60, 2)
+
     session = Session(student_id=student_id)
     db.add(session)
     await db.commit()
@@ -239,7 +250,11 @@ async def detect_incident(db: AsyncSession, incident_id: int,
         incident.detected_at = now
         incident.status = "detected"
         incident.session_id = session_id
-        incident.mttd_seconds = (now - incident.started_at).total_seconds()
+        raw_mttd = (now - incident.started_at).total_seconds()
+        # Cap defensivo: un incidente fantasma del scheduler que quedó sin
+        # detectar por horas no debe corromper el promedio de MTTD del aprendiz.
+        # 1800s (30 min) cubre con margen la ventana de investigación real (20 min).
+        incident.mttd_seconds = min(raw_mttd, 1800.0)
         await db.commit()
         await db.refresh(incident)
     return incident
