@@ -1,6 +1,34 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-20/21 — Auditoría de bitácoras reales + fixes de zona horaria, sesiones, MTTD, anti-plagio e IA tutor
+## Última sesión: 2026-06-21/22 — Auditoría de seguridad manual (3 hallazgos cerrados)
+
+---
+
+## Sesión 2026-06-21/22 — Auditoría de seguridad
+
+El skill `/security-review` no pudo usarse (sesión anclada a un directorio fuera del repo). Auditoría manual sobre el código real: rutas, auth, manejo de secretos, render de HTML con datos de usuario.
+
+### 🔴 Crítico — Endpoints de IA sin autenticación (CERRADO)
+`routes_ai_feedback.py`: los 4 endpoints (`bitacora-feedback`, `terminal-hint`, `collab-hint`, `bitacora-tutor`) no tenían `Depends(get_current_student)` — único archivo de rutas del proyecto con este problema (todos los demás sí exigen login). Cualquiera con la URL podía gastar la clave de Anthropic sin autenticarse, sin límite de tasa en servidor. Fix: agregado el `Depends` a los 4. De paso se encontró y corrigió un bug latente en `index.html`: la llamada a `bitacora-feedback` usaba `localStorage.getItem('dc_token')` (clave equivocada, el token real es `'token'`) — quedaba enmascarado porque el endpoint no pedía auth.
+
+### 🔴 Crítico — Score de bitácora confiado del cliente sin validar (ABIERTO, requiere rediseño)
+`routes_bitacoras.py:166`: `base_score = data.score or 0` — el score, correctas, MTTD y hints se guardan tal cual los manda el navegador, sin recalcularse contra el incidente real. Un aprendiz con DevTools puede editar el request y poner `score: 100`. También vuelve evadible la detección de Ctrl+C/Ctrl+V de anoche (`pasted_fields: []` se puede falsear). **Pendiente** — corregirlo bien requiere que el backend recalcule el score desde `incident_id`/sesión guiada en vez de aceptar el valor del cliente; no es un parche de minutos.
+
+### 🟠 Alto — XSS almacenado en reportes del instructor (CERRADO)
+`instructor.html`: `printDayReport()` y `generateConsolidatedReport()` interpolaban texto libre de bitácora (síntomas/causa/acciones/lecciones, nombre/email) directo en `win.document.write()` sin `_escapeHtml()`, a diferencia del resto del archivo. Un aprendiz podía inyectar HTML/JS ejecutable en la sesión del navegador del instructor. Fix: todos los campos de texto libre ahora pasan por `_escapeHtml()`.
+
+### 🟡 Medio — SECRET_KEY con valor por defecto hardcodeado (CERRADO)
+`jwt_handler.py`: tenía un fallback `"supersecreta_dc_simulator_2024_cambia_esto"` si la variable de entorno faltaba — visible en el código fuente público de GitHub. En Render la variable está bien configurada, pero si se borrara por error la app arrancaría silenciosamente con un secreto conocido (permite forjar tokens de instructor). Fix: la app ahora falla al iniciar (`RuntimeError`) si `SECRET_KEY` no está en el entorno. Verificado que `.env`/`.env.example` ya la definen, no rompe desarrollo local.
+
+### Hallazgos revisados sin problema
+- Terminal simulada no ejecuta shell real (sin `subprocess`/`os.system`) — sin riesgo de inyección de comandos
+- Sin SQL injection — todo vía SQLAlchemy ORM; los `text(f"...")` usan nombres de tabla hardcodeados
+- Contraseñas con bcrypt vía passlib
+- CORS bien configurado (deshabilita credentials con wildcard)
+- Rutas administrativas exigen `require_instructor`
+
+### Commits sesión
+- `b9a76fe` — fix: cerrar 3 hallazgos críticos/altos de auditoría de seguridad
 
 ---
 
