@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..api.routes_students import get_current_student
 from ..database.db import get_db
-from ..database.models import EvalGroup, Student, Bitacora
+from ..database.models import EvalGroup, Student, Bitacora, CollabMember, CollabRoom, CollabBitacora
 
 logger = logging.getLogger("dc.ai_feedback")
 
@@ -343,8 +343,10 @@ ejercicio grupal de respuesta a incidentes de ciberseguridad, en un datacenter e
 Grupo: {group_name}
 Integrantes: {member_names}
 
-A continuación, las bitácoras individuales registradas por cada integrante durante el ejercicio
-(varios días, varios incidentes):
+A continuación, el material registrado durante el ejercicio (varios días, varios incidentes):
+las bitácoras individuales de cada integrante, y las bitácoras de sesiones colaborativas
+("Sesión Colaborativa") donde el grupo trabajó junto, dividido por rol (T1-Monitor, T2-Analista,
+Responder, Comunicador):
 
 {bitacoras_block}
 
@@ -420,12 +422,52 @@ async def generate_group_report(
             )
         bitacoras_block_parts.append("\n".join(lines))
 
-    bitacoras_block = "\n\n".join(bitacoras_block_parts)
-    if len(bitacoras_block) > 12000:
-        bitacoras_block = bitacoras_block[:12000] + "\n[... contenido truncado por longitud ...]"
+    # Sesiones colaborativas (Sala Colaborativa): la bitácora ahí vive en
+    # CollabBitacora (una por sala, 4 secciones por rol) — no en Bitacora
+    # individual. Se busca cualquier sala donde haya participado algún
+    # integrante del grupo y se agrega su contenido también.
+    has_collab_content = False
+    member_room_ids = (await db.execute(
+        select(CollabMember.room_id).where(CollabMember.student_id.in_(student_ids)).distinct()
+    )).scalars().all()
 
-    if not any(b.strip() and "sin bitácoras" not in b for b in bitacoras_block_parts):
-        return {"available": True, "error": "El grupo no tiene bitácoras registradas todavía. Genera el informe después de que los integrantes documenten al menos un incidente."}
+    for room_id in member_room_ids:
+        room = (await db.execute(select(CollabRoom).where(CollabRoom.id == room_id))).scalar_one_or_none()
+        cb = (await db.execute(select(CollabBitacora).where(CollabBitacora.room_id == room_id))).scalar_one_or_none()
+        if not room:
+            continue
+
+        sections = []
+        if cb:
+            sec_map = [
+                ("T1-Monitor (síntomas)", cb.t1_student_id, cb.t1_sintomas),
+                ("T2-Analista (causa raíz)", cb.t2_student_id, cb.t2_causa),
+                ("Responder (acciones)", cb.resp_student_id, cb.resp_acciones),
+                ("Comunicador (lecciones)", cb.com_student_id, cb.com_lecciones),
+            ]
+            for label, sid, text in sec_map:
+                if not text:
+                    continue
+                sec_name = "?"
+                if sid:
+                    sec_student = (await db.execute(select(Student).where(Student.id == sid))).scalar_one_or_none()
+                    sec_name = sec_student.name if sec_student else f"#{sid}"
+                sections.append(f"  {label} — {sec_name}: {text}")
+                has_collab_content = True
+
+        if sections:
+            bitacoras_block_parts.append(
+                f"### Sesión Colaborativa — {room.name} ({room.attack_type or '?'} en {room.node_id or '?'})\n"
+                + "\n".join(sections)
+            )
+
+    bitacoras_block = "\n\n".join(bitacoras_block_parts)
+    if len(bitacoras_block) > 14000:
+        bitacoras_block = bitacoras_block[:14000] + "\n[... contenido truncado por longitud ...]"
+
+    has_individual_content = any(b.strip() and "sin bitácoras" not in b for b in bitacoras_block_parts[:len(student_ids)])
+    if not has_individual_content and not has_collab_content:
+        return {"available": True, "error": "El grupo no tiene bitácoras ni sesiones colaborativas registradas todavía. Genera el informe después de que los integrantes documenten al menos un incidente."}
 
     prompt = GROUP_REPORT_PROMPT.format(
         group_name=group.name or f"Grupo #{group.id}",
