@@ -696,6 +696,7 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
       <div style="display:flex;gap:.5rem;align-items:center">
         <button onclick="loadEvalReports()" class="btn btn-outline btn-sm">↻ Actualizar</button>
         <button onclick="generateGroupsReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">👥 Reporte de Grupos</button>
+        <button onclick="openGroupAiReportModal()" class="btn btn-sm" style="background:#0d9488;border:none;color:white;font-weight:700">🤖 Informe IA de Grupo</button>
       </div>
     </div>
     <div class="card-body" style="padding:.8rem 1rem">
@@ -892,6 +893,7 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
       <div style="display:flex;gap:.5rem;align-items:center">
         <button onclick="loadEvalReports()" class="btn btn-outline btn-sm">↻ Actualizar</button>
         <button onclick="generateGroupsReport()" class="btn btn-sm" style="background:#7c3aed;border:none;color:white;font-weight:700">👥 Reporte de Grupos</button>
+        <button onclick="openGroupAiReportModal()" class="btn btn-sm" style="background:#0d9488;border:none;color:white;font-weight:700">🤖 Informe IA de Grupo</button>
       </div>
     </div>
     <div class="card-body" style="padding:.8rem 1rem">
@@ -1175,6 +1177,23 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
     <div style="display:flex;gap:.75rem;justify-content:flex-end">
       <button class="btn btn-outline btn-sm" onclick="closeCreateRoomModal()">Cancelar</button>
       <button class="btn btn-primary btn-sm" onclick="createCollabRoom()">Crear Sala</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: generar informe grupal con IA -->
+<div id="groupAiReportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#0f172a;border:1px solid #134e4a;border-radius:12px;padding:1.5rem;width:460px;max-width:95vw">
+    <h3 style="font-size:1rem;font-weight:700;color:#f9fafb;margin:0 0 1rem">🤖 Informe Grupal con IA</h3>
+    <p style="font-size:.78rem;color:#9ca3af;margin:0 0 1rem">La IA redacta un informe formal a partir de las bitácoras de todos los integrantes del grupo seleccionado.</p>
+    <label style="font-size:.8rem;color:#9ca3af;display:block;margin-bottom:.25rem">Grupo</label>
+    <select id="garGroupSel" style="width:100%;background:#1e293b;border:1px solid #134e4a;border-radius:6px;padding:.5rem .75rem;color:#f9fafb;font-size:.85rem;margin-bottom:1rem;box-sizing:border-box">
+      <option value="">Cargando grupos…</option>
+    </select>
+    <div id="garStatus" style="font-size:.78rem;color:#67e8f9;margin-bottom:.75rem;display:none"></div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end">
+      <button class="btn btn-outline btn-sm" onclick="closeGroupAiReportModal()">Cancelar</button>
+      <button id="garGenBtn" class="btn btn-sm" style="background:#0d9488;border:none;color:white;font-weight:700" onclick="generateGroupAiReport()">Generar Informe</button>
     </div>
   </div>
 </div>
@@ -3026,7 +3045,7 @@ ${groups.length === 0 ? '<p style="color:#64748b">No hay grupos evaluativos regi
   <div class="group-card">
     <div class="group-header">
       <div>
-        <div class="group-name">${g.name}</div>
+        <div class="group-name">${_escapeHtml(g.name)}</div>
         <div class="group-meta">
           <span class="badge ${g.is_active?'active':'done'}">${g.is_active?'ACTIVO':'CERRADO'}</span>
           &nbsp;${g.student_count} aprendices
@@ -3042,7 +3061,7 @@ ${groups.length === 0 ? '<p style="color:#64748b">No hay grupos evaluativos regi
     <table>
       <tr><th>Aprendiz</th><th>Score Individual</th></tr>
       ${(g.individual_scores||[]).map(s=>`
-        <tr><td>${s.name}</td><td><b style="color:${(s.score||0)>=80?'#16a34a':(s.score||0)>=60?'#ca8a04':'#dc2626'}">${(s.score||0).toFixed(1)}</b>/100</td></tr>
+        <tr><td>${_escapeHtml(s.name)}</td><td><b style="color:${(s.score||0)>=80?'#16a34a':(s.score||0)>=60?'#ca8a04':'#dc2626'}">${(s.score||0).toFixed(1)}</b>/100</td></tr>
       `).join('')}
     </table>
   </div>`).join('')}
@@ -3052,6 +3071,88 @@ ${groups.length === 0 ? '<p style="color:#64748b">No hay grupos evaluativos regi
     win.document.close();
   } catch(e) {
     notify('❌ Error al generar reporte de grupos', e.message, 'crit');
+  }
+}
+
+// ── INFORME GRUPAL CON IA ──────────────────────────────────
+async function openGroupAiReportModal() {
+  document.getElementById('groupAiReportModal').style.display = 'flex';
+  const sel = document.getElementById('garGroupSel');
+  const status = document.getElementById('garStatus');
+  status.style.display = 'none';
+  sel.innerHTML = '<option value="">Cargando grupos…</option>';
+  try {
+    const groups = await apiFetch('/api/sessions/report/groups/all');
+    if (!groups.length) {
+      sel.innerHTML = '<option value="">Sin grupos registrados</option>';
+      return;
+    }
+    sel.innerHTML = groups.map(g =>
+      `<option value="${g.id}">${_escapeHtml(g.name)} (${g.student_count} integrantes${g.is_active?' · activo':''})</option>`
+    ).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">Error al cargar grupos</option>';
+  }
+}
+
+function closeGroupAiReportModal() {
+  document.getElementById('groupAiReportModal').style.display = 'none';
+}
+
+// Convierte el markdown simple que devuelve Claude (##, **, -) a HTML.
+// Escapa el texto crudo PRIMERO, así cualquier intento de inyección en el
+// markdown queda neutralizado antes de aplicar el formato.
+function _mdToHtmlSafe(md) {
+  let html = _escapeHtml(md);
+  html = html.replace(/^## (.+)$/gm, '<h2 style="color:#0d9488;font-size:1.05rem;margin:1.2rem 0 .5rem">$1</h2>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/^- (.+)$/gm, '<li style="margin-bottom:.4rem">$1</li>');
+  html = html.replace(/(<li[\s\S]*?<\/li>\n?)+/g, m => `<ul style="padding-left:1.2rem;margin:.5rem 0">${m}</ul>`);
+  html = html.split(/\n{2,}/).map(p => p.startsWith('<h2') || p.startsWith('<ul') ? p : `<p style="margin:.5rem 0;line-height:1.6">${p}</p>`).join('\n');
+  return html;
+}
+
+async function generateGroupAiReport() {
+  const groupId = document.getElementById('garGroupSel').value;
+  if (!groupId) { notify('Selecciona un grupo', '', 'warn'); return; }
+  const btn = document.getElementById('garGenBtn');
+  const status = document.getElementById('garStatus');
+  btn.disabled = true; btn.textContent = '⏳ Generando…';
+  status.style.display = 'block';
+  status.textContent = '🤖 La IA está redactando el informe — puede tardar hasta 30s…';
+  try {
+    const r = await apiFetch('/api/ai/group-report', {
+      method: 'POST',
+      body: JSON.stringify({ group_id: parseInt(groupId) })
+    });
+    if (!r.available || r.error) {
+      status.textContent = '❌ ' + (r.error || 'No se pudo generar el informe.');
+      return;
+    }
+    closeGroupAiReportModal();
+    const win = window.open('', '_blank', 'width=900,height=750');
+    const date = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric',timeZone:'America/Bogota'});
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Informe IA — ${_escapeHtml(r.group_name)}</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;background:#f8fafc;color:#1e293b;margin:0;padding:32px;max-width:800px;margin:0 auto}
+      h1{font-size:1.3rem;color:#0f172a;margin:0 0 .2rem}
+      .subtitle{color:#64748b;font-size:.82rem;margin-bottom:1.5rem}
+      .footer{margin-top:2rem;padding-top:1rem;border-top:1px solid #e2e8f0;font-size:.72rem;color:#94a3b8;text-align:center}
+      @media print{.no-print{display:none}}
+    </style></head><body>
+    <div class="no-print" style="margin-bottom:1rem">
+      <button onclick="window.print()" style="background:#0d9488;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+    <h1>🤖 Informe Grupal — ${_escapeHtml(r.group_name)}</h1>
+    <div class="subtitle">Integrantes: ${r.member_names.map(_escapeHtml).join(', ')} · Generado: ${date} · Redactado con IA (${_escapeHtml(r.model_used)})</div>
+    ${_mdToHtmlSafe(r.report)}
+    <div class="footer">DC Monitoring Simulator — SENA · Informe generado con asistencia de IA, basado únicamente en las bitácoras registradas por el grupo</div>
+    </body></html>`);
+    win.document.close();
+  } catch(e) {
+    status.textContent = '❌ Error: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generar Informe';
   }
 }
 

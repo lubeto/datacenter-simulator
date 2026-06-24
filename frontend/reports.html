@@ -97,6 +97,13 @@ input:focus,select:focus{border-color:var(--accent)}
     </div>
   </div>
 
+  <!-- INFORME GRUPAL CON IA -->
+  <div class="gen-panel" id="myGroupsPanel" style="display:none;border-color:#0d9488">
+    <h3 style="color:#2dd4bf">🤖 Informe Grupal con IA</h3>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">La IA redacta un informe formal a partir de las bitácoras de todo el grupo. Disponible si el instructor te asignó a una sesión grupal.</p>
+    <div id="myGroupsList" style="display:flex;flex-direction:column;gap:.5rem"></div>
+  </div>
+
   <!-- GENERATE PANEL -->
   <div class="gen-panel">
     <h3>⚙️ Configurar y Generar Reporte</h3>
@@ -304,7 +311,81 @@ function notify(title, msg, type='ok') {
 }
 function logout() { localStorage.removeItem('token'); localStorage.removeItem('student'); location.href='/login'; }
 
+function _escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+function _mdToHtmlSafe(md) {
+  let html = _escapeHtml(md);
+  html = html.replace(/^## (.+)$/gm, '<h2 style="color:#0d9488;font-size:1.05rem;margin:1.2rem 0 .5rem">$1</h2>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/^- (.+)$/gm, '<li style="margin-bottom:.4rem">$1</li>');
+  html = html.replace(/(<li[\s\S]*?<\/li>\n?)+/g, m => `<ul style="padding-left:1.2rem;margin:.5rem 0">${m}</ul>`);
+  html = html.split(/\n{2,}/).map(p => p.startsWith('<h2') || p.startsWith('<ul') ? p : `<p style="margin:.5rem 0;line-height:1.6">${p}</p>`).join('\n');
+  return html;
+}
+
+async function loadMyGroups() {
+  const panel = document.getElementById('myGroupsPanel');
+  const list = document.getElementById('myGroupsList');
+  try {
+    const groups = await apiFetch('/api/sessions/my-groups');
+    if (!groups || !groups.length) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    list.innerHTML = groups.map(g => `
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--card2);border-radius:8px;padding:.6rem .9rem">
+        <div>
+          <strong style="font-size:.85rem">${_escapeHtml(g.name)}</strong>
+          <span style="font-size:.72rem;color:var(--muted);margin-left:.5rem">${g.student_count} integrantes${g.is_active?' · activo':''}</span>
+        </div>
+        <button class="btn btn-sm" style="background:#0d9488;color:white" onclick="downloadGroupAiReport(${g.id})" id="garBtn-${g.id}">🤖 Generar/Ver Informe</button>
+      </div>`).join('');
+  } catch(e) { panel.style.display = 'none'; }
+}
+
+async function downloadGroupAiReport(groupId) {
+  const btn = document.getElementById(`garBtn-${groupId}`);
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Generando…';
+  try {
+    const r = await apiFetch('/api/ai/group-report', {
+      method: 'POST',
+      body: JSON.stringify({ group_id: groupId })
+    });
+    if (!r.available || r.error) {
+      notify('❌ No se pudo generar', r.error || 'Intenta de nuevo', 'crit');
+      return;
+    }
+    const win = window.open('', '_blank', 'width=900,height=750');
+    const date = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric',timeZone:'America/Bogota'});
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Informe IA — ${_escapeHtml(r.group_name)}</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;background:#f8fafc;color:#1e293b;margin:0;padding:32px;max-width:800px;margin:0 auto}
+      h1{font-size:1.3rem;color:#0f172a;margin:0 0 .2rem}
+      .subtitle{color:#64748b;font-size:.82rem;margin-bottom:1.5rem}
+      .footer{margin-top:2rem;padding-top:1rem;border-top:1px solid #e2e8f0;font-size:.72rem;color:#94a3b8;text-align:center}
+      @media print{.no-print{display:none}}
+    </style></head><body>
+    <div class="no-print" style="margin-bottom:1rem">
+      <button onclick="window.print()" style="background:#0d9488;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+    <h1>🤖 Informe Grupal — ${_escapeHtml(r.group_name)}</h1>
+    <div class="subtitle">Integrantes: ${r.member_names.map(_escapeHtml).join(', ')} · Generado: ${date} · Redactado con IA (${_escapeHtml(r.model_used)})</div>
+    ${_mdToHtmlSafe(r.report)}
+    <div class="footer">DC Monitoring Simulator — SENA · Informe generado con asistencia de IA, basado únicamente en las bitácoras registradas por el grupo</div>
+    </body></html>`);
+    win.document.close();
+  } catch(e) {
+    notify('❌ Error', e.message, 'crit');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
 loadMyReports();
+loadMyGroups();
 setInterval(loadMyReports, 20000);
 </script>
 </body>

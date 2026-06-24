@@ -5,10 +5,14 @@ import os
 import httpx
 import json
 import logging
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..api.routes_students import get_current_student
+from ..database.db import get_db
+from ..database.models import EvalGroup, Student, Bitacora
 
 logger = logging.getLogger("dc.ai_feedback")
 
@@ -331,3 +335,137 @@ async def get_bitacora_tutor_hint(req: BitacoraTutorRequest, current=Depends(get
     except Exception as ex:
         logger.warning(f"Bitacora tutor error: {ex}")
         return {"hint": None, "available": False}
+
+
+GROUP_REPORT_PROMPT = """Eres un redactor técnico encargado de producir el informe formal de cierre de un
+ejercicio grupal de respuesta a incidentes de ciberseguridad, en un datacenter educativo del SENA.
+
+Grupo: {group_name}
+Integrantes: {member_names}
+
+A continuación, las bitácoras individuales registradas por cada integrante durante el ejercicio
+(varios días, varios incidentes):
+
+{bitacoras_block}
+
+Redacta un INFORME FORMAL GRUPAL en español, en este formato exacto con encabezados markdown:
+
+## Resumen Ejecutivo
+(3-4 oraciones resumiendo el desempeño general del grupo durante el ejercicio)
+
+## Incidentes Atendidos
+(lista cada incidente único atendido por el grupo: tipo de ataque, nodo, quién lo documentó, y un resumen de causa raíz y acciones tomadas en 1-2 oraciones)
+
+## Contribución por Integrante
+(una línea por integrante resumiendo qué incidentes documentó y la calidad de su análisis)
+
+## Lecciones Aprendidas del Grupo
+(3-5 lecciones técnicas consolidadas, sintetizando lo que escribieron los integrantes — no inventes información que no esté en las bitácoras)
+
+## Recomendaciones
+(2-3 recomendaciones concretas para mejorar como equipo de respuesta a incidentes)
+
+Usa únicamente la información de las bitácoras provistas. No inventes incidentes ni datos que no estén ahí.
+Sé profesional, técnico y conciso."""
+
+
+class GroupReportRequest(BaseModel):
+    group_id: int
+
+
+@router.post("/group-report")
+async def generate_group_report(
+    req: GroupReportRequest,
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_student),
+):
+    """Genera un informe formal grupal con IA a partir de las bitácoras de todos
+    los integrantes de un EvalGroup (sesión grupal evaluativa)."""
+    if not ANTHROPIC_API_KEY:
+        return {"available": False, "error": "ANTHROPIC_API_KEY no configurada en el servidor."}
+
+    group = (await db.execute(
+        select(EvalGroup).where(EvalGroup.id == req.group_id)
+    )).scalar_one_or_none()
+    if not group:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+
+    student_ids = json.loads(group.student_ids_json or "[]")
+    if current.role != "instructor" and current.id not in student_ids:
+        raise HTTPException(status_code=403, detail="No perteneces a este grupo")
+
+    member_names = []
+    bitacoras_block_parts = []
+    for sid in student_ids:
+        student = (await db.execute(select(Student).where(Student.id == sid))).scalar_one_or_none()
+        name = student.name if student else f"Estudiante #{sid}"
+        member_names.append(name)
+
+        bits = (await db.execute(
+            select(Bitacora).where(Bitacora.student_id == sid).order_by(Bitacora.created_at)
+        )).scalars().all()
+
+        if not bits:
+            bitacoras_block_parts.append(f"### {name}\n(sin bitácoras registradas)\n")
+            continue
+
+        lines = [f"### {name}"]
+        for b in bits:
+            lines.append(
+                f"- **{b.attack_type}** en {b.node_id} (score {b.score:.0f}/100)\n"
+                f"  Síntomas: {b.sintomas_observados}\n"
+                f"  Causa raíz: {b.causa_raiz}\n"
+                f"  Acciones: {b.acciones_tomadas}\n"
+                f"  Lecciones: {b.lecciones}"
+            )
+        bitacoras_block_parts.append("\n".join(lines))
+
+    bitacoras_block = "\n\n".join(bitacoras_block_parts)
+    if len(bitacoras_block) > 12000:
+        bitacoras_block = bitacoras_block[:12000] + "\n[... contenido truncado por longitud ...]"
+
+    if not any(b.strip() and "sin bitácoras" not in b for b in bitacoras_block_parts):
+        return {"available": True, "error": "El grupo no tiene bitácoras registradas todavía. Genera el informe después de que los integrantes documenten al menos un incidente."}
+
+    prompt = GROUP_REPORT_PROMPT.format(
+        group_name=group.name or f"Grupo #{group.id}",
+        member_names=", ".join(member_names),
+        bitacoras_block=bitacoras_block,
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            resp = await client.post(
+                _ANTHROPIC_URL,
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": _MODEL,
+                    "max_tokens": 1800,
+                    "temperature": 0.3,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+            )
+
+        if resp.status_code != 200:
+            body = resp.text[:300]
+            logger.error(f"Group report Claude API HTTP {resp.status_code}: {body}")
+            return {"available": False, "error": f"Error de IA: HTTP {resp.status_code}"}
+
+        data = resp.json()
+        report_text = data["content"][0]["text"].strip()
+        logger.info(f"Group report OK para grupo {group.id} ({group.name})")
+        return {
+            "available": True,
+            "report": report_text,
+            "group_name": group.name or f"Grupo #{group.id}",
+            "member_names": member_names,
+            "model_used": _MODEL,
+        }
+
+    except Exception as ex:
+        logger.error(f"Group report error: {ex}")
+        return {"available": False, "error": f"Error de conexión con IA: {str(ex)}"}

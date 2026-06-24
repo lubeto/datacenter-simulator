@@ -762,6 +762,26 @@ async def _build_student_report(db: AsyncSession, stu: Student, detailed: bool =
     return result
 
 
+@router.get("/my-groups")
+async def get_my_groups(
+    db: AsyncSession = Depends(get_db),
+    me: Student      = Depends(get_current_student),
+):
+    """Grupos evaluativos (EvalGroup) en los que el aprendiz actual es integrante."""
+    g_q = await db.execute(select(EvalGroup).order_by(EvalGroup.started_at.desc()))
+    groups = g_q.scalars().all()
+    out = []
+    for g in groups:
+        sids = json.loads(g.student_ids_json or "[]")
+        if me.id in sids:
+            out.append({
+                "id": g.id, "name": g.name or f"Grupo #{g.id}",
+                "is_active": g.is_active, "student_count": len(sids),
+                "started_at": iso_utc(g.started_at) if g.started_at else None,
+            })
+    return out
+
+
 @router.get("/report/groups/all")
 async def all_groups_report(
     db: AsyncSession = Depends(get_db),
