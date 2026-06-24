@@ -122,13 +122,13 @@ async def get_sst_status():
 
 
 @router.get("/ssl")
-async def get_ssl_status(db: AsyncSession = Depends(get_db)):
+async def get_ssl_status(db: AsyncSession = Depends(get_db), _=Depends(get_current_student)):
     certs = await crud.get_all_ssl_certs(db)
     return certs
 
 
 @router.get("/alerts")
-async def get_active_alerts(db: AsyncSession = Depends(get_db)):
+async def get_active_alerts(db: AsyncSession = Depends(get_db), _=Depends(get_current_student)):
     alerts = await crud.get_active_alerts(db)
     return alerts
 

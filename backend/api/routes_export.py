@@ -4,7 +4,7 @@ TEMPORAL: remover después de completar la migración
 """
 import json
 from datetime import datetime
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 
@@ -34,7 +34,7 @@ async def export_data(
     current=Depends(get_current_student)
 ):
     if current.role != "instructor":
-        return {"error": "Solo instructores pueden exportar datos"}
+        raise HTTPException(status_code=403, detail="Solo instructores pueden exportar datos")
 
     # ── Students ──────────────────────────────────────────────
     students = (await db.execute(select(Student))).scalars().all()

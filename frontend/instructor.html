@@ -2019,12 +2019,12 @@ async function loadStudentList() {
     body.innerHTML = students.map(s => `
       <div class="student-row">
         <div class="student-info">
-          <div class="st-name">${s.name}</div>
-          <div class="st-email">${s.email}</div>
+          <div class="st-name">${_escapeHtml(s.name)}</div>
+          <div class="st-email">${_escapeHtml(s.email)}</div>
         </div>
         <div class="st-actions">
           <span class="badge badge-blue" style="margin-right:.3rem">${s.total_sessions||0} sesiones</span>
-          <button class="btn-delete" onclick="deleteStudent(${s.id},'${s.name.replace(/'/g,"\\'")}')">✕ Eliminar</button>
+          <button class="btn-delete" onclick="deleteStudent(${s.id},${_escapeHtml(JSON.stringify(s.name))})">✕ Eliminar</button>
         </div>
       </div>`).join('');
   } catch(e) {
@@ -2635,225 +2635,6 @@ async function generateConsolidatedReport() {
   } catch(e) { notify('❌ Error al generar reporte', e.message, 'crit'); }
 }
 
-// ── CLASE GUIADA ────────────────────────────────────────────
-let _guidedSteps = [];  // [{attack_type, node_id, delay_before_sec}]
-
-function addGuidedStep() {
-  const idx = _guidedSteps.length;
-  _guidedSteps.push({ attack_type: 'brute_force', node_id: 'DB-01', delay_before_sec: 60 });
-  renderGuidedSteps();
-}
-
-function removeGuidedStep(idx) {
-  _guidedSteps.splice(idx, 1);
-  renderGuidedSteps();
-}
-
-function renderGuidedSteps() {
-  const list = document.getElementById('guidedStepsList');
-  if (!list) return;
-  if (!_guidedSteps.length) {
-    list.innerHTML = '<div style="color:#4b5563;font-size:.8rem;text-align:center;padding:.5rem">Sin pasos — agrega un ataque</div>';
-    return;
-  }
-  const attackOpts = Object.entries(catalog).map(([k,v]) =>
-    `<option value="${k}">${v.name}</option>`
-  ).join('');
-  const nodeOpts = allNodeIds.map(n => `<option value="${n}">${n}</option>`).join('');
-  list.innerHTML = _guidedSteps.map((step, i) => `
-    <div style="background:#111827;border:1px solid #374151;border-radius:6px;padding:.6rem .75rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-      <span style="color:#6b7280;font-size:.75rem;min-width:1.2rem">${i+1}.</span>
-      <select onchange="_guidedSteps[${i}].attack_type=this.value"
-        style="flex:2;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;padding:.25rem .4rem;font-size:.8rem">
-        ${Object.entries(catalog).map(([k,v]) =>
-          `<option value="${k}" ${step.attack_type===k?'selected':''}>${v.name}</option>`
-        ).join('')}
-      </select>
-      <select onchange="_guidedSteps[${i}].node_id=this.value"
-        style="flex:1.5;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;padding:.25rem .4rem;font-size:.8rem">
-        ${allNodeIds.map(n => `<option value="${n}" ${step.node_id===n?'selected':''}>${n}</option>`).join('')}
-      </select>
-      <div style="display:flex;align-items:center;gap:.3rem">
-        <span style="color:#6b7280;font-size:.75rem">⏱</span>
-        <input type="number" min="10" max="600" value="${step.delay_before_sec}"
-          onchange="_guidedSteps[${i}].delay_before_sec=+this.value"
-          style="width:52px;background:#1f2937;border:1px solid #374151;border-radius:4px;color:#f9fafb;padding:.25rem .35rem;font-size:.8rem;text-align:center">
-        <span style="color:#6b7280;font-size:.75rem">s</span>
-      </div>
-      <button onclick="removeGuidedStep(${i})" style="background:#7f1d1d;border:none;border-radius:4px;color:#fca5a5;padding:.2rem .45rem;cursor:pointer;font-size:.8rem">✕</button>
-    </div>
-  `).join('');
-}
-
-async function startGuidedSession() {
-  if (!_guidedSteps.length) {
-    notify('⚠️ Sin pasos', 'Agrega al menos un ataque antes de iniciar', 'warn'); return;
-  }
-  const name = document.getElementById('guidedName')?.value?.trim() || 'Clase guiada';
-  const disableAuto = document.getElementById('guidedDisableAuto')?.checked ?? true;
-  try {
-    await apiFetch('/api/attacks/guided/start', {
-      method: 'POST',
-      body: JSON.stringify({ name, steps: _guidedSteps, disable_auto_attacks: disableAuto })
-    });
-    notify('▶ Sesión iniciada', name, 'ok');
-    addGuidedLog('▶', `Sesión iniciada: ${name}`, 'ok');
-    refreshGuidedStatus();
-  } catch(e) {
-    notify('❌ Error al iniciar sesión', e.message, 'crit');
-  }
-}
-
-async function stopGuidedSession() {
-  try {
-    await apiFetch('/api/attacks/guided/stop', { method: 'POST' });
-    notify('⏹ Sesión detenida', '', 'warn');
-    addGuidedLog('⏹', 'Sesión detenida manualmente', 'warn');
-    refreshGuidedStatus();
-  } catch(e) {
-    notify('❌ Error al detener', e.message, 'crit');
-  }
-}
-
-async function refreshGuidedStatus() {
-  try {
-    const r = await apiFetch('/api/attacks/guided/status');
-    const banner = document.getElementById('guidedStatusBanner');
-    const statusText = document.getElementById('guidedStatusText');
-    const panel = document.getElementById('guidedStatusPanel');
-    if (r.active) {
-      if (banner) banner.style.display = '';
-      if (statusText) statusText.textContent = `▶ ${r.name || 'Sesión activa'} — Paso ${(r.current_step||0)+1}/${r.total_steps||'?'}`;
-      if (panel) panel.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:.6rem">
-          <div style="display:flex;justify-content:space-between;font-size:.82rem">
-            <span style="color:#9ca3af">Nombre:</span>
-            <strong style="color:#f9fafb">${r.name||'—'}</strong>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:.82rem">
-            <span style="color:#9ca3af">Paso actual:</span>
-            <strong style="color:#f59e0b">${(r.current_step||0)+1} / ${r.total_steps||'?'}</strong>
-          </div>
-          <div style="font-size:.78rem;color:#6b7280;border-top:1px solid #374151;padding-top:.5rem;margin-top:.2rem">
-            Los aprendices reciben los ataques en vivo. Usa el log para ver el progreso.
-          </div>
-        </div>`;
-    } else {
-      if (banner) banner.style.display = 'none';
-      if (panel) panel.innerHTML = '<p style="text-align:center;margin-top:3rem;color:#4b5563">Sin sesión activa</p>';
-    }
-  } catch(e) {}
-}
-
-function addGuidedLog(icon, text, level) {
-  const log = document.getElementById('guidedLog');
-  if (!log) return;
-  const colors = { ok: '#22c55e', warn: '#f59e0b', crit: '#ef4444', info: '#60a5fa', stats: '#a78bfa' };
-  const color = colors[level] || '#9ca3af';
-  const ts = new Date().toLocaleTimeString('es-CO',{hour:'2-digit', minute:'2-digit', second:'2-digit',timeZone:'America/Bogota'});
-  // Remove placeholder
-  const placeholder = log.querySelector('span[style*="4b5563"]');
-  if (placeholder) placeholder.remove();
-  const entry = document.createElement('div');
-  entry.style.cssText = `border-bottom:1px solid #1f2937;padding:.35rem 0;color:${color};line-height:1.4`;
-  entry.innerHTML = `<span style="color:#4b5563;margin-right:.5rem">${ts}</span>${icon} ${text}`;
-  log.appendChild(entry);
-  log.scrollTop = log.scrollHeight;
-}
-
-function handleGuidedWsEvent(evt, data) {
-  const banner = document.getElementById('guidedStatusBanner');
-  const statusText = document.getElementById('guidedStatusText');
-
-  switch (evt) {
-    case 'guided_session_started':
-      if (banner) banner.style.display = '';
-      if (statusText) statusText.textContent = `▶ ${data.name||'Sesión activa'}`;
-      addGuidedLog('▶', `Sesión iniciada: <strong>${data.name||''}</strong>`, 'ok');
-      break;
-
-    case 'guided_step_countdown': {
-      const step = data.step_num || (data.step_index + 1) || '?';
-      const total = data.total_steps || '?';
-      const delay = data.delay_before_sec || data.delay || '?';
-      if (statusText) statusText.textContent = `⏳ Paso ${step}/${total} — esperando ${delay}s`;
-      addGuidedLog('⏳', `Paso ${step}/${total} — tiempo de detección: ${delay}s`, 'info');
-      break;
-    }
-
-    case 'guided_step_launched': {
-      const step = data.step_num || (data.step_index + 1) || '?';
-      const total = data.total_steps || '?';
-      const atk = data.attack_name || data.attack_type || '?';
-      const node = data.node_id || '?';
-      if (statusText) statusText.textContent = `⚡ Paso ${step}/${total} — ${atk} en ${node}`;
-      addGuidedLog('⚡', `Paso ${step}/${total}: <strong>${atk}</strong> → <strong>${node}</strong>`, 'crit');
-      break;
-    }
-
-    case 'guided_step_stats': {
-      const step = data.step_num || '?';
-      const atk = data.attack_name || '?';
-      const node = data.node_id || '?';
-      const detected = data.was_detected;
-      const who = data.detected_by;
-      const mttd = data.mttd_seconds != null ? data.mttd_seconds.toFixed(1) + 's' : '—';
-      const active = data.active_students ?? '?';
-      const level = detected ? 'ok' : 'warn';
-      const icon = detected ? '✅' : '❌';
-      const detText = detected
-        ? `Detectado por <strong>${who||'aprendiz'}</strong> · MTTD: <strong>${mttd}</strong>`
-        : `Sin detección`;
-      // Stats card in log
-      const log = document.getElementById('guidedLog');
-      if (log) {
-        const placeholder = log.querySelector('span[style*="4b5563"]');
-        if (placeholder) placeholder.remove();
-        const card = document.createElement('div');
-        card.style.cssText = `
-          border:1px solid ${detected?'#166534':'#78350f'};
-          background:${detected?'#052e16':'#1c0a00'};
-          border-radius:6px;margin:.4rem 0;padding:.5rem .7rem;
-        `;
-        const ts = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/Bogota'});
-        card.innerHTML = `
-          <div style="display:flex;justify-content:space-between;margin-bottom:.25rem">
-            <span style="color:${detected?'#86efac':'#fbbf24'};font-weight:700;font-size:.82rem">
-              ${icon} Resultado Paso ${step} — ${atk} en ${node}
-            </span>
-            <span style="color:#4b5563;font-size:.72rem">${ts}</span>
-          </div>
-          <div style="font-size:.78rem;color:${detected?'#86efac':'#fbbf24'}">
-            ${detText} &nbsp;·&nbsp; <span style="color:#60a5fa">${active} aprendices activos</span>
-          </div>
-        `;
-        log.appendChild(card);
-        log.scrollTop = log.scrollHeight;
-      }
-      // Also show a toast-style notify
-      notify(
-        `${icon} Paso ${step} completado`,
-        `${detected ? `Detectado · MTTD ${mttd}` : 'Sin detección'} · ${active} activos`,
-        detected ? 'ok' : 'warn'
-      );
-      break;
-    }
-
-    case 'guided_session_completed':
-      if (banner) banner.style.display = 'none';
-      addGuidedLog('🏁', `Sesión completada: <strong>${data.name||''}</strong>`, 'ok');
-      notify('🏁 Sesión completada', data.name||'', 'ok');
-      refreshGuidedStatus();
-      break;
-
-    case 'guided_session_stopped':
-      if (banner) banner.style.display = 'none';
-      addGuidedLog('⏹', 'Sesión detenida', 'warn');
-      refreshGuidedStatus();
-      break;
-  }
-}
-
 async function printDayReport() {
   const dateEl  = document.getElementById('bmFilterDate');
   const dateVal = dateEl?.value || new Date().toISOString().slice(0,10);
@@ -3350,8 +3131,8 @@ async function loadMonitor() {
 
       return `<div class="stu-mon-card ${statusCls}">
         ${isStuck ? '<span class="stu-alert-badge">⚠️ ATENCIÓN</span>' : ''}
-        <div class="stu-mon-name">${stu.name}</div>
-        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.4rem">${stu.email}</div>
+        <div class="stu-mon-name">${_escapeHtml(stu.name)}</div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.4rem">${_escapeHtml(stu.email)}</div>
         <span class="stu-mon-status ${statusLabelCls}">${statusLabel}</span>
         <div class="stu-mon-meta">
           <span>⏱ En sesión: <strong>${elapsed !== null ? elapsed + ' min' : '—'}</strong></span>
@@ -3360,7 +3141,7 @@ async function loadMonitor() {
           <span>⚡ MTTD: <strong>${mttd}</strong></span>
         </div>
         <div style="font-size:.68rem;color:var(--muted);margin-top:.5rem;border-top:1px solid var(--border);padding-top:.4rem">
-          ${lastBit ? `📝 Última bitácora: <strong style="color:var(--text)">${minsSinceActivity === 0 ? 'Ahora' : minsSinceActivity + ' min atrás'}</strong> — ${lastBit.attack_type||'?'} en ${lastBit.node_id||'?'}` : 'Sin bitácoras registradas'}
+          ${lastBit ? `📝 Última bitácora: <strong style="color:var(--text)">${minsSinceActivity === 0 ? 'Ahora' : minsSinceActivity + ' min atrás'}</strong> — ${_escapeHtml(lastBit.attack_type||'?')} en ${_escapeHtml(lastBit.node_id||'?')}` : 'Sin bitácoras registradas'}
         </div>
       </div>`;
     }).join('');
@@ -3958,8 +3739,8 @@ async function loadStudentLive() {
 
     panel.innerHTML = `
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
-        <span style="font-size:1rem;font-weight:700;color:#f9fafb">${d.student.name}</span>
-        <span style="color:#9ca3af;font-size:.8rem">${d.student.email}</span>
+        <span style="font-size:1rem;font-weight:700;color:#f9fafb">${_escapeHtml(d.student.name)}</span>
+        <span style="color:#9ca3af;font-size:.8rem">${_escapeHtml(d.student.email)}</span>
         ${actBadge}
         ${d.session.active ? `<span style="color:${activeColor};font-size:.8rem">⏱ ${d.session.elapsed_min} min en sesión (${d.session.type})</span>` : '<span style="color:#6b7280;font-size:.8rem">Sin sesión activa</span>'}
       </div>
@@ -4334,10 +4115,10 @@ function renderCollabReport(rooms) {
       </thead>
       <tbody>
         ${rooms.map(r => {
-          const memberList = (r.members || []).map(m => `${_roleIcon(m.role)} ${m.student_name}`).join(', ') || '—';
+          const memberList = (r.members || []).map(m => `${_roleIcon(m.role)} ${_escapeHtml(m.student_name)}`).join(', ') || '—';
           return `
           <tr>
-            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#f9fafb;font-weight:600">${r.name}<br><span style="font-size:.7rem;color:#fbbf24">${r.attack_type || ''} ${r.node_id ? '→ ' + r.node_id : ''}</span></td>
+            <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#f9fafb;font-weight:600">${_escapeHtml(r.name)}<br><span style="font-size:.7rem;color:#fbbf24">${_escapeHtml(r.attack_type || '')} ${r.node_id ? '→ ' + _escapeHtml(r.node_id) : ''}</span></td>
             <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#a7f3d0;font-size:.72rem">${memberList}</td>
             <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#a78bfa;text-align:center;font-weight:700">${r.actionCount ?? '—'}</td>
             <td style="padding:.5rem .8rem;border-bottom:1px solid rgba(30,45,80,.4);color:#67e8f9;text-align:center">${_elapsed(r.created_at)}</td>

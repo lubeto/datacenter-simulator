@@ -216,6 +216,8 @@ async def start_session(
     db: AsyncSession = Depends(get_db),
     current=Depends(get_current_student)
 ):
+    if current.role != "instructor" and current.id != data.student_id:
+        raise HTTPException(status_code=403, detail="No puedes iniciar la sesión de otro estudiante")
     session = await crud.create_session(db, data.student_id)
     return {"session_id": session.id, "started_at": session.started_at}
 
@@ -226,9 +228,17 @@ async def close_session(
     db: AsyncSession = Depends(get_db),
     current=Depends(get_current_student)
 ):
-    session = await crud.close_session(db, data.session_id)
-    if not session:
+    from sqlalchemy import select
+    from ..database.models import Session as SessionModel
+    existing = (await db.execute(
+        select(SessionModel).where(SessionModel.id == data.session_id)
+    )).scalar_one_or_none()
+    if not existing:
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
+    if current.role != "instructor" and current.id != existing.student_id:
+        raise HTTPException(status_code=403, detail="No puedes cerrar la sesión de otro estudiante")
+
+    session = await crud.close_session(db, data.session_id)
     return {"session_id": session.id, "duration_min": session.duration_min, "score": session.score}
 
 

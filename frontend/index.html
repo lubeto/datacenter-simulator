@@ -3564,7 +3564,7 @@ function _openBitacoraModal(data) {
   if (aiBtn) {
     aiBtn.style.display = 'none';
     fetch('/api/ai/bitacora-feedback/status', {
-      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('dc_token') }
+      headers: { 'Authorization': 'Bearer ' + TOKEN }
     }).then(r => r.json()).then(d => {
       if (d.available) aiBtn.style.display = '';
     }).catch(() => {});
@@ -4563,7 +4563,7 @@ function renderCollabMembers(members) {
     <div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #134e4a">
       <span style="font-size:.9rem">${_roleIcon(m.role)}</span>
       <div>
-        <div style="font-size:.75rem;color:#f1f5f9;font-weight:600">${m.student_name}</div>
+        <div style="font-size:.75rem;color:#f1f5f9;font-weight:600">${_esc(m.student_name)}</div>
         <div style="font-size:.65rem;color:#5eead4">${m.role}</div>
       </div>
     </div>`).join('');
@@ -4590,12 +4590,12 @@ function renderCollabChat(actions) {
     const time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
     if (isChat) {
       return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
-        <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':a.student_name} · ${time}</div>
+        <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':_esc(a.student_name)} · ${time}</div>
         <div style="background:${isMe?'#0d9488':'#1e293b'};color:#f1f5f9;border-radius:8px;padding:4px 10px;font-size:.78rem;max-width:85%">${_esc(a.detail)}</div>
       </div>`;
     } else {
       return `<div style="text-align:center;font-size:.68rem;color:#64748b;padding:2px 0">
-        <span style="background:#1e293b;border-radius:4px;padding:1px 6px">${_roleIcon('')} <strong>${a.student_name}</strong>: ${_esc(a.detail)} <span style="color:#374151">· ${time}</span></span>
+        <span style="background:#1e293b;border-radius:4px;padding:1px 6px">${_roleIcon('')} <strong>${_esc(a.student_name)}</strong>: ${_esc(a.detail)} <span style="color:#374151">· ${time}</span></span>
       </div>`;
     }
   }).join('');
@@ -4663,12 +4663,12 @@ function handleCollabWS(data) {
   let html;
   if (a.is_chat) {
     html = `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
-      <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':a.student_name} · ${time}</div>
+      <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':_esc(a.student_name)} · ${time}</div>
       <div style="background:${isMe?'#0d9488':'#1e293b'};color:#f1f5f9;border-radius:8px;padding:4px 10px;font-size:.78rem;max-width:85%">${_esc(a.detail)}</div>
     </div>`;
   } else {
     html = `<div style="text-align:center;font-size:.68rem;color:#64748b;padding:2px 0">
-      <span style="background:#1e293b;border-radius:4px;padding:1px 6px"><strong>${a.student_name}</strong>: ${_esc(a.detail)}</span>
+      <span style="background:#1e293b;border-radius:4px;padding:1px 6px"><strong>${_esc(a.student_name)}</strong>: ${_esc(a.detail)}</span>
     </div>`;
   }
   const div = document.createElement('div');
@@ -4734,7 +4734,7 @@ function _renderCollabBitacora() {
     const sec = _cbData.sections[role] || {};
     const isMine = role === _collabRole;
     const text = sec.text || '';
-    const savedBy = sec.name ? `${sec.name} — ${sec.saved_at ? new Date(sec.saved_at).toLocaleTimeString('es',{timeZone:'America/Bogota'}) : ''}` : null;
+    const savedBy = sec.name ? `${_esc(sec.name)} — ${sec.saved_at ? new Date(sec.saved_at).toLocaleTimeString('es',{timeZone:'America/Bogota'}) : ''}` : null;
     if (text) filled++;
 
     return `<div style="background:${isMine?'rgba(13,148,136,.08)':'#0c1a2e'};border:1px solid ${isMine?cfg.color:'#1e3a5f'};border-radius:10px;padding:12px 14px">
@@ -4747,8 +4747,8 @@ function _renderCollabBitacora() {
       <div style="font-size:.75rem;color:#6b7280;margin-bottom:6px">${cfg.label}</div>
       ${isMine
         ? `<textarea id="cbInput-${role.replace(/[^a-z]/gi,'_')}" placeholder="${cfg.hint}" rows="4"
-            style="width:100%;background:#1e293b;border:1px solid #134e4a;border-radius:6px;padding:8px;color:#f1f5f9;font-size:.82rem;resize:vertical;outline:none;box-sizing:border-box">${text}</textarea>`
-        : `<div style="background:#0a1220;border-radius:6px;padding:8px;font-size:.82rem;color:${text?'#e2e8f0':'#374151'};min-height:52px;white-space:pre-wrap">${text || 'Aún no ha completado esta sección…'}</div>`
+            style="width:100%;background:#1e293b;border:1px solid #134e4a;border-radius:6px;padding:8px;color:#f1f5f9;font-size:.82rem;resize:vertical;outline:none;box-sizing:border-box">${_esc(text)}</textarea>`
+        : `<div style="background:#0a1220;border-radius:6px;padding:8px;font-size:.82rem;color:${text?'#e2e8f0':'#374151'};min-height:52px;white-space:pre-wrap">${text ? _esc(text) : 'Aún no ha completado esta sección…'}</div>`
       }
     </div>`;
   }).join('');

@@ -3,7 +3,7 @@ DC Monitoring Simulator - Importación de datos desde backup JSON
 TEMPORAL: remover después de completar la migración
 """
 from datetime import datetime
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
@@ -34,7 +34,7 @@ async def import_data(
     current=Depends(get_current_student)
 ):
     if current.role != "instructor":
-        return {"error": "Solo instructores pueden importar datos"}
+        raise HTTPException(status_code=403, detail="Solo instructores pueden importar datos")
 
     imported = {}
 
