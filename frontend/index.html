@@ -3672,13 +3672,10 @@ async function reviewBitacoraWithAI() {
   });
 
   try {
-    const token = localStorage.getItem('dc_token');
-    const resp = await fetch('/api/ai/bitacora-feedback', {
+    const data = await apiFetch('/api/ai/bitacora-feedback', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({ texto })
     });
-    const data = await resp.json();
 
     if (!data.available) {
       document.getElementById('bmAiError').style.display = 'block';

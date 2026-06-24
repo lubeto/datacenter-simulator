@@ -2599,13 +2599,13 @@ async function generateConsolidatedReport() {
             const bdate = new Date(b.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'});
             return `<div style="margin-top:.75rem;padding:.75rem;background:#f9fafb;border-radius:6px;font-size:.78rem;border-left:3px solid ${sc>=80?'#16a34a':sc>=60?'#d97706':'#dc2626'}">
               <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
-                <strong style="color:#1e3a5f">${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type} — ${b.node_id}</strong>
+                <strong style="color:#1e3a5f">${i+1}. ${_escapeHtml(BM_LABELS[b.attack_type]||b.attack_type)} — ${_escapeHtml(b.node_id)}</strong>
                 <span style="color:#555;font-size:.72rem">${bdate} &nbsp;|&nbsp; Score: <strong style="color:${sc>=80?'#16a34a':sc>=60?'#d97706':'#dc2626'}">${sc.toFixed(1)}</strong> &nbsp;|&nbsp; ${b.correct_answers||0}/${b.total_questions||4} correctas</span>
               </div>
-              <p style="margin:.2rem 0"><b style="color:#374151">Síntomas observados:</b> ${b.sintomas_observados||'—'}</p>
-              <p style="margin:.2rem 0"><b style="color:#374151">Causa raíz identificada:</b> ${b.causa_raiz||'—'}</p>
-              <p style="margin:.2rem 0"><b style="color:#374151">Acciones tomadas:</b> ${b.acciones_tomadas||'—'}</p>
-              <p style="margin:.2rem 0"><b style="color:#374151">Lecciones aprendidas:</b> ${b.lecciones||'—'}</p>
+              <p style="margin:.2rem 0"><b style="color:#374151">Síntomas observados:</b> ${_escapeHtml(b.sintomas_observados)||'—'}</p>
+              <p style="margin:.2rem 0"><b style="color:#374151">Causa raíz identificada:</b> ${_escapeHtml(b.causa_raiz)||'—'}</p>
+              <p style="margin:.2rem 0"><b style="color:#374151">Acciones tomadas:</b> ${_escapeHtml(b.acciones_tomadas)||'—'}</p>
+              <p style="margin:.2rem 0"><b style="color:#374151">Lecciones aprendidas:</b> ${_escapeHtml(b.lecciones)||'—'}</p>
             </div>`;
           }).join('')}
           <div style="margin-top:1.5rem;display:flex;gap:3rem">
@@ -2893,7 +2893,7 @@ async function printDayReport() {
           ${students.map(s => {
             const sc = s.summary.avg_score;
             return `<tr>
-              <td><strong>${s.student.name}</strong></td>
+              <td><strong>${_escapeHtml(s.student.name)}</strong></td>
               <td style="text-align:center">${s.summary.bitacoras}</td>
               <td style="text-align:center">${s.summary.guided_sessions}</td>
               <td style="text-align:center">${s.summary.eval_sessions}</td>
@@ -2909,7 +2909,7 @@ async function printDayReport() {
         const sc = s.summary.avg_score;
         return `<div>
           <div class="stu-header">
-            <span><strong>${s.student.name}</strong> — ${s.student.email}</span>
+            <span><strong>${_escapeHtml(s.student.name)}</strong> — ${_escapeHtml(s.student.email)}</span>
             <span>Score: ${sc?sc.toFixed(1)+'/100':'Sin actividad'}</span>
           </div>
           <div class="stu-body">
@@ -2918,15 +2918,15 @@ async function printDayReport() {
               : s.bitacoras.map((b,i) => {
                   const cls = b.score>=80?'ok':b.score>=60?'warn':'bad';
                   return `<div class="bm-item ${cls}">
-                    <strong>${i+1}. ${BM_LABELS[b.attack_type]||b.attack_type} → ${b.node_id}</strong>
+                    <strong>${i+1}. ${_escapeHtml(BM_LABELS[b.attack_type]||b.attack_type)} → ${_escapeHtml(b.node_id)}</strong>
                     &nbsp;&nbsp; Score: <strong>${(b.score||0).toFixed(1)}</strong>
                     &nbsp; ${b.correct}/${b.total} correctas
                     &nbsp; ${b.hints} pistas
                     &nbsp; ${b.time}h
-                    <div style="margin-top:.3rem;color:#374151"><b>Síntomas:</b> ${b.sintomas}</div>
-                    <div style="color:#374151"><b>Causa raíz:</b> ${b.causa}</div>
-                    <div style="color:#374151"><b>Acciones:</b> ${b.acciones}</div>
-                    <div style="color:#374151"><b>Lecciones:</b> ${b.lecciones}</div>
+                    <div style="margin-top:.3rem;color:#374151"><b>Síntomas:</b> ${_escapeHtml(b.sintomas)}</div>
+                    <div style="color:#374151"><b>Causa raíz:</b> ${_escapeHtml(b.causa)}</div>
+                    <div style="color:#374151"><b>Acciones:</b> ${_escapeHtml(b.acciones)}</div>
+                    <div style="color:#374151"><b>Lecciones:</b> ${_escapeHtml(b.lecciones)}</div>
                   </div>`;
                 }).join('')}
             ${s.sessions.length > 0 ? `

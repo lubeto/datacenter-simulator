@@ -5,8 +5,10 @@ import os
 import httpx
 import json
 import logging
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+
+from ..api.routes_students import get_current_student
 
 logger = logging.getLogger("dc.ai_feedback")
 
@@ -55,7 +57,7 @@ async def get_feedback_status():
 
 
 @router.post("/bitacora-feedback")
-async def get_bitacora_feedback(req: FeedbackRequest):
+async def get_bitacora_feedback(req: FeedbackRequest, current=Depends(get_current_student)):
     if not ANTHROPIC_API_KEY:
         return {"error": "ANTHROPIC_API_KEY no configurada en el servidor.", "available": False}
 
@@ -143,7 +145,7 @@ class TerminalHintRequest(BaseModel):
 
 
 @router.post("/terminal-hint")
-async def get_terminal_hint(req: TerminalHintRequest):
+async def get_terminal_hint(req: TerminalHintRequest, current=Depends(get_current_student)):
     if not ANTHROPIC_API_KEY:
         return {"hint": None, "available": False}
 
@@ -207,7 +209,7 @@ class CollabHintRequest(BaseModel):
 
 
 @router.post("/collab-hint")
-async def get_collab_hint(req: CollabHintRequest):
+async def get_collab_hint(req: CollabHintRequest, current=Depends(get_current_student)):
     if not ANTHROPIC_API_KEY:
         return {"hint": None, "available": False}
 
@@ -288,7 +290,7 @@ _CAMPO_LABELS = {
 
 
 @router.post("/bitacora-tutor")
-async def get_bitacora_tutor_hint(req: BitacoraTutorRequest):
+async def get_bitacora_tutor_hint(req: BitacoraTutorRequest, current=Depends(get_current_student)):
     """Tutor socrático: hace preguntas guía para que el aprendiz redacte su propia
     bitácora, en vez de generar el texto por él (evita que la IA reemplace el copia-pega)."""
     if not ANTHROPIC_API_KEY:

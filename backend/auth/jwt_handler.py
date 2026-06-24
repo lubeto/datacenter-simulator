@@ -7,7 +7,13 @@ from typing import Optional, Dict, Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecreta_dc_simulator_2024_cambia_esto")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY no está configurada. Defínela como variable de entorno "
+        "(ver .env.example) — la app no debe arrancar con un secreto por defecto "
+        "hardcodeado en el código fuente público."
+    )
 ALGORITHM  = os.getenv("ALGORITHM", "HS256")
 EXPIRE_MIN = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
