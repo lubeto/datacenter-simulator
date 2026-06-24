@@ -414,7 +414,7 @@ async def generate_group_report(
         lines = [f"### {name}"]
         for b in bits:
             lines.append(
-                f"- **{b.attack_type}** en {b.node_id} (score {b.score:.0f}/100)\n"
+                f"- **{b.attack_type}** en {b.node_id} (score {(b.score or 0):.0f}/100)\n"
                 f"  Síntomas: {b.sintomas_observados}\n"
                 f"  Causa raíz: {b.causa_raiz}\n"
                 f"  Acciones: {b.acciones_tomadas}\n"
