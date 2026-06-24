@@ -14,7 +14,7 @@ from typing import Optional, List
 from datetime import datetime, date, timedelta
 
 from ..database.db import get_db
-from ..database.models import Bitacora, Student
+from ..database.models import Bitacora, Student, Incident
 from .routes_students import get_current_student
 from ..api.websocket import manager as ws_manager
 from ..utils_time import iso_utc
@@ -158,12 +158,32 @@ async def create_bitacora(
     # Analisis de calidad del texto
     quality_factor, quality_label = _bitacora_quality_score(data)
 
+    # MTTD real: tomarlo del incidente en el servidor (ya calculado y capado en
+    # detect_incident) en vez de confiar en el valor que manda el cliente, que
+    # puede editarse desde DevTools.
+    real_mttd = data.mttd_seconds
+    if data.incident_id:
+        inc = (await db.execute(
+            select(Incident).where(Incident.id == data.incident_id)
+        )).scalar_one_or_none()
+        if inc and inc.mttd_seconds is not None:
+            real_mttd = inc.mttd_seconds
+
+    # Cota de plausibilidad: el score no puede superar lo que la proporción de
+    # respuestas correctas permite (+ margen por pistas/tiempo). No valida el
+    # score completo (eso requeriría recalcular el panel guiado en el
+    # servidor), pero bloquea la manipulación burda vía DevTools (ej. mandar
+    # score:100 con 0 respuestas correctas).
+    total_q = max(data.total_questions, 1)
+    correct_ratio = min(data.correct_answers / total_q, 1.0)
+    plausible_max = min(100.0, correct_ratio * 100 + 25)
+
     # Penalizar score segun calidad del texto:
     #   Calidad alta (>=0.75)  -> sin penalizacion
     #   Calidad media (0.45-0.75) -> multiplicar por 0.80 (-20%)
     #   Calidad baja (0.20-0.45)  -> multiplicar por 0.50 (-50%)
     #   Calidad muy baja (<0.20)  -> score maximo 20
-    base_score = data.score or 0
+    base_score = min(data.score or 0, plausible_max)
     if quality_factor >= 0.75:
         final_score = base_score
     elif quality_factor >= 0.45:
@@ -189,7 +209,7 @@ async def create_bitacora(
         correct_answers     = data.correct_answers,
         total_questions     = data.total_questions,
         hints_used          = data.hints_used,
-        mttd_seconds        = data.mttd_seconds,
+        mttd_seconds        = real_mttd,
         duration_sec        = data.duration_sec,
         sintomas_observados = data.sintomas_observados,
         causa_raiz          = data.causa_raiz,

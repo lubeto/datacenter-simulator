@@ -23,8 +23,10 @@ from ..auth.jwt_handler import (
 _login_attempts: dict = defaultdict(list)
 _LOGIN_WINDOW = 60    # segundos
 _LOGIN_MAX    = int(os.getenv("RATE_LIMIT_AUTH_PER_MINUTE", "10"))
+_login_call_count = 0
 
 def _check_login_rate(ip: str):
+    global _login_call_count
     now = _time.monotonic()
     _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < _LOGIN_WINDOW]
     if len(_login_attempts[ip]) >= _LOGIN_MAX:
@@ -34,6 +36,14 @@ def _check_login_rate(ip: str):
             headers={"Retry-After": str(_LOGIN_WINDOW)},
         )
     _login_attempts[ip].append(now)
+
+    # Endpoint publico (sin login previo) -> el dict crece una clave por IP
+    # distinta que lo llame (bots/scanners incluidos) y nunca se purgaba.
+    # Cada 200 llamadas, eliminar IPs sin intentos recientes.
+    _login_call_count += 1
+    if _login_call_count % 200 == 0:
+        for stale_ip in [k for k, v in _login_attempts.items() if not v]:
+            del _login_attempts[stale_ip]
 
 router = APIRouter(prefix="/api/students", tags=["students"])
 auth_router = APIRouter(prefix="/api/auth", tags=["auth"])

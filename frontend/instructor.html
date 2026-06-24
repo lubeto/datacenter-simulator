@@ -1849,6 +1849,7 @@ async function loadLiveStatus() {
 }
 
 async function toggleSimPause() {
+  if (!liveSimPaused && !confirm('¿Pausar la simulación para toda la clase? Los aprendices verán un overlay de espera hasta que la reanudes.')) return;
   try {
     const cmd = liveSimPaused ? 'resume_sim' : 'pause_sim';
     await apiFetch('/api/instructor/broadcast', {method:'POST', body: JSON.stringify({cmd})});
@@ -1891,6 +1892,7 @@ async function resolveNodeAttack(nodeId) {
 
 // ── AUTO ATTACKS ───────────────────────────────────────────
 async function setAutoAttacks(enabled) {
+  if (!enabled && !confirm('¿Pausar los ataques automáticos para toda la clase?')) return;
   try {
     await apiFetch(`/api/attacks/auto-attacks?enabled=${enabled}`, {method:'POST'});
     notify(enabled ? '▶ Auto-ataques activados' : '⏸ Auto-ataques pausados', '', enabled?'warn':'ok');
