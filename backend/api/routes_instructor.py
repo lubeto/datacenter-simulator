@@ -17,7 +17,7 @@ from ..simulation.engine import state as sim_state
 from ..simulation.attacks import ATTACK_CATALOG
 from ..api.routes_students import require_instructor
 from ..api.websocket import manager as ws_manager
-from ..utils_time import iso_utc
+from ..utils_time import iso_utc, parse_naive_utc
 
 router = APIRouter(prefix="/api/instructor", tags=["instructor"])
 
@@ -81,7 +81,7 @@ async def live_status(db: AsyncSession = Depends(get_db), _=Depends(require_inst
     active_attacks = []
     for node_id, a in sim_state.active_attacks.items():
         try:
-            started_at = datetime.fromisoformat(a.get("started_at"))
+            started_at = parse_naive_utc(a.get("started_at"))
         except (TypeError, ValueError):
             started_at = datetime.utcnow()
 

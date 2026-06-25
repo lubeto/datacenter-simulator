@@ -178,10 +178,11 @@ async def get_latest_sst(db: AsyncSession) -> List[SSTReading]:
 # ============================================================
 async def upsert_ssl_cert(db: AsyncSession, node_id: str, data: dict) -> SSLCertificate:
     # Convertir campos de fecha en formato ISO string a datetime (requerido por Postgres)
+    from ..utils_time import parse_naive_utc
     for date_field in ("expires_at", "issued_at"):
         val = data.get(date_field)
         if isinstance(val, str):
-            data[date_field] = datetime.fromisoformat(val)
+            data[date_field] = parse_naive_utc(val)
 
     result = await db.execute(
         select(SSLCertificate).where(SSLCertificate.node_id == node_id)

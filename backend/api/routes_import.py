@@ -22,7 +22,8 @@ def _parse_dt(v):
     if not v:
         return None
     try:
-        return datetime.fromisoformat(v)
+        from ..utils_time import parse_naive_utc
+        return parse_naive_utc(v)
     except Exception:
         return None
 
