@@ -1,6 +1,67 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-21/22 — Auditoría de seguridad manual (3 hallazgos cerrados)
+## Última sesión: 2026-06-24/25 — Auditoría profunda por agentes, informe grupal con IA, fix de regresión crítica, ajustes de UX para cierre de curso (26-27 junio)
+
+---
+
+## Sesión 2026-06-24/25 — Preparación final clases del 26-27 (viernes/sábado, cierre de curso)
+
+### Contexto: el 27 de junio es el último día de clases. Plan del instructor: viernes 26 = 3 clases guiadas (individual + grupal evaluativo), sábado 27 = sala colaborativa con 4 equipos (6, 5, 4, 4 integrantes) + informe grupal con IA.
+
+### Auditoría exhaustiva por agentes (segunda pasada, más profunda que la del 21/22)
+Se lanzaron 3 agentes en paralelo (backend completo, `index.html`, `instructor.html`) a leer función por función, no solo grep de patrones. Hallazgos reales corregidos:
+- **CRÍTICO**: `GET /api/metrics/ssl` y `/alerts` sin auth → agregado `Depends(get_current_student)`
+- **CRÍTICO**: XSS en sala colaborativa (`index.html`) — nombres de estudiante y todo el contenido de la bitácora colaborativa grupal sin escapar, incluyendo el caso de `</textarea>` rompiendo el tag vía innerHTML
+- **CRÍTICO**: bloque de 219 líneas de "Clase Guiada" duplicado en `instructor.html` (código muerto desde hacía tiempo, sobrescrito silenciosamente) — eliminado
+- **ALTO**: `POST /api/students/sessions/start`/`/close` sin verificar ownership — un estudiante podía manipular la sesión de otro. Agregado chequeo 403.
+- **ALTO**: `routes_import.py`/`routes_export.py` devolvían `200 OK` con `{"error":...}` en vez de `403` cuando el rol no era instructor — cambiado a `HTTPException`.
+- **ALTO**: XSS restante en Monitor en Vivo, Live Individual y reporte de Sala Colaborativa (`instructor.html`) — fuera del parche anterior, que solo cubrió los reportes impresos
+- **MEDIO**: `_login_attempts` (rate-limit de `/login`, keyed por IP) nunca purgaba — único caché real con riesgo de crecer sin límite (los otros dos señalados, `_iptables_rules`/`_cert_days_cache`, resultaron acotados por diseño)
+- **MEDIO**: score de bitácora — agregado cap de plausibilidad (score no puede superar lo que permite `correct_answers/total_questions` + margen) y el MTTD ahora se toma del incidente real en el servidor, no del cliente. **Pendiente real, no resuelto**: el backend sigue sin recalcular el score completo del panel guiado — requiere mover la lógica de preguntas/respuestas al servidor, cambio de varias sesiones, no urgente para el 26-27.
+- Se descartó un hallazgo falso positivo: "3 fórmulas de ranking inconsistentes" — 2 de 3 eran idénticas, la tercera es una métrica distinta a propósito ("score de práctica" por volumen, con comentario explícito en el código)
+- Se agregó `confirm()` a pausar simulación/auto-ataques (acciones de alto impacto); no se agregó a acciones restaurativas/rutinarias
+
+### Feature nueva: Informe Grupal con IA (para el cierre de curso)
+- `POST /api/ai/group-report`: junta las bitácoras de todos los integrantes de un `EvalGroup` ("Sesión Grupal"), más el contenido de cualquier `CollabBitacora` (Sala Colaborativa) donde hayan participado, y le pide a Claude Haiku un informe formal (resumen ejecutivo, incidentes atendidos, contribución por integrante, lecciones aprendidas, recomendaciones) en markdown
+- `GET /api/sessions/my-groups`: para que un estudiante sepa a qué grupo pertenece (antes solo existía la versión de instructor)
+- Frontend instructor (`instructor.html`): modal "🤖 Informe IA de Grupo"
+- Frontend estudiante (`reports.html`): panel "Mi Informe Grupal con IA"
+- El markdown de la IA se escapa con `_escapeHtml()` ANTES de aplicar el formato (##, **, -), no después — así un intento de inyección en una bitácora que llegue hasta el output de la IA queda neutralizado
+- **Probado en producción con datos reales**: grupo de 6 integrantes (el tamaño más grande del sábado), 16.3 segundos de respuesta, informe completo y bien estructurado. Verificado con curl usando el token real del instructor.
+
+### Regresión crítica encontrada y corregida en producción
+El fix de timezone de la sesión anterior (`iso_utc()`, agrega sufijo `Z`) rompió `GET /api/instructor/live-status` con 500 en cada poll del Monitor en Vivo — el instructor lo descubrió por la consola del navegador (183+ errores acumulados). Causa: `datetime.fromisoformat()` en Python 3.11+ sí entiende el `Z` y devuelve un datetime **aware**, que luego no se puede comparar/insertar contra columnas `TIMESTAMP WITHOUT TIME ZONE` de Postgres (asyncpg lanza excepción no capturada). Mismo patrón encontrado preventivamente en `crud.py` (certificados SSL, probablemente no se estaban actualizando) y `routes_import.py`. Fix: `utils_time.py` gana `parse_naive_utc(s)` que siempre devuelve naive sin importar si el string trae `Z` o no. Verificado en vivo con el token del instructor: `200 OK`.
+
+### Experimento revertido: saltar preguntas del panel guiado
+Se probó (a pedido del instructor) hacer que el panel guiado abriera directo en la Misión Activa (Terminal+Logs+Firewall), saltando las 3 etapas de opción múltiple. El instructor lo probó conceptualmente y no convenció — "las respuestas en consola no dan mayor claridad para determinar los ataques que se están mitigando". **Revertido con `git revert`**, panel guiado vuelve a las 4 etapas completas, como estaba antes y ya probado.
+
+### Fix real de UX: auto-cierre por inactividad del panel guiado y la bitácora
+El instructor reportó que el panel "se desaparece rápido y no da tregua de investigar". Causa real: dos watchdogs de inactividad (`_startBitacoraInactivityWatch`, 1 min sin teclear + 30s countdown → cierre sin guardar; `_startGuidedAutoClose`, mismo mecanismo en pantalla de resultados) se activaban porque investigar un incidente implica pausar de escribir para revisar Terminal/Logs/Firewall — paneles separados — lo cual el watchdog interpretaba como abandono. **Ambas llamadas desactivadas** (funciones no borradas, por si se quiere reactivar con otro umbral).
+
+### Pendiente para mañana (25/26 junio) — acordado con el instructor, no implementado todavía
+1. **Aislamiento entre salas colaborativas**: hoy el `node_id`/`attack_type` de un `CollabRoom` es puramente informativo — no hay ninguna restricción técnica que impida que un estudiante de la Sala B detecte/mitigue el incidente "asignado" a la Sala A (la lista de incidentes es global). Diseño acordado: en los endpoints de detectar/mitigar, si el estudiante pertenece a una sala activa, verificar que el incidente sea del nodo de SU sala; filtrar también la lista de incidentes que ve en el frontend. Prioridad alta — el sábado son 4 equipos simultáneos.
+2. **Comunicación del instructor por sala**: ya existe `ws_manager.broadcast_to_room(room_id, ...)` en `websocket.py` (usado para el chat/acciones de la sala) — falta solo un endpoint `POST /api/collab/rooms/{room_id}/notify` (instructor-only) que lo reutilice, un input+botón en el panel de gestión de sala, y que el mensaje se muestre destacado en el feed de actividad de los aprendices de esa sala. Bajo riesgo, aprovecha infraestructura existente.
+
+### Comandos de verificación útiles (con token de instructor)
+```bash
+curl -s https://datacenter-simulator.onrender.com/api/instructor/live-status -H "Authorization: Bearer $TOKEN"
+curl -s -X POST https://datacenter-simulator.onrender.com/api/ai/group-report -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"group_id":N}'
+curl -s https://datacenter-simulator.onrender.com/api/sessions/report/groups/all -H "Authorization: Bearer $TOKEN"
+```
+
+### Commits de la sesión
+- `b9a76fe`, `b9ba441` — auditoría manual original (3 hallazgos)
+- `844ed41` — segunda pasada de auditoría (auth, XSS, código muerto, ownership)
+- `0f8df99` — score NULL defensivo
+- `bf05366`, `54ec1bb` — informe grupal con IA + integración Sala Colaborativa
+- `d133f8e` — fix regresión crítica live-status 500
+- `f5d0fca` / `d6b7652` — experimento panel guiado sin preguntas, revertido
+- `f297448` — desactivar auto-cierre por inactividad
+
+### Aprendizajes para recordar
+- **Cualquier cambio a serialización de datetime (`iso_utc`) debe revisarse contra TODOS los lugares que parsean ese string de vuelta** — no solo dónde se genera. `parse_naive_utc()` ahora es el helper correcto para esto, úsalo en vez de `datetime.fromisoformat()` suelto en cualquier código nuevo.
+- Al cambiar cualquier conteo de etapas/preguntas en el panel guiado, revisar TODOS los lugares con `total_questions`/`total:4` hardcodeado — hoy se encontró que un descuido ahí habría capeado todas las bitácoras a máximo 50 puntos.
+- El instructor prefiere cambios reversibles y probados antes de una clase en vivo — cuando algo "no convence" en una prueba conceptual, revertir de inmediato con `git revert` en vez de iterar a contrarreloj.
 
 ---
 
