@@ -2693,7 +2693,11 @@ function _openGuidedPanel(incId, attackType, nodeId, mttdSeconds, attackerIp) {
   guidedState = {
     active: true,
     incident: { incident_id: incId, attack: { attack_type: attackType, node_id: nodeId }, mttd_seconds: mttdSeconds || null },
-    stage: 0, hintsUsed: 0, answers: [],
+    // Se salta directo a la etapa 4 (Misión Activa: Terminal+Logs+Firewall) —
+    // las etapas 1-3 de opción múltiple quedan desactivadas por decisión del
+    // instructor. La detección (MTTD) ya ocurrió al hacer clic en "Detectar"
+    // en la lista de incidentes, antes de abrir este panel.
+    stage: 3, hintsUsed: 0, answers: [],
     startTime: Date.now(), score: 100,
     lastIncidentId: incId, lastClosedAt: guidedState?.lastClosedAt || 0,
     attackerIp: attackerIp || null,
@@ -2707,7 +2711,7 @@ function _openGuidedPanel(incId, attackType, nodeId, mttdSeconds, attackerIp) {
   panel.classList.add('open');
   _syncNotifSide();
   _startGuidedTimer();
-  renderGuidedStage(0);
+  renderGuidedStage(3);
 }
 
 function toggleGuidedCollapse() {
@@ -2854,8 +2858,8 @@ function _showGuidedResultsPanel(qualityInfo) {
     setTimeout(() => { nmMitigated.delete(mitigatedNode); renderNetworkMap(); }, 30000);
   }
   addTimelineEvent('✅ DIAGNÓSTICO', `${guidedState.incident?.attack?.attack_type||'?'} en ${guidedState.incident?.attack?.node_id||'—'} · ${sc}/100 · ${dur}s`, sc>=75?'ok':'warn');
-  XSESSION.saveGuided({type:guidedState.incident?.attack?.attack_type||'desconocido',node:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur});
-  apiFetch('/api/analytics/guided/complete',{method:'POST',body:JSON.stringify({attack_type:guidedState.incident?.attack?.attack_type||'unknown',node_id:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:4,hints:guidedState.hintsUsed,duration:dur})}).catch(()=>{});
+  XSESSION.saveGuided({type:guidedState.incident?.attack?.attack_type||'desconocido',node:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:1,hints:guidedState.hintsUsed,duration:dur});
+  apiFetch('/api/analytics/guided/complete',{method:'POST',body:JSON.stringify({attack_type:guidedState.incident?.attack?.attack_type||'unknown',node_id:guidedState.incident?.attack?.node_id||'—',score:sc,correct:ok,total:1,hints:guidedState.hintsUsed,duration:dur})}).catch(()=>{});
   XSESSION.lock(15); // 15 min cooldown al completar
   const col=sc>=90?'#22c55e':sc>=75?'#fbbf24':sc>=60?'#eab308':'#ef4444';
   const grade=sc>=90?'🏆 Excelente':sc>=75?'✅ Bueno':sc>=60?'📈 Regular':'⚠️ Practica más';
@@ -2869,7 +2873,7 @@ function _showGuidedResultsPanel(qualityInfo) {
       <div style="font-size:1rem;font-weight:700;color:${col};margin-top:8px">${grade}</div>
       <div style="font-size:.78rem;color:#a1a1aa;margin:8px 0 16px;line-height:1.5">${msg}</div>
       <div style="background:#1c1c1f;border-radius:8px;padding:12px;text-align:left">
-        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#71717a">Respuestas correctas</span><span style="color:#22c55e;font-weight:700">${ok}/4</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#71717a">Misión</span><span style="color:#22c55e;font-weight:700">✅ Completada</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px"><span style="color:#71717a">Pistas usadas</span><span style="color:${guidedState.hintsUsed?'#eab308':'#22c55e'};font-weight:700">${guidedState.hintsUsed}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:.78rem"><span style="color:#71717a">Tiempo de diagnóstico</span><span style="color:#fbbf24;font-weight:700">${dur}s</span></div>
         ${qualityInfo?.penalized ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #3f3f46;display:flex;justify-content:space-between;font-size:.78rem"><span style="color:#f87171">⚠️ Penalización bitácora</span><span style="color:#f87171;font-weight:700">${qualityInfo.original} → ${Math.round(qualityInfo.adjusted)} pts (calidad: ${qualityInfo.label})</span></div>` : ''}
@@ -3761,7 +3765,7 @@ async function submitBitacora() {
     severity:            _bitacoraData.severity || null,
     score:               _bitacoraData.score || 0,
     correct_answers:     _bitacoraData.correct || 0,
-    total_questions:     4,
+    total_questions:     1,
     hints_used:          _bitacoraData.hints || 0,
     mttd_seconds:        _bitacoraData.mttd_seconds || null,
     duration_sec:        _bitacoraData.duration || 0,
