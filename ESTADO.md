@@ -1,6 +1,33 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-24/25 — Auditoría profunda por agentes, informe grupal con IA, fix de regresión crítica, ajustes de UX para cierre de curso (26-27 junio)
+## Última sesión: 2026-06-25 (cont.) — Resaltado de nodo analizado + comunicación por sala (pendientes del cierre de curso, ya implementados)
+
+---
+
+## Sesión 2026-06-25 (continuación) — Los 2 pendientes para el 26-27 ya quedaron resueltos
+
+Se descartó la idea de aislar técnicamente las salas colaborativas (más riesgo, sin tiempo) a favor de dos cambios visuales/de UX, mucho más simples y de bajo riesgo:
+
+### 1. Resaltar el nodo que el aprendiz está analizando
+Problema real: con varios nodos atacados a la vez (4 equipos el sábado, 4 nodos simultáneos), el aro dorado + etiqueta "🎯 ANALIZAR" del nodo seleccionado por el aprendiz vía "Detectar" estaban al mismo tamaño diminuto (8px) que la etiqueta roja "◉ ATAQUE" de cualquier otro nodo — no se distinguía cuál era el propio.
+- `index.html`: aro dorado ahora con doble círculo, stroke-width 2-3 (antes 1), opacidad fija alta + pulso más amplio
+- Etiqueta cambiada a "🎯 TU NODO — ANALIZAR" en 13px con fondo dorado tipo pastilla (antes texto plano 8px)
+- Verificado: ningún nodo del mapa (`NM_POS`) queda lo bastante cerca del borde del viewBox (1100×430) para que la pastilla de 104px de ancho se recorte
+
+### 2. Comunicación del instructor por sala colaborativa
+Backend **no necesitó cambios**: el endpoint `POST /api/collab/rooms/{id}/actions` ya permite a cualquier autenticado (incluido el instructor) publicar en una sala, y `ws_manager.broadcast_to_room()` ya entrega el evento solo a los miembros conectados de esa sala — la pieza más difícil ya existía de antes.
+- `instructor.html`: input + botón "📢 Enviar mensaje solo a esta sala" en el modal "Gestionar Sala", publica con `action_type:'instructor_message'`
+- `index.html`: tanto la carga inicial del chat como el WS en vivo reconocen ese `action_type` y lo muestran como banner ámbar destacado (no como chat normal), además dispara un toast `notify()` para que no se pierda si el aprendiz no tiene el chat visible
+
+### Verificado en producción
+Ambos cambios confirmados con `curl` contra el HTML servido en `/dashboard` e `/instructor` después del deploy.
+
+### Commits
+- `14775dc` — resaltar nodo analizado
+- `ba44c15` — comunicación por sala
+
+### Estado para el 26-27: todo lo planeado está implementado y verificado
+No queda ningún pendiente técnico conocido para el cierre de curso. Lista de lo que se construyó/corrigió en esta sesión + la anterior (24/25): auditoría de seguridad (2 pasadas), informe grupal con IA (con integración de Sala Colaborativa), fix de regresión crítica en Monitor en Vivo, auto-cierre por inactividad desactivado, resaltado del nodo analizado, comunicación del instructor por sala. El único punto abierto de fondo (no bloqueante) sigue siendo la validación completa del score del panel guiado server-side — documentado como backlog real para después del cierre de curso.
 
 ---
 
