@@ -1973,16 +1973,22 @@ function renderNetworkMap() {
         <animate attributeName="opacity" values=".08;.02;.08" dur="1.8s" repeatCount="indefinite"/>
       </circle>` : '';
 
-    // Pulso guided (dorado)
+    // Pulso guided (dorado) — mucho más marcado que el rojo de "atacado" para
+    // que el aprendiz distinga su nodo entre varios atacados simultáneamente
     const guidedPulso = isGuided ? `
-      <circle cx="${pos.x}" cy="${pos.y}" r="${r+10}" fill="none" stroke="#f59e0b" stroke-width="1">
-        <animate attributeName="r" values="${r+6};${r+20};${r+6}" dur="1.5s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values=".3;.06;.3" dur="1.5s" repeatCount="indefinite"/>
+      <circle cx="${pos.x}" cy="${pos.y}" r="${r+14}" fill="none" stroke="#f59e0b" stroke-width="3" opacity="0.9"/>
+      <circle cx="${pos.x}" cy="${pos.y}" r="${r+10}" fill="none" stroke="#fbbf24" stroke-width="2">
+        <animate attributeName="r" values="${r+8};${r+26};${r+8}" dur="1.3s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values=".7;.1;.7" dur="1.3s" repeatCount="indefinite"/>
       </circle>` : '';
 
-    // Badge de estado en ataques/warning
-    const badge = atk&&!mit ? `<text x="${pos.x}" y="${pos.y+r+24}" text-anchor="middle" font-size="8" fill="#ef4444" font-weight="700">◉ ATAQUE</text>`
-      : isGuided ? `<text x="${pos.x}" y="${pos.y+r+24}" text-anchor="middle" font-size="8" fill="#f59e0b" font-weight="700">🎯 ANALIZAR</text>`
+    // Badge de estado en ataques/warning. El de "ANALIZAR" (nodo elegido por
+    // el aprendiz) es deliberadamente mucho más grande y con fondo propio,
+    // para que resalte aunque haya varios nodos "ATAQUE" pulsando a la vez.
+    const badge = isGuided
+      ? `<rect x="${pos.x-52}" y="${pos.y+r+13}" width="104" height="20" rx="5" fill="#f59e0b"/>
+         <text x="${pos.x}" y="${pos.y+r+27}" text-anchor="middle" font-size="13" fill="#1c1c1f" font-weight="900">🎯 TU NODO — ANALIZAR</text>`
+      : atk&&!mit ? `<text x="${pos.x}" y="${pos.y+r+24}" text-anchor="middle" font-size="8" fill="#ef4444" font-weight="700">◉ ATAQUE</text>`
       : mit ? `<text x="${pos.x}" y="${pos.y+r+24}" text-anchor="middle" font-size="8" fill="#4ade80" font-weight="700">✓ MITIGADO</text>` : '';
 
     // Anillo doble interior en nodos críticos
