@@ -3558,7 +3558,10 @@ function _openBitacoraModal(data) {
   const btn = document.getElementById('bmSubmitBtn');
   if (btn) { btn.disabled = false; btn.textContent = '✅ Guardar bitácora y ver resultado'; }
   document.getElementById('bitacoraOverlay').classList.add('open');
-  _startBitacoraInactivityWatch();
+  // Auto-cierre por inactividad desactivado a pedido del instructor: el
+  // aprendiz pausa de escribir para revisar Terminal/Logs/Firewall, lo cual
+  // es normal, y el cierre forzado le borraba el progreso sin avisar a tiempo.
+  // _startBitacoraInactivityWatch();
   // Verificar disponibilidad de IA y ocultar botón si no está activa
   const aiBtn = document.getElementById('bmAiBtn');
   if (aiBtn) {
@@ -3794,8 +3797,9 @@ async function submitBitacora() {
   _stopBitacoraInactivityWatch();
   document.getElementById('bitacoraOverlay').classList.remove('open');
   _showGuidedResultsPanel(qualityInfo);
-  // Iniciar temporizador de inactividad en el panel de resultados
-  _startGuidedAutoClose();
+  // Auto-cierre por inactividad desactivado a pedido del instructor (mismo
+  // motivo que el de la bitácora: no debe forzar el cierre del panel).
+  // _startGuidedAutoClose();
 }
 
 // ══════════════════════════════════════════════════════════════
