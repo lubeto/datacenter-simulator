@@ -4598,7 +4598,12 @@ function renderCollabChat(actions) {
     const isMe = a.student_id === me.id;
     const isChat = a.is_chat;
     const time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
-    if (isChat) {
+    if (a.action_type === 'instructor_message') {
+      return `<div style="background:#1c1506;border:1px solid #f59e0b;border-radius:8px;padding:6px 12px;margin:4px 0;text-align:center">
+        <div style="font-size:.7rem;color:#fbbf24;font-weight:700">📢 Instructor · ${time}</div>
+        <div style="font-size:.82rem;color:#fde68a;margin-top:2px">${_esc(a.detail)}</div>
+      </div>`;
+    } else if (isChat) {
       return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
         <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':_esc(a.student_name)} · ${time}</div>
         <div style="background:${isMe?'#0d9488':'#1e293b'};color:#f1f5f9;border-radius:8px;padding:4px 10px;font-size:.78rem;max-width:85%">${_esc(a.detail)}</div>
@@ -4671,7 +4676,13 @@ function handleCollabWS(data) {
   const isMe = a.student_id === me.id;
   const time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
   let html;
-  if (a.is_chat) {
+  if (a.action_type === 'instructor_message') {
+    html = `<div style="background:#1c1506;border:1px solid #f59e0b;border-radius:8px;padding:6px 12px;margin:4px 0;text-align:center">
+      <div style="font-size:.7rem;color:#fbbf24;font-weight:700">📢 Instructor · ${time}</div>
+      <div style="font-size:.82rem;color:#fde68a;margin-top:2px">${_esc(a.detail)}</div>
+    </div>`;
+    notify('📢 Mensaje del instructor para tu sala', a.detail, 'warn');
+  } else if (a.is_chat) {
     html = `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
       <div style="font-size:.65rem;color:#5eead4;margin-bottom:1px">${isMe?'Tú':_esc(a.student_name)} · ${time}</div>
       <div style="background:${isMe?'#0d9488':'#1e293b'};color:#f1f5f9;border-radius:8px;padding:4px 10px;font-size:.78rem;max-width:85%">${_esc(a.detail)}</div>

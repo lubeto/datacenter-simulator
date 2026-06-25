@@ -1227,6 +1227,17 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
       </div>
     </div>
 
+    <!-- Mensaje del instructor solo para esta sala -->
+    <div style="background:#1c1506;border:1px solid #92400e;border-radius:8px;padding:.75rem;margin-bottom:1rem">
+      <div style="font-size:.75rem;color:#fbbf24;margin-bottom:.5rem">📢 Enviar mensaje solo a esta sala</div>
+      <div style="display:flex;gap:.5rem">
+        <input id="roomNotifInput" type="text" placeholder="Ej: Revisen el firewall, falta bloquear el puerto 22"
+          style="flex:1;background:#0f172a;border:1px solid #92400e;border-radius:6px;padding:.4rem .6rem;color:#f9fafb;font-size:.82rem"
+          onkeydown="if(event.key==='Enter')sendRoomNotification()">
+        <button class="btn btn-sm" style="background:#f59e0b;border:none;color:#1c1c1f;font-weight:700" onclick="sendRoomNotification()">Enviar</button>
+      </div>
+    </div>
+
     <div style="display:flex;gap:.75rem;justify-content:flex-end">
       <button class="btn btn-danger btn-sm" onclick="closeCollabRoom()">🔴 Cerrar Sala</button>
       <button class="btn btn-outline btn-sm" onclick="closeManageModal()">Listo</button>
@@ -4313,6 +4324,23 @@ async function addCollabMember() {
   if (data.detail) { notify('⚠️ Error', data.detail, 'warn'); return; }
   await loadManageMembers();
   notify('✅ Miembro agregado', '', 'ok');
+}
+
+async function sendRoomNotification() {
+  const input = document.getElementById('roomNotifInput');
+  const msg = (input.value || '').trim();
+  if (!msg || !_collabManageRoomId) return;
+  input.value = '';
+  try {
+    await fetch(`/api/collab/rooms/${_collabManageRoomId}/actions`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_type: 'instructor_message', detail: msg, is_chat: true }),
+    });
+    notify('📢 Mensaje enviado', 'Solo los integrantes de esta sala lo verán', 'ok');
+  } catch (e) {
+    notify('❌ Error al enviar', e.message, 'crit');
+  }
 }
 
 async function removeCollabMember(studentId) {
