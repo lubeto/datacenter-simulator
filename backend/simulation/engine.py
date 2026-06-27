@@ -25,6 +25,7 @@ class SimulatorState:
         self.sst_overrides: Dict[str, dict] = {}      # sensor_id -> forced values
         self.simulation_time_offset: int = 0          # offset en horas (simula hora del día)
         self.is_paused: bool = True                   # pausa global — activo por defecto hasta que el instructor inicie
+        self.collab_exclusive: bool = False           # modo exclusivo: solo Sala Colaborativa puede operar
 
     def get_simulated_hour(self) -> int:
         """Hora del día para patrones de carga (0-23)."""

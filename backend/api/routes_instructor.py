@@ -23,7 +23,10 @@ router = APIRouter(prefix="/api/instructor", tags=["instructor"])
 
 
 class BroadcastRequest(BaseModel):
-    cmd: Literal["pause_sim", "resume_sim", "reveal_solution", "notification"]
+    cmd: Literal[
+        "pause_sim", "resume_sim", "reveal_solution", "notification",
+        "collab_exclusive_on", "collab_exclusive_off",
+    ]
     message: Optional[str] = None
     node_id: Optional[str] = None
 
@@ -40,6 +43,27 @@ async def broadcast_command(req: BroadcastRequest, _=Depends(require_instructor)
         sim_state.is_paused = False
         await ws_manager.broadcast("sim_resumed", {"timestamp": iso_utc(datetime.utcnow())})
         return {"message": "Simulación reanudada", "paused": False}
+
+    if req.cmd == "collab_exclusive_on":
+        # Modo exclusivo: solo aprendices en una Sala Colaborativa activa pueden
+        # interactuar. Se desactivan también los ataques automáticos para que
+        # no aparezcan incidentes individuales fuera de las salas.
+        from ..simulation.scheduler import scheduler as _scheduler
+        sim_state.collab_exclusive = True
+        _scheduler.set_auto_attacks(False)
+        await ws_manager.broadcast("collab_exclusive_changed", {
+            "active": True,
+            "timestamp": iso_utc(datetime.utcnow()),
+        })
+        return {"message": "Modo exclusivo de Sala Colaborativa activado", "active": True}
+
+    if req.cmd == "collab_exclusive_off":
+        sim_state.collab_exclusive = False
+        await ws_manager.broadcast("collab_exclusive_changed", {
+            "active": False,
+            "timestamp": iso_utc(datetime.utcnow()),
+        })
+        return {"message": "Modo exclusivo de Sala Colaborativa desactivado", "active": False}
 
     if req.cmd == "reveal_solution":
         if not req.node_id:

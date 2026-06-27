@@ -14,10 +14,47 @@ from ..database.models import CollabRoom, CollabMember, CollabAction, CollabBita
 from ..api.routes_students import get_current_student
 from ..api.websocket import manager as ws_manager
 from ..utils_time import iso_utc
+from ..simulation.engine import state as sim_state
 
 router = APIRouter(prefix="/api/collab", tags=["collab"])
 
 VALID_ROLES = {"T1-Monitor", "T2-Analista", "Responder", "Comunicador"}
+
+
+async def is_student_in_active_room(db: AsyncSession, student_id: int) -> bool:
+    """¿El estudiante es miembro de alguna sala colaborativa activa?"""
+    result = await db.execute(
+        select(CollabMember.id)
+        .join(CollabRoom, CollabRoom.id == CollabMember.room_id)
+        .where(CollabMember.student_id == student_id, CollabRoom.is_active == True)
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def check_collab_exclusive_lock(db: AsyncSession, current: Student) -> None:
+    """Bloquea acciones individuales mientras el instructor activó el Modo
+    Exclusivo de Sala Colaborativa, salvo para el instructor o estudiantes
+    que sí pertenecen a una sala activa."""
+    if not sim_state.collab_exclusive or current.role == "instructor":
+        return
+    if await is_student_in_active_room(db, current.id):
+        return
+    raise HTTPException(
+        status_code=423,
+        detail="El instructor activó el Modo Exclusivo de Sala Colaborativa. "
+               "Solo los aprendices asignados a una sala pueden interactuar.",
+    )
+
+
+@router.get("/exclusive-status")
+async def exclusive_status(
+    db: AsyncSession = Depends(get_db),
+    current: Student = Depends(get_current_student),
+):
+    """Estado del Modo Exclusivo + si el estudiante actual está exento (en sala activa)."""
+    exempt = current.role == "instructor" or await is_student_in_active_room(db, current.id)
+    return {"active": sim_state.collab_exclusive, "exempt": exempt}
 
 
 # ── Schemas ──────────────────────────────────────────────────

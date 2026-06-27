@@ -17,6 +17,7 @@ from ..database.db import get_db
 from ..database.models import Bitacora, Student, Incident
 from .routes_students import get_current_student
 from ..api.websocket import manager as ws_manager
+from ..api.routes_collab import check_collab_exclusive_lock
 from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/bitacoras", tags=["bitacoras"])
@@ -155,6 +156,10 @@ async def create_bitacora(
     me:   Student      = Depends(get_current_student),
 ):
     """El aprendiz guarda su bitacora al completar el diagnostico guiado."""
+    # Si viene de una Sala Colaborativa el aprendiz queda exento del bloqueo
+    # (check_collab_exclusive_lock ya valida membresía activa internamente).
+    if not data.collab_room_id:
+        await check_collab_exclusive_lock(db, me)
     # Analisis de calidad del texto
     quality_factor, quality_label = _bitacora_quality_score(data)
 

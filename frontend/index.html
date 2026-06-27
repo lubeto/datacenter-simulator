@@ -363,6 +363,16 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
   </div>
 </div>
 
+<div id="collabExclusiveOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,14,26,0.96);z-index:9100;backdrop-filter:blur(6px);align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:16px">
+  <div style="font-size:3.5rem">🤝🔒</div>
+  <div style="font-size:1.4rem;font-weight:800;color:#fbbf24;letter-spacing:.02em">Modo Sala Colaborativa Exclusiva</div>
+  <div style="font-size:.92rem;color:#fef3c7;max-width:420px;line-height:1.6">El instructor activó una práctica exclusiva de Sala Colaborativa. Solo los aprendices asignados a una sala pueden interactuar con el simulador en este momento.</div>
+  <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+    <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;animation:blink .9s infinite"></span>
+    <span style="font-size:.78rem;color:#a78bfa">Si crees que deberías estar en una sala, contacta al instructor</span>
+  </div>
+</div>
+
 <div id="scenarioBar" style="display:none;background:linear-gradient(90deg,#1e3a8a,#312e81);padding:6px 24px;align-items:center;gap:12px;font-size:.8rem;color:#dbeafe;position:sticky;top:60px;z-index:140">
   <span style="font-weight:700">🎬 <span id="scenarioBarName">Escenario</span></span>
   <span id="scenarioBarPhase" style="color:#bfdbfe;font-size:.75rem">Fase 0/0</span>
@@ -421,6 +431,9 @@ header{background:linear-gradient(135deg,#18181b,#27272a);border-bottom:1px soli
 
     <!-- Columna equipo -->
     <div style="width:220px;border-right:1px solid #134e4a;padding:8px;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;gap:6px">
+      <!-- Banner ataque + fases específicas -->
+      <div id="cpAttackBanner" style="background:#7c2d12;border-radius:7px;padding:6px 8px;font-size:.74rem;color:#fed7aa;line-height:1.4;font-weight:700"></div>
+      <div id="cpPhases" style="display:flex;flex-direction:column;gap:3px"></div>
       <!-- Banner rol -->
       <div id="cpRoleBanner" style="background:#134e4a;border-radius:7px;padding:6px 8px;font-size:.72rem;color:#a7f3d0;line-height:1.4"></div>
       <div style="font-size:.68rem;color:#5eead4;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Equipo</div>
@@ -888,6 +901,7 @@ function handleWSMessage(msg) {
     case 'eval_session':         handleEvalSession(msg.data); break;
     case 'sim_paused':           setPauseBar(true); break;
     case 'sim_resumed':          setPauseBar(false); break;
+    case 'collab_exclusive_changed': handleCollabExclusiveChanged(msg.data); break;
     case 'reveal_solution':       handleRevealSolution(msg.data); break;
     case 'instructor_notification': notify('📢 Instructor', msg.data.message, 'info'); break;
     case 'ssl_status':            handleSslStatus(msg.data); break;
@@ -4525,6 +4539,7 @@ async function checkMyCollabRoom() {
       document.getElementById('cpRoomName').textContent = data.room.name;
       document.getElementById('cpRoleBadge').textContent = _roleIcon(_collabRole) + ' ' + _collabRole;
       renderCollabMembers(data.room.members || []);
+      _renderCollabPhases();
       // Registrar canal WS privado
       fetch(`/api/collab/rooms/${data.room.id}/join`, {
         method: 'POST',
@@ -4533,9 +4548,11 @@ async function checkMyCollabRoom() {
       // Cargar historial de chat/acciones
       loadCollabActions();
     } else {
+      _collabRoom = null; _collabRole = null;
       document.getElementById('collabNavBtn').style.display = 'none';
     }
   } catch (_) {}
+  _applyCollabLockOverlay();
 }
 
 function _roleIcon(role) {
@@ -4572,8 +4589,47 @@ function _applyRoleView() {
   // Banner de rol
   const banner = document.getElementById('cpRoleBanner');
   if (banner) banner.innerHTML = cfg.icon + ' <strong>' + _collabRole + '</strong><br>' + cfg.hint;
+  _renderCollabPhases();
   // Abrir herramienta principal según rol (solo primera vez)
   if (cfg.tool) _openToolsDrawer(cfg.tool);
+}
+
+// ── Banner de ataque + fases específicas (Sala Colaborativa) ───
+let _attackCatalogCache = null;
+
+async function _getAttackCatalog() {
+  if (_attackCatalogCache) return _attackCatalogCache;
+  try {
+    _attackCatalogCache = await apiFetch('/api/attacks/catalog');
+    return _attackCatalogCache;
+  } catch (_) { return {}; }
+}
+
+async function _renderCollabPhases() {
+  const banner = document.getElementById('cpAttackBanner');
+  const phasesEl = document.getElementById('cpPhases');
+  if (!banner || !phasesEl) return;
+  if (!_collabRoom || !_collabRoom.attack_type) {
+    banner.style.display = 'none'; phasesEl.innerHTML = '';
+    return;
+  }
+  const type = _collabRoom.attack_type, node = _collabRoom.node_id;
+  banner.style.display = 'block';
+  const catalog = await _getAttackCatalog();
+  const info = catalog[type] || {};
+  banner.innerHTML = `🚨 ${_esc(info.name || type.toUpperCase())} — Nodo <span style="color:#fff">${_esc(node || '—')}</span>`;
+  const indicators = info.indicators || [];
+  const steps = info.mitigation_steps || [];
+  const phases = [
+    { role: 'T1-Monitor',  icon: '📡', title: '1. Detectar', text: indicators.length ? indicators.slice(0, 2).join(' · ') : 'Observa las métricas en tiempo real del nodo y avisa al equipo ante cualquier anomalía.' },
+    { role: 'T2-Analista', icon: '🔍', title: '2. Analizar',  text: info.description || 'Confirma la causa raíz revisando logs y terminal.' },
+    { role: 'Responder',   icon: '🛡️', title: '3. Mitigar',   text: steps.length ? steps.slice(0, 2).join(' · ') : 'Aplica la contramedida correspondiente al tipo de incidente.' },
+    { role: 'Comunicador', icon: '📢', title: '4. Reportar',  text: 'Documenta lo ocurrido en la Bitácora Colaborativa y comunica el cierre al instructor.' },
+  ];
+  phasesEl.innerHTML = phases.map(p => `
+    <div style="background:${p.role === _collabRole ? '#1e3a3a' : '#0c1a2e'};border:1px solid ${p.role === _collabRole ? '#0d9488' : '#134e4a'};border-radius:6px;padding:5px 7px;font-size:.68rem;color:#cbd5e1;line-height:1.35">
+      <strong style="color:${p.role === _collabRole ? '#5eead4' : '#94a3b8'}">${p.icon} ${p.title}${p.role === _collabRole ? ' (tú)' : ''}</strong><br>${_esc(p.text)}
+    </div>`).join('');
 }
 
 function renderCollabMembers(members) {
@@ -4716,12 +4772,42 @@ function handleCollabRoomClosed(data) {
     document.getElementById('collabPanel').style.display = 'none';
     _collabPanelOpen = false;
     notify('🔴 Sala cerrada', 'El instructor cerró la sala colaborativa', 'warn');
+    _applyCollabLockOverlay();
   }
 }
 
 function handleCollabMemberAdded(data) {
   if (_collabRoom && data.room_id === _collabRoom.id) {
     checkMyCollabRoom();
+  }
+}
+
+// ── Modo Exclusivo de Sala Colaborativa ─────────────────────────
+let _collabExclusiveActive = false;
+
+function _applyCollabLockOverlay() {
+  const locked = _collabExclusiveActive && !_collabRoom && STUDENT?.role !== 'instructor';
+  const ov = document.getElementById('collabExclusiveOverlay');
+  if (ov) ov.style.display = locked ? 'flex' : 'none';
+}
+
+async function checkCollabExclusiveStatus() {
+  try {
+    const d = await apiFetch('/api/collab/exclusive-status');
+    _collabExclusiveActive = !!d.active;
+    _applyCollabLockOverlay();
+  } catch (_) {}
+}
+
+function handleCollabExclusiveChanged(data) {
+  _collabExclusiveActive = !!data.active;
+  _applyCollabLockOverlay();
+  if (STUDENT?.role !== 'instructor') {
+    if (data.active && !_collabRoom) {
+      notify('🔒 Modo exclusivo activado', 'El instructor activó Sala Colaborativa exclusiva. El simulador queda bloqueado para ti hasta que termine.', 'warn');
+    } else if (!data.active) {
+      notify('🔓 Modo exclusivo desactivado', 'El simulador vuelve a estar disponible para todos.', 'ok');
+    }
   }
 }
 
@@ -4838,8 +4924,10 @@ function handleCollabBitacoraUpdated(data) {
 
 // Iniciar al cargar
 setTimeout(checkMyCollabRoom, 2000);
+setTimeout(checkCollabExclusiveStatus, 2000);
 // Revisar cada 60s por si el instructor asigna sala después
 setInterval(checkMyCollabRoom, 60000);
+setInterval(checkCollabExclusiveStatus, 60000);
 
 </script>
 

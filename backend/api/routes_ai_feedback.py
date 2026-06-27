@@ -12,7 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..api.routes_students import get_current_student
 from ..database.db import get_db
-from ..database.models import EvalGroup, Student, Bitacora, CollabMember, CollabRoom, CollabBitacora
+from ..database.models import (
+    EvalGroup, Student, Bitacora, CollabMember, CollabRoom, CollabBitacora,
+    CollabAction, Incident, MitigationAction,
+)
+from datetime import datetime
+from ..utils_time import iso_utc
 
 logger = logging.getLogger("dc.ai_feedback")
 
@@ -511,3 +516,193 @@ async def generate_group_report(
     except Exception as ex:
         logger.error(f"Group report error: {ex}")
         return {"available": False, "error": f"Error de conexión con IA: {str(ex)}"}
+
+
+COLLAB_REPORT_PROMPT = """Eres un redactor técnico encargado de producir el informe formal de cierre de una
+práctica de Sala Colaborativa (equipo de respuesta a incidentes) en un datacenter educativo del SENA.
+
+Sala: {room_name}
+Incidente asignado: {attack_type} en el nodo {node_id}
+Integrantes y rol: {member_roles}
+
+Bitácora colaborativa (una sección por rol):
+{bitacora_block}
+
+Registro de acciones técnicas de mitigación aplicadas por el equipo durante la sala (ya verificadas
+contra el sistema, no inventes ninguna adicional ni cambies lo que dice):
+{actions_block}
+
+Acciones de mitigación formales registradas en el sistema (tabla de mitigación, con efectividad):
+{mitigation_block}
+
+Redacta un INFORME FORMAL en español, en este formato exacto con encabezados markdown:
+
+## Resumen Ejecutivo
+(3-4 oraciones resumiendo el incidente y el desempeño general del equipo)
+
+## Desarrollo del Incidente
+(narra cronológicamente cómo el equipo detectó, analizó y respondió, basándote en la bitácora y el registro de acciones)
+
+## Procesos de Mitigación Aplicados
+(lista cada acción de mitigación real aplicada — usa el registro de acciones y la tabla de mitigación — indicando quién la ejecutó y si fue efectiva)
+
+## Contribución por Rol
+(una línea por rol: T1-Monitor, T2-Analista, Responder, Comunicador — qué aportó cada uno)
+
+## Lecciones Aprendidas
+(3-5 lecciones técnicas consolidadas a partir de la bitácora)
+
+## Recomendaciones
+(2-3 recomendaciones concretas para mejorar como equipo)
+
+Usa únicamente la información provista. No inventes acciones de mitigación que no estén en los registros.
+Sé profesional, técnico y conciso."""
+
+
+class CollabReportRequest(BaseModel):
+    room_id: int
+
+
+@router.post("/collab-report")
+async def generate_collab_report(
+    req: CollabReportRequest,
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_student),
+):
+    """Genera el informe de cierre de una Sala Colaborativa: narrativa con IA +
+    datos numéricos para gráficos (conteo de acciones, línea de tiempo, mitigaciones)."""
+    room = (await db.execute(select(CollabRoom).where(CollabRoom.id == req.room_id))).scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala no encontrada")
+
+    members = (await db.execute(
+        select(CollabMember, Student.name)
+        .join(Student, Student.id == CollabMember.student_id)
+        .where(CollabMember.room_id == room.id)
+    )).all()
+    member_ids = [m.student_id for m, _ in members]
+
+    if current.role != "instructor" and current.id not in member_ids:
+        raise HTTPException(status_code=403, detail="No perteneces a esta sala")
+
+    # ── Datos numéricos (deterministas, no dependen de la IA) ──────────────
+    actions = (await db.execute(
+        select(CollabAction, Student.name)
+        .join(Student, Student.id == CollabAction.student_id)
+        .where(CollabAction.room_id == room.id, CollabAction.is_chat == False)
+        .order_by(CollabAction.timestamp)
+    )).all()
+
+    action_counts: dict = {}
+    timeline = []
+    t0 = room.created_at or datetime.utcnow()
+    for a, name in actions:
+        action_counts[a.action_type] = action_counts.get(a.action_type, 0) + 1
+        offset = (a.timestamp - t0).total_seconds() if a.timestamp else 0
+        timeline.append({
+            "offset_sec": round(max(0, offset)),
+            "action_type": a.action_type,
+            "detail": a.detail,
+            "student_name": name,
+        })
+
+    window_end = room.ended_at or datetime.utcnow()
+    mitigations = []
+    if room.node_id and member_ids:
+        mit_rows = (await db.execute(
+            select(MitigationAction, Student.name, Incident.incident_type)
+            .join(Incident, Incident.id == MitigationAction.incident_id)
+            .join(Student, Student.id == MitigationAction.student_id)
+            .where(
+                Incident.node_affected == room.node_id,
+                MitigationAction.student_id.in_(member_ids),
+                MitigationAction.timestamp >= t0,
+                MitigationAction.timestamp <= window_end,
+            )
+            .order_by(MitigationAction.timestamp)
+        )).all()
+        for m, name, incident_type in mit_rows:
+            mitigations.append({
+                "action_taken": m.action_taken,
+                "action_category": m.action_category,
+                "incident_type": incident_type,
+                "student_name": name,
+                "effectiveness_pct": m.effectiveness_pct,
+                "was_correct": m.was_correct,
+                "timestamp": iso_utc(m.timestamp) if m.timestamp else None,
+            })
+
+    chart = {
+        "action_counts": action_counts,
+        "timeline": timeline,
+        "mitigations": mitigations,
+    }
+
+    if not ANTHROPIC_API_KEY:
+        return {"available": False, "error": "ANTHROPIC_API_KEY no configurada en el servidor.", "chart": chart}
+
+    cb = (await db.execute(select(CollabBitacora).where(CollabBitacora.room_id == room.id))).scalar_one_or_none()
+    sec_map = [
+        ("T1-Monitor (síntomas)", cb.t1_sintomas if cb else None),
+        ("T2-Analista (causa raíz)", cb.t2_causa if cb else None),
+        ("Responder (acciones)", cb.resp_acciones if cb else None),
+        ("Comunicador (lecciones)", cb.com_lecciones if cb else None),
+    ] if cb else []
+    bitacora_block = "\n".join(f"- {label}: {text}" for label, text in sec_map if text) or "(sin bitácora registrada todavía)"
+
+    actions_block = "\n".join(
+        f"- [+{a['offset_sec']}s] {a['student_name']} — {a['action_type']}: {a['detail']}" for a in timeline
+    ) or "(sin acciones técnicas registradas)"
+
+    mitigation_block = "\n".join(
+        f"- {m['student_name']} aplicó '{m['action_taken']}' ({m['action_category'] or '?'}) sobre incidente "
+        f"{m['incident_type']} — efectividad {m['effectiveness_pct']:.0f}%"
+        for m in mitigations
+    ) or "(sin registros formales de mitigación para el nodo/ventana de esta sala)"
+
+    if not sec_map and not actions and not mitigations:
+        return {"available": True, "chart": chart, "error": "La sala no tiene bitácora, acciones ni mitigaciones registradas todavía."}
+
+    prompt = COLLAB_REPORT_PROMPT.format(
+        room_name=room.name,
+        attack_type=room.attack_type or "no asignado",
+        node_id=room.node_id or "no asignado",
+        member_roles=", ".join(f"{name} ({m.role})" for m, name in members),
+        bitacora_block=bitacora_block,
+        actions_block=actions_block,
+        mitigation_block=mitigation_block,
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            resp = await client.post(
+                _ANTHROPIC_URL,
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": _MODEL,
+                    "max_tokens": 1800,
+                    "temperature": 0.3,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+            )
+        if resp.status_code != 200:
+            logger.error(f"Collab report Claude API HTTP {resp.status_code}: {resp.text[:300]}")
+            return {"available": False, "error": f"Error de IA: HTTP {resp.status_code}", "chart": chart}
+
+        data = resp.json()
+        report_text = data["content"][0]["text"].strip()
+        logger.info(f"Collab report OK para sala {room.id} ({room.name})")
+        return {
+            "available": True,
+            "report": report_text,
+            "room_name": room.name,
+            "chart": chart,
+            "model_used": _MODEL,
+        }
+    except Exception as ex:
+        logger.error(f"Collab report error: {ex}")
+        return {"available": False, "error": f"Error de conexión con IA: {str(ex)}", "chart": chart}

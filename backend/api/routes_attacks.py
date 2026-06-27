@@ -14,6 +14,7 @@ from ..simulation.attacks import attack_manager, ATTACK_CATALOG
 from ..simulation.engine import state as sim_state
 from ..api.routes_students import get_current_student, require_instructor
 from ..api.websocket import manager as ws_manager
+from ..api.routes_collab import check_collab_exclusive_lock
 from ..utils_time import iso_utc
 
 router = APIRouter(prefix="/api/attacks", tags=["attacks"])
@@ -205,6 +206,7 @@ async def detect_incident(
     current=Depends(get_current_student)
 ):
     """El estudiante marca un incidente como detectado."""
+    await check_collab_exclusive_lock(db, current)
     incident = await crud.detect_incident(db, incident_id, session_id)
     if not incident:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
@@ -264,6 +266,7 @@ async def log_mitigation_action(
     current=Depends(get_current_student)
 ):
     """Registrar una acción de mitigación del estudiante."""
+    await check_collab_exclusive_lock(db, current)
     action = await crud.log_mitigation(
         db, req.incident_id, current.id,
         req.action_taken, req.action_category,

@@ -1120,9 +1120,17 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
   <div style="max-width:1100px;margin:0 auto;padding:1.2rem">
 
     <!-- Cabecera + botón crear -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
       <h2 style="font-size:1.1rem;font-weight:700;color:#f9fafb;margin:0">🤝 Salas Colaborativas</h2>
-      <button class="btn btn-primary btn-sm" onclick="openCreateRoomModal()">＋ Nueva Sala</button>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button id="collabExclusiveBtn" class="btn btn-sm" style="background:#92400e;border:none;color:white;font-weight:700" onclick="toggleCollabExclusiveMode()">🔒 Activar Modo Exclusivo</button>
+        <button class="btn btn-sm" style="background:#1d4ed8;border:none;color:white;font-weight:700" onclick="printCollabBitacoras()">🖨️ Imprimir Bitácoras</button>
+        <button class="btn btn-primary btn-sm" onclick="openCreateRoomModal()">＋ Nueva Sala</button>
+      </div>
+    </div>
+
+    <div id="collabExclusiveNotice" style="display:none;background:#451a03;border:1px solid #92400e;border-radius:8px;padding:.6rem 1rem;margin-bottom:1rem;font-size:.8rem;color:#fed7aa">
+      🔒 <strong>Modo Exclusivo activo</strong> — los aprendices fuera de una sala colaborativa no pueden interactuar con el simulador. Los ataques automáticos quedaron desactivados.
     </div>
 
     <!-- Lista de salas activas -->
@@ -1136,6 +1144,23 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
       <div id="collabReportTable" style="overflow-x:auto"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- Modal Informe IA de Sala (con gráfico) -->
+<div id="collabAiReportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#0f172a;border:1px solid #134e4a;border-radius:12px;padding:1.5rem;width:680px;max-width:96vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h3 id="carTitle" style="font-size:1rem;font-weight:700;color:#f9fafb;margin:0">🤖 Informe IA de Sala</h3>
+      <button onclick="closeCollabAiReportModal()" style="background:none;border:none;color:#9ca3af;font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <div id="carStatus" style="font-size:.8rem;color:#67e8f9;margin-bottom:.75rem"></div>
+    <div id="carChartWrap" style="display:none;background:#1e293b;border-radius:8px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:.78rem;color:#9ca3af;margin-bottom:.5rem">Acciones de mitigación aplicadas por el equipo</div>
+      <canvas id="carChart" height="160"></canvas>
+    </div>
+    <div id="carMitigationTable" style="margin-bottom:1rem"></div>
+    <div id="carReportBody" style="font-size:.85rem;color:#e2e8f0;line-height:1.6;white-space:normal"></div>
   </div>
 </div>
 
@@ -4173,6 +4198,7 @@ async function loadCollabRooms() {
       </div>
       <div style="display:flex;gap:.5rem">
         <button class="btn btn-outline btn-sm" style="flex:1" onclick="openManageModal(${r.id},'${r.name.replace(/'/g,"\\'")}')">⚙️ Gestionar</button>
+        <button class="btn btn-sm" style="background:#0d9488;border:none;color:white;font-weight:700" onclick="openCollabAiReportModal(${r.id},'${r.name.replace(/'/g,"\\'")}')">🤖 Informe IA</button>
         <button class="btn btn-danger btn-sm" onclick="closeCollabRoomById(${r.id})">Cerrar</button>
       </div>
     </div>
@@ -4366,6 +4392,138 @@ async function closeCollabRoomById(roomId) {
   notify('🔴 Sala cerrada', '', 'warn');
 }
 
+// ── Modo Exclusivo de Sala Colaborativa ─────────────────────────
+let _collabExclusiveActiveInstr = false;
+
+async function refreshCollabExclusiveBtn() {
+  try {
+    const d = await apiFetch('/api/collab/exclusive-status');
+    _collabExclusiveActiveInstr = !!d.active;
+    const btn = document.getElementById('collabExclusiveBtn');
+    const notice = document.getElementById('collabExclusiveNotice');
+    if (btn) {
+      btn.textContent = _collabExclusiveActiveInstr ? '🔓 Desactivar Modo Exclusivo' : '🔒 Activar Modo Exclusivo';
+      btn.style.background = _collabExclusiveActiveInstr ? '#15803d' : '#92400e';
+    }
+    if (notice) notice.style.display = _collabExclusiveActiveInstr ? 'block' : 'none';
+  } catch (_) {}
+}
+
+async function toggleCollabExclusiveMode() {
+  const turningOn = !_collabExclusiveActiveInstr;
+  if (turningOn && !confirm('Esto bloqueará el simulador para TODOS los aprendices que no estén asignados a una sala colaborativa activa, y desactivará los ataques automáticos. ¿Continuar?')) return;
+  try {
+    const cmd = turningOn ? 'collab_exclusive_on' : 'collab_exclusive_off';
+    await apiFetch('/api/instructor/broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cmd }) });
+    notify(turningOn ? '🔒 Modo exclusivo activado' : '🔓 Modo exclusivo desactivado', '', turningOn ? 'warn' : 'ok');
+    refreshCollabExclusiveBtn();
+  } catch (e) { notify('❌ Error', e.message, 'crit'); }
+}
+refreshCollabExclusiveBtn();
+
+// ── Imprimir Bitácoras Colaborativas ─────────────────────────────
+async function printCollabBitacoras() {
+  try {
+    const bits = await apiFetch('/api/collab/bitacoras');
+    if (!bits.length) { notify('Sin datos', 'No hay bitácoras colaborativas registradas todavía.', 'warn'); return; }
+
+    const now = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+    const roleLabels = {
+      'T1-Monitor': 'T1-Monitor (síntomas)', 'T2-Analista': 'T2-Analista (causa raíz)',
+      'Responder': 'Responder (acciones)', 'Comunicador': 'Comunicador (lecciones)',
+    };
+    const body = bits.map(b => {
+      const created = b.created_at ? new Date(b.created_at).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) : '—';
+      const estado = b.completed_at ? '✅ Completa' : '🟡 En progreso';
+      const sections = Object.entries(roleLabels).map(([role, label]) => {
+        const sec = b.sections?.[role] || {};
+        return `<p style="margin:.3rem 0"><b>${label} — ${_escapeHtml(sec.name || '—')}:</b> ${_escapeHtml(sec.text) || '—'}</p>`;
+      }).join('');
+      return `
+        <div style="margin-bottom:1.8rem;page-break-inside:avoid">
+          <div style="display:flex;justify-content:space-between;border-bottom:2px solid #0d9488;padding-bottom:.3rem;margin-bottom:.5rem">
+            <strong style="color:#0d9488">Sala — ${_escapeHtml(b.incident_type || '?')} en ${_escapeHtml(b.node_id || '?')}</strong>
+            <span style="font-size:.75rem;color:#555">${created} &nbsp;|&nbsp; ${estado}</span>
+          </div>
+          ${sections}
+        </div>`;
+    }).join('');
+
+    const win = window.open('', '_blank', 'width=900,height=700');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Bitácoras de Sala Colaborativa</title>
+      <style>body{font-family:Arial,sans-serif;margin:2rem auto;max-width:850px;color:#222}h1{color:#0d9488;margin-bottom:.3rem}@media print{.no-print{display:none}}</style></head>
+      <body>
+        <div class="no-print" style="margin-bottom:1.2rem"><button onclick="window.print()" style="background:#0d9488;color:white;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-size:.85rem">🖨️ Imprimir / Guardar PDF</button></div>
+        <h1>Bitácoras de Sala Colaborativa</h1>
+        <p style="color:#555;font-size:.83rem">SENA · Generado: ${now} &nbsp;|&nbsp; Total salas: ${bits.length}</p>
+        <hr style="margin:1rem 0">
+        ${body}
+      </body></html>`);
+    win.document.close();
+  } catch (e) { notify('❌ Error al generar reporte', e.message, 'crit'); }
+}
+
+// ── Informe IA de Sala (narrativa + gráfico de mitigaciones) ────
+let _carChartInstance = null;
+
+async function openCollabAiReportModal(roomId, roomName) {
+  document.getElementById('carTitle').textContent = `🤖 Informe IA — ${roomName}`;
+  document.getElementById('carStatus').textContent = 'Generando informe con IA y procesando datos de mitigación...';
+  document.getElementById('carChartWrap').style.display = 'none';
+  document.getElementById('carMitigationTable').innerHTML = '';
+  document.getElementById('carReportBody').innerHTML = '';
+  document.getElementById('collabAiReportModal').style.display = 'flex';
+
+  try {
+    const r = await apiFetch('/api/ai/collab-report', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId }) });
+
+    // Gráfico de conteo de acciones (siempre disponible, no depende de la IA)
+    const counts = r.chart?.action_counts || {};
+    const labels = Object.keys(counts);
+    if (labels.length) {
+      document.getElementById('carChartWrap').style.display = 'block';
+      const ctx = document.getElementById('carChart').getContext('2d');
+      if (_carChartInstance) _carChartInstance.destroy();
+      _carChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Acciones aplicadas', data: labels.map(l => counts[l]), backgroundColor: '#0d9488' }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      });
+    }
+
+    // Tabla de mitigaciones formales (tabla mitigation_actions)
+    const mits = r.chart?.mitigations || [];
+    if (mits.length) {
+      document.getElementById('carMitigationTable').innerHTML = `
+        <div style="font-size:.78rem;color:#9ca3af;margin-bottom:.4rem">Procesos de mitigación registrados formalmente</div>
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead><tr style="text-align:left;color:#9ca3af;border-bottom:1px solid #1e3a5f">
+            <th style="padding:.3rem">Integrante</th><th style="padding:.3rem">Acción</th><th style="padding:.3rem">Categoría</th><th style="padding:.3rem">Efectividad</th>
+          </tr></thead>
+          <tbody>${mits.map(m => `
+            <tr style="border-bottom:1px solid #1e293b">
+              <td style="padding:.3rem;color:#e2e8f0">${_escapeHtml(m.student_name)}</td>
+              <td style="padding:.3rem;color:#e2e8f0">${_escapeHtml(m.action_taken)}</td>
+              <td style="padding:.3rem;color:#9ca3af">${_escapeHtml(m.action_category || '—')}</td>
+              <td style="padding:.3rem;color:${m.effectiveness_pct >= 70 ? '#4ade80' : '#fbbf24'}">${(m.effectiveness_pct || 0).toFixed(0)}%</td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+    }
+
+    if (!r.available) {
+      document.getElementById('carStatus').textContent = '⚠️ ' + (r.error || 'No se pudo generar el informe con IA.');
+      return;
+    }
+    document.getElementById('carStatus').textContent = '';
+    document.getElementById('carReportBody').innerHTML = _mdToHtmlSafe(r.report || '');
+  } catch (e) {
+    document.getElementById('carStatus').textContent = '❌ Error: ' + e.message;
+  }
+}
+
+function closeCollabAiReportModal() {
+  document.getElementById('collabAiReportModal').style.display = 'none';
+}
 
 </script>
 </body>
