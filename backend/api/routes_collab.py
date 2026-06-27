@@ -147,8 +147,23 @@ async def create_room(
     await db.refresh(room)
     await db.commit()
 
+    # Si la sala viene con ataque + nodo asignado, inyectarlo de verdad en la
+    # simulación — antes esto era solo metadata informativa: el banner de la
+    # sala decía "DDoS en RTR-EDGE" pero el mapa de red nunca lo reflejaba
+    # porque no había ningún incidente real corriendo en ese nodo.
+    inject_error = None
+    if body.attack_type and body.node_id:
+        from ..api.routes_attacks import inject_attack_full
+        try:
+            await inject_attack_full(db, body.attack_type, body.node_id, tag="SALA")
+        except HTTPException as e:
+            inject_error = e.detail
+
     await ws_manager.broadcast("collab_room_created", _room_dict(room))
-    return _room_dict(room)
+    out = _room_dict(room)
+    if inject_error:
+        out["inject_warning"] = f"La sala se creó, pero no se pudo inyectar el ataque: {inject_error}"
+    return out
 
 
 @router.get("/rooms")

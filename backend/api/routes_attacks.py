@@ -61,6 +61,47 @@ async def get_attack_catalog():
     } for k, v in ATTACK_CATALOG.items()}
 
 
+async def inject_attack_full(db: AsyncSession, attack_type: str, node_id: str, intensity: float = 0.7, duration_sec=None, tag: str = "MANUAL") -> dict:
+    """Inyecta un ataque real en la simulación + registra incidente/alerta/broadcast.
+    Compartido entre /api/attacks/inject y la creación de Sala Colaborativa, para
+    que asignar un ataque a una sala también lo haga visible en el mapa de red."""
+    result = attack_manager.inject_attack(attack_type, node_id, intensity, duration_sec)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    from ..simulation.mitigation import mitigation_engine as _mit_engine
+
+    incident = await crud.create_incident(db, {
+        "incident_type": attack_type,
+        "category": result.get("category", "attack"),
+        "severity": result.get("severity", "warning"),
+        "node_affected": node_id,
+        "description": result.get("description", ""),
+        "started_at": datetime.utcnow(),
+        "status": "active",
+    })
+
+    if incident:
+        _mit_engine.register_suggestion(incident.id, attack_type, node_id)
+
+    await crud.create_alert(db,
+        node_id=node_id,
+        alert_type=attack_type,
+        severity=result.get("severity", "warning"),
+        message=f"[{tag}] {result['name']} en {node_id}",
+        incident_id=incident.id
+    )
+
+    await ws_manager.broadcast("new_incident", {
+        "incident_id": incident.id,
+        "attack": result,
+        "message": f"🚨 {result['name']} inyectado en {node_id}",
+        "timestamp": iso_utc(datetime.utcnow()),
+    })
+
+    return {"incident_id": incident.id, "attack": result}
+
+
 @router.post("/inject")
 async def inject_attack(
     req: InjectAttackRequest,
@@ -68,48 +109,7 @@ async def inject_attack(
     _=Depends(require_instructor)
 ):
     """Inyectar un ataque manualmente (solo instructores)."""
-    result = attack_manager.inject_attack(
-        req.attack_type, req.node_id, req.intensity, req.duration_sec
-    )
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-
-    # Registrar sugerencia de mitigacion automatica
-    from ..simulation.mitigation import mitigation_engine as _mit_engine
-
-    # Guardar incidente en DB
-    incident = await crud.create_incident(db, {
-        "incident_type": req.attack_type,
-        "category": result.get("category", "attack"),
-        "severity": result.get("severity", "warning"),
-        "node_affected": req.node_id,
-        "description": result.get("description", ""),
-        "started_at": datetime.utcnow(),
-        "status": "active",
-    })
-
-    # Registrar sugerencia de mitigacion
-    if incident:
-        _mit_engine.register_suggestion(incident.id, req.attack_type, req.node_id)
-
-    # Crear alerta
-    await crud.create_alert(db,
-        node_id=req.node_id,
-        alert_type=req.attack_type,
-        severity=result.get("severity", "warning"),
-        message=f"[MANUAL] {result['name']} en {req.node_id}",
-        incident_id=incident.id
-    )
-
-    # Broadcast WebSocket
-    await ws_manager.broadcast("new_incident", {
-        "incident_id": incident.id,
-        "attack": result,
-        "message": f"🚨 {result['name']} inyectado en {req.node_id}",
-        "timestamp": iso_utc(datetime.utcnow()),
-    })
-
-    return {"incident_id": incident.id, "attack": result}
+    return await inject_attack_full(db, req.attack_type, req.node_id, req.intensity, req.duration_sec)
 
 
 @router.post("/resolve/{node_id}")
