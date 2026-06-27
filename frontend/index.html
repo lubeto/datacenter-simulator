@@ -2171,7 +2171,8 @@ function _gCategory(inc){
   const t = _gAttType(inc);
   if(t.includes('ssl')||t.includes('tls')||t.includes('cert')||t.includes('expir')) return 'ssl';
   if(t.includes('thermal')||t.includes('smoke')||t.includes('power')||t.includes('unauth')||t.includes('access')
-     ||t.includes('biometric')||t.includes('tailgat')||t.includes('badge')||t.includes('cctv')) return 'sst';
+     ||t.includes('biometric')||t.includes('tailgat')||t.includes('badge')||t.includes('cctv')
+     ||t.includes('ups')||t.includes('humid')) return 'sst';
   if(t.includes('disk')||t.includes('memory')||t.includes('leak')||t.includes('storage')) return 'hardware';
   if(t.includes('vlan')||t.includes('dhcp')||t.includes('dns')||t.includes('spanning')||t.includes('rogue')) return 'red';
   if(t.includes('privilege')||t.includes('escalat')||t.includes('exfil')) return 'red';
@@ -2192,9 +2193,9 @@ function _gCorrectAnalyze(inc){
     return 'cert_err';
   }
   if(cat === 'sst'){
-    if(t.includes('thermal')) return 'temp';
+    if(t.includes('thermal')||t.includes('humid')) return 'temp';
     if(t.includes('smoke'))   return 'smoke';
-    if(t.includes('power'))   return 'power';
+    if(t.includes('power')||t.includes('ups'))   return 'power';
     return 'access';
   }
   if(cat === 'hardware'){
@@ -2234,10 +2235,11 @@ function _gCorrectDecide(inc){
   if(t.includes('arp')||t.includes('mitm')||t.includes('spoof'))  return 'arp';
   if(t.includes('memory')||t.includes('leak'))                    return 'mem_leak';
   if(t.includes('disk')||t.includes('raid'))                      return 'disk_fail';
-  if(t.includes('thermal'))                                        return 'thermal';
+  if(t.includes('thermal')||t.includes('humid'))                  return 'thermal';
   if(t.includes('smoke'))                                          return 'smoke';
-  if(t.includes('power'))                                          return 'power_fail';
-  if(t.includes('unauth')||t.includes('access'))                  return 'unauth';
+  if(t.includes('power')||t.includes('ups'))                      return 'power_fail';
+  if(t.includes('unauth')||t.includes('access')||t.includes('biometric')
+     ||t.includes('tailgat')||t.includes('badge')||t.includes('cctv'))  return 'unauth';
   if(t.includes('ssl_expir')||t.includes('expiring'))             return 'ssl_expiring';
   if(t.includes('ssl_expired'))                                    return 'ssl_expired';
   if(t.includes('tls')||t.includes('downgrade'))                  return 'tls_downgrade';
@@ -2307,10 +2309,11 @@ function _gBuildAnalyzeStage(inc){
 
   if(cat === 'sst'){
     const t_      = _gAttType(inc);
-    const isThermal = t_.includes('thermal');
+    const isThermal = t_.includes('thermal') || t_.includes('humid');
     const isSmoke   = t_.includes('smoke');
-    const isPower   = t_.includes('power');
-    const isUnauth  = t_.includes('unauth') || t_.includes('access');
+    const isPower   = t_.includes('power') || t_.includes('ups');
+    const isUnauth  = t_.includes('unauth') || t_.includes('access')
+      || t_.includes('biometric') || t_.includes('tailgat') || t_.includes('badge') || t_.includes('cctv');
     // Mostrar SOLO el sensor del ataque como anómalo; los demás siempre normales
     const temp  = isThermal ? (38 + Math.random()*7).toFixed(1) : (22 + Math.random()*3).toFixed(1);
     const smoke = isSmoke ? 1 : 0;
@@ -2766,6 +2769,13 @@ function renderGuidedStage(stage) {
     `<button class="guided-option" id="gopt-${i}" data-val="${o.value}" onclick="checkGuidedAnswer('${o.value}','${stg.correct}')">${o.label}</button>`
   ).join('');
   const missionCat = guidedState.incident ? _gCategory(guidedState.incident) : 'red';
+  // SST/hardware/SSL no usan terminal+firewall → no hay otro evento que dispare
+  // _missionComplete(), así que el botón debe habilitarse de inmediato o el
+  // panel queda atascado en esta etapa y la bitácora nunca se abre.
+  if (nb && stg.isMission && missionCat !== 'red') {
+    nb.style.display = 'block';
+    nb.textContent = '🏁 Ver resultado';
+  }
   const missionBanner = stg.isMission
     ? (missionCat === 'sst'
       ? `<div style="margin-top:.75rem;background:#0f172a;border:1px solid #1e3a8a;border-radius:6px;padding:.6rem .8rem;font-size:.78rem;color:#93c5fd">
