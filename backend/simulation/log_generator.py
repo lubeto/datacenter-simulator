@@ -59,7 +59,7 @@ def _generate_access_log(node_id: str, n: int = 40) -> List[Dict]:
                 path = random.choice(["/admin", "/.env", "/wp-login.php", "/phpmyadmin", "/.git/config"])
                 status = 404
             elif atype == "brute_force":
-                ip = f"203.0.113.{random.randint(1,254)}"
+                ip = attack.get("attacker_ip") or f"198.51.100.{random.randint(1,254)}"
                 path = "/api/login"
                 status = 401
             else:  # ddos / dos / syn_flood
@@ -101,7 +101,7 @@ def _generate_auth_log(node_id: str, n: int = 40) -> List[Dict]:
         is_access_line = atype in ("unauthorized_access", "unauth_access") and i >= n - 5
 
         if is_attack_line:
-            ip = "203.0.113.45"
+            ip = attack.get("attacker_ip") or "198.51.100.45"
             user = random.choice(["root", "admin", "test", "ubuntu", "oracle"])
             port = random.randint(40000, 60000)
             lines.append({
@@ -148,7 +148,7 @@ SYSTEM_ATTACK = {
     "dos": "kernel: [{t}] possible SYN flooding on port 443. Sending cookies. Check SNMP counters.",
     "ddos": "kernel: [{t}] possible SYN flooding on port 443. Sending cookies. Check SNMP counters.",
     "syn_flood": "kernel: [{t}] possible SYN flooding on port 443. Sending cookies. Check SNMP counters.",
-    "brute_force": "sshd[{pid}]: error: maximum authentication attempts exceeded for root from 203.0.113.45",
+    "brute_force": "sshd[{pid}]: error: maximum authentication attempts exceeded for root from {attacker_ip}",
     "port_scan": "kernel: [{t}] nf_conntrack: table full, dropping packet",
     "memory_leak": "kernel: [{t}] Out of memory: Killed process {pid} (leaky_app) total-vm:2048000kB",
     "disk_failure": "kernel: [{t}] sd 2:0:0:0: [sda] tag#{pid} FAILED Result: hostbyte=DID_OK driverbyte=DRIVER_SENSE",
@@ -170,7 +170,8 @@ def _generate_system_log(node_id: str, n: int = 40) -> List[Dict]:
         is_attack_line = atype in SYSTEM_ATTACK and i >= n - 8
 
         if is_attack_line:
-            msg = SYSTEM_ATTACK[atype].format(t=t, pid=pid)
+            attacker_ip = attack.get("attacker_ip") or "198.51.100.45"
+            msg = SYSTEM_ATTACK[atype].format(t=t, pid=pid, attacker_ip=attacker_ip)
             severity = "crit"
         else:
             msg = random.choice(SYSTEM_NORMAL).format(t=t)
