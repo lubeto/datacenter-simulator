@@ -189,7 +189,8 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 /* ── LOGS PANEL MOCKUP ── */
 .logs-mockup { background: #0f172a; border: 1px solid #1e3a5f; border-radius: 10px; overflow: hidden; max-width: 560px; margin: 8px 0 16px; }
 .logs-mockup .lm-head { background: #1e3a5f; padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
-.logs-mockup .lm-sel { background: #0a0e1a; border: 1px solid #2d4a7a; color: #cbd5e1; font-size: 11px; padding: 3px 8px; border-radius: 4px; }
+.logs-mockup .lm-sel { background: #0a0e1a; border: 1px solid #2d4a7a; color: #cbd5e1; font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; user-select: none; }
+.logs-mockup .lm-sel:hover { border-color: #4f8ef7; }
 .logs-mockup .lm-sel.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: 700; }
 .logs-mockup .lm-body { padding: 8px; font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 11px; }
 .logs-mockup .lm-line { padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,.04); color: #7a8aaa; display: flex; gap: 8px; align-items: flex-start; cursor: default; }
@@ -379,19 +380,34 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
         <p><strong>No todos los incidentes generan líneas de log distintivas.</strong> Los ataques de red interna (VLAN Hopping, DHCP falso, DNS Spoofing, STP, Escalada de Privilegios, Exfiltración), los incidentes SST físicos (biometría, tailgating, clonación de tarjeta, CCTV) y SSL no producen una línea de log especial — para esos, tu evidencia sale de la <strong>Terminal</strong> (netstat) o del propio mapa/panel SST, no del visor de logs. Se indica explícitamente en cada tarjeta del catálogo.</p>
       </div>
 
-      <h4>Así se ve el panel de Logs — ejemplo Brute Force en <code>auth</code></h4>
+      <h4>Así se ve el panel de Logs — ejemplo Brute Force (haz clic en cada pestaña)</h4>
       <div class="logs-mockup">
         <div class="lm-head">
-          <span class="lm-sel">access</span><span class="lm-sel active">auth</span><span class="lm-sel">system</span>
+          <span class="lm-sel" data-lm="access" onclick="_lmShow(this,'access')">access</span><span class="lm-sel active" data-lm="auth" onclick="_lmShow(this,'auth')">auth</span><span class="lm-sel" data-lm="system" onclick="_lmShow(this,'system')">system</span>
         </div>
-        <div class="lm-body">
+        <div class="lm-body" id="lm-body-access" style="display:none">
+          <div class="lm-line"><span class="lm-flag">⬜</span>10.0.2.44 - - [26/Jun/2026:14:30:01 +0000] "GET /api/health HTTP/1.1" 200 1820 "-" "Mozilla/5.0"</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>198.51.100.176 - - [26/Jun/2026:14:30:22 +0000] "GET /api/login HTTP/1.1" 401 1426 "-" "python-requests/2.28.0"</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>198.51.100.176 - - [26/Jun/2026:14:30:25 +0000] "GET /api/login HTTP/1.1" 401 9115 "-" "python-requests/2.28.0"</div>
+          <div class="lm-line crit"><span class="lm-flag">⬜</span>198.51.100.176 - - [26/Jun/2026:14:30:27 +0000] "GET /api/login HTTP/1.1" 401 8776 "-" "python-requests/2.28.0"</div>
+          <div class="lm-line"><span class="lm-flag">⬜</span>10.0.3.12 - - [26/Jun/2026:14:30:29 +0000] "GET /static/css/main.css HTTP/1.1" 200 4200 "-" "Mozilla/5.0"</div>
+        </div>
+        <div class="lm-body" id="lm-body-auth">
           <div class="lm-line"><span class="lm-flag">⬜</span>Jun 26 14:30:02 web-01 CRON[4821]: (root) CMD (/usr/bin/check_health.sh)</div>
           <div class="lm-line"><span class="lm-flag">⬜</span>Jun 26 14:30:14 web-01 pam_unix(sudo:session): session opened for user admin</div>
-          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:22 web-01 sshd[5234]: Failed password for root from 203.0.113.45 port 52341 ssh2</div>
-          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:25 web-01 sshd[5237]: Failed password for admin from 203.0.113.45 port 52344 ssh2</div>
-          <div class="lm-line crit"><span class="lm-flag">⬜</span>Jun 26 14:30:27 web-01 sshd[5240]: Failed password for ubuntu from 203.0.113.45 port 52349 ssh2</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:22 web-01 sshd[5234]: Failed password for root from 198.51.100.176 port 52341 ssh2</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:25 web-01 sshd[5237]: Failed password for admin from 198.51.100.176 port 52344 ssh2</div>
+          <div class="lm-line crit"><span class="lm-flag">⬜</span>Jun 26 14:30:27 web-01 sshd[5240]: Failed password for ubuntu from 198.51.100.176 port 52349 ssh2</div>
+        </div>
+        <div class="lm-body" id="lm-body-system" style="display:none">
+          <div class="lm-line"><span class="lm-flag">⬜</span>Jun 26 14:30:05 web-01 systemd[1]: Started Daily apt download activities.</div>
+          <div class="lm-line"><span class="lm-flag">⬜</span>Jun 26 14:30:11 web-01 kernel: [99812] eth0: link is up</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:23 web-01 sshd[6102]: error: maximum authentication attempts exceeded for root from 198.51.100.176</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:26 web-01 sshd[6107]: error: maximum authentication attempts exceeded for root from 198.51.100.176</div>
+          <div class="lm-line"><span class="lm-flag">⬜</span>Jun 26 14:30:30 web-01 systemd-resolved[812]: Server returned error NXDOMAIN, mitigating potential DNS violation</div>
         </div>
       </div>
+      <p style="font-size:.72rem;color:var(--muted);margin-top:-4px">💡 Las 3 pestañas muestran <strong>el mismo incidente</strong> (Brute Force) desde 3 fuentes distintas — en una clase real, normalmente revisas <code>auth</code> o <code>system</code>, no las 3 a la vez.</p>
       <div class="alert-box success" style="margin-top:0"><span class="icon">✅</span><p>Con solo <strong>2 líneas marcadas</strong> (🚩) ya completas tu fase — no necesitas marcar todas las líneas sospechosas, solo las suficientes para confirmar el patrón y la IP.</p></div>
 
       <div class="steps">
@@ -911,6 +927,12 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 </main>
 
 <script>
+function _lmShow(el, type) {
+  const wrap = el.closest('.logs-mockup');
+  wrap.querySelectorAll('.lm-sel').forEach(s => s.classList.toggle('active', s === el));
+  wrap.querySelectorAll('.lm-body').forEach(b => b.style.display = (b.id === 'lm-body-' + type) ? '' : 'none');
+}
+
 const sections = document.querySelectorAll('section[id]');
 const navLinks = document.querySelectorAll('#sidebar a[href^="#"]');
 const observer = new IntersectionObserver((entries) => {
