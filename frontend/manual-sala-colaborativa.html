@@ -782,12 +782,23 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <p><strong>Importante:</strong> el simulador abre automáticamente el drawer de <strong>Firewall</strong> para el Técnico de Respuesta apenas entra a la sala, sin importar el tipo de incidente — es un comportamiento genérico, no significa que el firewall aplique aquí. <strong>Para incidentes SST, ignora ese drawer</strong> y usa el Panel SST descrito abajo.</p>
   </div>
 
+  <div class="alert-box danger">
+    <span class="icon">🚨</span>
+    <p><strong>El Protocolo SST NO es exclusivo de la Sala Colaborativa ni de un rol.</strong> Es una alerta global del simulador: cuando un sensor reporta un valor crítico, el panel naranja 🟠 se abre <strong>en la pantalla de los 4 integrantes al mismo tiempo</strong> (y en la de cualquier otro aprendiz conectado, esté o no en su sala). No hay ninguna regla que lo asigne al Técnico de Respuesta — cualquiera de los 4 lo ve y lo puede completar. Además, el resultado se guarda como <strong>logro individual de quien lo completó</strong>, sin ninguna conexión con la sala ni con la Bitácora Colaborativa.</p>
+  </div>
+
   <h4>Paso a paso — los 4 roles en un incidente físico</h4>
   <div class="steps">
     <div class="step"><div class="step-num teal">1</div><div class="step-content"><h5>T1-Monitor revisa el Panel SST, no las métricas de red</h5><p>En vez de CPU/RAM/tráfico, observas las lecturas de los sensores físicos (temperatura, humo, energía, accesos) en tiempo real. Reporta al equipo qué sensor está fuera de rango y su valor exacto.</p></div></div>
     <div class="step"><div class="step-num purple">2</div><div class="step-content"><h5>T2-Analista confirma el tipo de emergencia desde el mismo panel</h5><p>No hay log que revisar — tu "investigación" es leer la alerta y confirmar cuál de los 6 protocolos aplica (temperatura, humo, acceso físico, energía, humedad o consumo). Comunícalo al equipo.</p></div></div>
-    <div class="step"><div class="step-num red">3</div><div class="step-content"><h5>Técnico de Respuesta ejecuta el Protocolo SST (4 etapas)</h5><p>Cuando el sensor reporta un valor crítico, se abre automáticamente un panel naranja 🟠 con 4 etapas: 2 preguntas de opción múltiple sobre el riesgo y el orden de respuesta correcto, una etapa donde <strong>escribes cada acción del protocolo</strong> para confirmarla (ej. escribir <code>verificar crac</code>), y una etapa final donde <strong>redactas el registro</strong> de lo ocurrido. Si el panel no se abre solo, las acciones del protocolo están listadas en la tarjeta de cada ataque más abajo — repórtalas igual por chat.</p></div></div>
-    <div class="step"><div class="step-num yellow">4</div><div class="step-content"><h5>Líder TIC documenta y cierra</h5><p>Igual que con cualquier incidente: redacta el resumen en el chat y completa la Bitácora Colaborativa con lo que el equipo identificó y resolvió.</p></div></div>
+    <div class="step"><div class="step-num red">3</div><div class="step-content"><h5>El equipo se pone de acuerdo: <strong>uno solo</strong> completa el Protocolo SST</h5><p>Como el panel se abre igual en las 4 pantallas, el primero en avisar "yo lo tomo" en el chat lo completa — los otros 3 lo cierran sin diligenciarlo (botón ✕ o "Cerrar protocolo") para no duplicar el trabajo. Tiene sentido que sea el Técnico de Respuesta quien lo haga, pero el sistema no lo obliga: es una convención de equipo, acuérdenla apenas vean el panel.</p>
+      <p>El protocolo tiene 4 etapas: 2 preguntas de opción múltiple sobre el riesgo y el orden de respuesta correcto, una etapa donde <strong>escribes cada acción del protocolo</strong> para confirmarla (ej. escribir <code>verificar crac</code>), y una etapa final donde <strong>redactas el registro</strong> de lo ocurrido.</p></div></div>
+    <div class="step"><div class="step-num yellow">4</div><div class="step-content"><h5>Quien completó el protocolo comparte el resultado — y el Líder TIC lo lleva a la Bitácora</h5><p>Como el sistema <strong>no</strong> copia automáticamente el resultado del Protocolo SST a la Bitácora Colaborativa (son dos registros completamente separados), la persona que lo completó debe pegar en el chat lo que escribió en la etapa final. El Líder TIC toma ese texto y lo documenta también en la Bitácora Colaborativa, para que quede como evidencia oficial del equipo.</p></div></div>
+  </div>
+
+  <div class="alert-box info">
+    <span class="icon">💡</span>
+    <p>Si el panel no se abre automáticamente (por ejemplo, si ya lo cerraste antes, hay un cooldown de minutos antes de que vuelva a aparecer), no esperen — las acciones del protocolo están listadas en la tarjeta de cada ataque más abajo. Repórtenlas igual por chat y documenten en la Bitácora como si lo hubieran completado en pantalla.</p>
   </div>
 
   <h4>Así se ve el Protocolo SST (ejemplo: Sobrecalentamiento)</h4>
