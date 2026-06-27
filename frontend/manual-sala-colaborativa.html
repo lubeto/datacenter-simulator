@@ -198,6 +198,21 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 .logs-mockup .lm-line.ioc { background: rgba(239,68,68,.12); border-left: 3px solid var(--red); color: #fecaca; }
 .logs-mockup .lm-flag { font-size: 13px; flex-shrink: 0; }
 
+/* ── SST PROTOCOL MOCKUP ── */
+.sst-mockup { background: #1a0e00; border: 1px solid #f97316; border-radius: 10px; padding: 12px 14px; max-width: 520px; margin: 8px 0 16px; }
+.sst-mockup .sm-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.sst-mockup .sm-badge { background: #f97316; color: #1a0e00; font-weight: 800; font-size: 11px; padding: 2px 9px; border-radius: 100px; }
+.sst-mockup .sm-title { color: #fed7aa; font-weight: 700; font-size: 13px; }
+.sst-mockup .sm-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.sst-mockup .sm-tab { width: 22px; height: 4px; border-radius: 2px; background: #5c2e00; }
+.sst-mockup .sm-tab.done { background: #f97316; }
+.sst-mockup .sm-tab.active { background: #fbbf24; }
+.sst-mockup .sm-q { color: #f5f5f4; font-size: 12.5px; margin-bottom: 8px; }
+.sst-mockup .sm-opt { background: #2a1500; border: 1px solid #5c2e00; border-radius: 6px; padding: 6px 9px; font-size: 11.5px; color: #d6d3d1; margin-bottom: 5px; }
+.sst-mockup .sm-opt.correct { border-color: #4ade80; color: #bbf7d0; }
+.sst-mockup .sm-action { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #d6d3d1; padding: 3px 0; }
+.sst-mockup .sm-action.done { color: #bbf7d0; }
+
 /* ── FIREWALL PANEL MOCKUP ── */
 .fw-mockup { background: #0f172a; border: 1px solid #1e3a5f; border-radius: 10px; padding: 12px; max-width: 480px; margin: 8px 0 16px; }
 .fw-mockup .fw-row { display: flex; gap: 6px; margin-bottom: 8px; }
@@ -244,8 +259,10 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 
     <div class="nav-section">Catálogo de Ataques</div>
     <a href="#cat-red">⚔️ Ataques de Red</a>
+    <a class="sub" href="#ataques-internos">🕵️ Ataques internos: la IP</a>
     <a href="#cat-hw">💾 Fallas de Hardware</a>
     <a href="#cat-sst">🏢 Seguridad Física (SST)</a>
+    <a class="sub" href="#flujo-sin-terminal">🚫🖥️ Flujo sin Terminal/Logs</a>
     <a href="#cat-ssl">🔐 SSL / TLS</a>
 
     <div class="nav-section">Cierre</div>
@@ -591,6 +608,34 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
   <h2><span class="icon">⚔️</span>Catálogo de Ataques — Red</h2>
   <div class="cat-banner red">🔴 Estos incidentes siguen el flujo Terminal → Logs → Firewall. El Analista busca la IP, el Técnico de Respuesta bloquea.</div>
 
+  <h3 id="ataques-internos">🕵️ Caso especial — Ataques internos: ¿cómo se detecta la IP?</h3>
+  <p>6 de los 12 ataques de esta categoría (<strong>ARP Spoofing, VLAN Hopping, DHCP Falso, DNS Spoofing, STP, Escalada de Privilegios, Exfiltración</strong>) <strong>no vienen de afuera</strong> — el "atacante" ya está dentro de la red interna (rango <code>10.0.x.x</code>, igual que cualquier equipo legítimo). Por eso no aparecen en el visor de Logs ni en <code>tcpdump</code>: ahí está la confusión. La única pista es <code>netstat -an</code>, y hay que saber qué mirar.</p>
+
+  <h4>Paso a paso — cómo diferenciarlo de tráfico normal</h4>
+  <div class="steps">
+    <div class="step"><div class="step-num purple">1</div><div class="step-content"><h5>T2-Analista ejecuta <code>netstat -an</code> en el nodo afectado</h5><p>Vas a ver una mezcla de líneas: la mayoría son tráfico normal entre nodos del datacenter, y 2 o 3 son del "atacante" interno.</p></div></div>
+    <div class="step"><div class="step-num purple">2</div><div class="step-content"><h5>Compara los rangos de IP — esa es la única diferencia visible</h5><p>Tráfico normal: <code>10.0.1.x</code> a <code>10.0.5.x</code> (rango de los 12 nodos reales del mapa). Atacante interno: <code>10.0.9.x</code> (ARP/VLAN/DHCP/DNS/STP) o <code>10.0.8.x</code> (Escalada de Privilegios/Exfiltración) — <strong>rangos que nunca usan los nodos legítimos</strong>.</p></div></div>
+    <div class="step"><div class="step-num purple">3</div><div class="step-content"><h5>Confirma con la línea de advertencia</h5><p>Debajo de la lista de conexiones, el sistema marca explícitamente la línea sospechosa con ⚠️ y la palabra "no autorizada" — no tienes que adivinar, solo confirmar que el rango coincide con lo que viste en la lista.</p></div></div>
+    <div class="step"><div class="step-num purple">4</div><div class="step-content"><h5>Reporta el rango exacto al equipo</h5><p>Escribe en chat: <code>IP interna no autorizada: 10.0.9.83 — patrón de [tipo de ataque]</code></p></div></div>
+    <div class="step"><div class="step-num red">5</div><div class="step-content"><h5>Técnico de Respuesta bloquea esa IP igual que con un ataque externo</h5><p>En la pestaña Firewall, "Bloquear IP" con <code>10.0.9.83</code> (o el rango completo). El procedimiento es idéntico a bloquear una IP externa — la única diferencia es que esta vez la IP es interna.</p></div></div>
+  </div>
+
+  <h4>Así se ve — netstat con tráfico mezclado (ejemplo VLAN Hopping)</h4>
+  <div class="terminal">
+    <div class="terminal-header"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><span class="terminal-title">terminal@SW-CORE</span></div>
+    <div class="terminal-body">
+      <div class="cmd">netstat -an</div>
+      <div class="term-line">Proto Recv-Q Send-Q Local Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Foreign Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;State</div>
+      <div class="term-line">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;10.0.1.5:443&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10.0.2.18:51322&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ESTABLISHED <span style="color:#4ade80">← tráfico normal</span></div>
+      <div class="term-line">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;10.0.1.5:80&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10.0.3.41:33108&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ESTABLISHED <span style="color:#4ade80">← tráfico normal</span></div>
+      <div class="term-line warn">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;10.0.1.5:443&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>10.0.9.83:51899</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ESTABLISHED <span style="color:#fca5a5">← rango 10.0.9.x, no es un nodo del mapa</span></div>
+      <div class="term-line">Total de conexiones activas: 47</div>
+      <div class="term-line warn">⚠ tráfico anómalo desde 10.0.9.83 — IP interna no autorizada</div>
+    </div>
+  </div>
+
+  <div class="alert-box info"><span class="icon">💡</span><p>Truco rápido: <strong>memoricen solo 2 rangos</strong> — si ven <code>10.0.9.x</code> o <code>10.0.8.x</code> en netstat, es el atacante, sin importar el tipo exacto de ataque interno. El catálogo de abajo te dice cuál de los dos rangos corresponde a cada ataque.</p></div>
+
   <div class="attack-card">
     <div class="attack-header"><div class="attack-icon">💥</div><div><div class="attack-name">Ataque DoS</div><div class="attack-meta">Inundación desde una sola IP — satura el ancho de banda</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
     <div class="attack-body"><div class="info-grid">
@@ -728,6 +773,33 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 <section class="section" id="cat-sst">
   <h2><span class="icon">🏢</span>Catálogo de Ataques — Seguridad Física (SST)</h2>
   <div class="cat-banner sst">🟡 No usan Terminal ni Firewall — son emergencias físicas. El Técnico de Respuesta ejecuta el <strong>protocolo de respuesta físico</strong> correspondiente.</div>
+
+  <h3 id="flujo-sin-terminal">🚫🖥️ Flujo cuando NO hay Terminal ni Logs — Protocolo SST</h3>
+  <p>Esta es la parte que más confunde: si no hay terminal ni logs, <strong>¿qué hace exactamente cada rol?</strong> La respuesta es que estos incidentes usan una herramienta distinta — el <strong>Panel SST</strong> y su <strong>Protocolo de Respuesta interactivo</strong> — que reemplazan completamente a Terminal/Logs/Firewall para este tipo de emergencia.</p>
+
+  <div class="alert-box warn">
+    <span class="icon">⚠️</span>
+    <p><strong>Importante:</strong> el simulador abre automáticamente el drawer de <strong>Firewall</strong> para el Técnico de Respuesta apenas entra a la sala, sin importar el tipo de incidente — es un comportamiento genérico, no significa que el firewall aplique aquí. <strong>Para incidentes SST, ignora ese drawer</strong> y usa el Panel SST descrito abajo.</p>
+  </div>
+
+  <h4>Paso a paso — los 4 roles en un incidente físico</h4>
+  <div class="steps">
+    <div class="step"><div class="step-num teal">1</div><div class="step-content"><h5>T1-Monitor revisa el Panel SST, no las métricas de red</h5><p>En vez de CPU/RAM/tráfico, observas las lecturas de los sensores físicos (temperatura, humo, energía, accesos) en tiempo real. Reporta al equipo qué sensor está fuera de rango y su valor exacto.</p></div></div>
+    <div class="step"><div class="step-num purple">2</div><div class="step-content"><h5>T2-Analista confirma el tipo de emergencia desde el mismo panel</h5><p>No hay log que revisar — tu "investigación" es leer la alerta y confirmar cuál de los 6 protocolos aplica (temperatura, humo, acceso físico, energía, humedad o consumo). Comunícalo al equipo.</p></div></div>
+    <div class="step"><div class="step-num red">3</div><div class="step-content"><h5>Técnico de Respuesta ejecuta el Protocolo SST (4 etapas)</h5><p>Cuando el sensor reporta un valor crítico, se abre automáticamente un panel naranja 🟠 con 4 etapas: 2 preguntas de opción múltiple sobre el riesgo y el orden de respuesta correcto, una etapa donde <strong>escribes cada acción del protocolo</strong> para confirmarla (ej. escribir <code>verificar crac</code>), y una etapa final donde <strong>redactas el registro</strong> de lo ocurrido. Si el panel no se abre solo, las acciones del protocolo están listadas en la tarjeta de cada ataque más abajo — repórtalas igual por chat.</p></div></div>
+    <div class="step"><div class="step-num yellow">4</div><div class="step-content"><h5>Líder TIC documenta y cierra</h5><p>Igual que con cualquier incidente: redacta el resumen en el chat y completa la Bitácora Colaborativa con lo que el equipo identificó y resolvió.</p></div></div>
+  </div>
+
+  <h4>Así se ve el Protocolo SST (ejemplo: Sobrecalentamiento)</h4>
+  <div class="sst-mockup">
+    <div class="sm-head"><span class="sm-badge">🌡️ PROTOCOLO SST</span><span class="sm-title">Temperatura Crítica</span></div>
+    <div class="sm-tabs"><span class="sm-tab done"></span><span class="sm-tab done"></span><span class="sm-tab active"></span><span class="sm-tab"></span></div>
+    <div class="sm-q">Aplica el protocolo de temperatura — escribe cada acción para confirmarla:</div>
+    <div class="sm-action done">✅ Verificar unidad CRAC/CRAH del área afectada</div>
+    <div class="sm-action done">✅ Aumentar velocidad de ventiladores al 100%</div>
+    <div class="sm-action">⬜ Revisar obstrucciones en pasillos fríos/calientes</div>
+  </div>
+  <p style="font-size:.72rem;color:var(--muted);margin-top:-4px">Las 4 etapas en orden: <strong>1)</strong> pregunta de riesgo, <strong>2)</strong> pregunta de orden de respuesta, <strong>3)</strong> confirmar cada acción escribiéndola (como en la imagen), <strong>4)</strong> redactar el registro final del incidente.</p>
 
   <div class="attack-card">
     <div class="attack-header"><div class="attack-icon">🌡️</div><div><div class="attack-name">Sobrecalentamiento</div><div class="attack-meta">Falla de CRAC — temperatura sube 0.5°C/min</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
