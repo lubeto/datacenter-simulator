@@ -405,6 +405,15 @@ async def analytics_page():
     return HTMLResponse("<h1>Analytics</h1>")
 
 
+@app.get("/manual-sala-colaborativa", response_class=HTMLResponse)
+async def manual_sala_colaborativa():
+    html_path = os.path.join(FRONTEND_DIR, "manual-sala-colaborativa.html")
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>Manual no encontrado</h1>")
+
+
 # ── Health Check ─────────────────────────────────────────────
 @app.get("/health")
 async def health():

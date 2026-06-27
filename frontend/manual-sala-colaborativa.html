@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de Sala Colaborativa — DC Monitoring Simulator</title>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #0f1628;
+  --bg3: #141c35;
+  --border: #1e2d50;
+  --accent: #4f8ef7;
+  --accent2: #7c3aed;
+  --teal: #0d9488;
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --muted: #7a8aaa;
+  --code-bg: #0d1117;
+  --sidebar-w: 290px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w);
+  background: var(--bg2); border-right: 1px solid var(--border);
+  position: fixed; top: 0; left: 0; height: 100vh;
+  overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+}
+#sidebar .logo {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; color: var(--teal); text-transform: uppercase;
+  letter-spacing: 1px;
+}
+#sidebar .logo span { display: block; font-size: 11px; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; margin-top: 2px; }
+#sidebar nav { flex: 1; padding: 8px 0; }
+#sidebar .nav-section { padding: 16px 16px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; }
+#sidebar a {
+  display: block; padding: 7px 16px 7px 20px;
+  font-size: 13px; color: var(--muted); text-decoration: none;
+  border-left: 3px solid transparent; transition: all .15s;
+}
+#sidebar a:hover, #sidebar a.active { color: var(--text); border-left-color: var(--teal); background: rgba(13,148,136,.08); }
+#sidebar a.sub { padding-left: 30px; font-size: 12px; }
+
+/* ── CONTENT ── */
+#content { margin-left: var(--sidebar-w); flex: 1; padding: 40px 48px 80px; max-width: 1150px; }
+
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(135deg, #042f2e 0%, #1a0538 100%);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 40px; margin-bottom: 40px;
+}
+.hero h1 { font-size: 28px; color: #fff; margin-bottom: 8px; }
+.hero .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+.hero .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+.badge.critical { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+.badge.warning { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
+.badge.info  { background: rgba(6,182,212,.15); color: var(--cyan); border: 1px solid rgba(6,182,212,.3); }
+.badge.success { background: rgba(16,185,129,.15); color: var(--green); border: 1px solid rgba(16,185,129,.3); }
+.badge.teal { background: rgba(13,148,136,.18); color: #5eead4; border: 1px solid rgba(13,148,136,.4); }
+
+/* ── SECTIONS ── */
+.section { margin-bottom: 60px; }
+h2 { font-size: 22px; color: #fff; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+h2 .icon { margin-right: 8px; }
+h3 { font-size: 16px; color: var(--cyan); margin: 24px 0 10px; }
+h4 { font-size: 13px; color: var(--yellow); margin: 16px 0 8px; text-transform: uppercase; letter-spacing: .5px; }
+p { font-size: 14px; line-height: 1.7; color: var(--muted); margin-bottom: 10px; }
+ul, ol { padding-left: 20px; }
+li { font-size: 13.5px; color: var(--muted); line-height: 1.8; }
+code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radius: 4px; font-size: 12.5px; font-family: 'Cascadia Code', 'Courier New', monospace; }
+
+/* ── ROLE CARD ── */
+.role-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 24px; overflow: hidden; }
+.role-header { padding: 16px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+.role-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.role-name { font-size: 17px; font-weight: 700; color: #fff; }
+.role-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.role-body { padding: 20px; }
+.role-body > * { margin-bottom: 16px; }
+.role-body > *:last-child { margin-bottom: 0; }
+
+/* ── STEPS ── */
+.steps { counter-reset: step; }
+.step { display: flex; gap: 14px; margin-bottom: 12px; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.step-num.green  { background: var(--green); }
+.step-num.yellow { background: var(--yellow); }
+.step-num.red    { background: var(--red); }
+.step-num.teal   { background: var(--teal); }
+.step-num.purple { background: var(--accent2); }
+.step-content h5 { font-size: 13px; color: #fff; margin-bottom: 4px; }
+.step-content p  { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+
+/* ── ATTACK CARD (catálogo) ── */
+.attack-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+.attack-header { padding: 13px 18px; display: flex; align-items: center; gap: 12px; }
+.attack-icon { font-size: 20px; width: 38px; height: 38px; border-radius: 9px; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,.05); flex-shrink:0; }
+.attack-name { font-size: 14.5px; font-weight: 700; color: #fff; }
+.attack-meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.attack-body { padding: 0 18px 16px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+.info-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+.info-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
+.info-box ul { padding-left: 14px; margin: 0; }
+.info-box li { font-size: 12.5px; color: var(--text); line-height: 1.55; }
+@media (max-width: 760px) { .info-grid { grid-template-columns: 1fr; } }
+
+/* ── TERMINAL BLOCK ── */
+.terminal { background: var(--code-bg); border: 1px solid #1e2d50; border-radius: 8px; overflow: hidden; margin: 8px 0 16px; }
+.terminal-header { background: #161b27; padding: 8px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #1e2d50; }
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-dot.red   { background: #ff5f57; }
+.terminal-dot.yellow{ background: #febc2e; }
+.terminal-dot.green { background: #28c840; }
+.terminal-title { font-size: 12px; color: var(--muted); margin-left: 4px; font-family: monospace; }
+.terminal-body { padding: 14px; font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 12.5px; line-height: 1.6; }
+.cmd  { color: #79c0ff; }
+.cmd::before { content: '$ '; color: #3fb950; }
+.term-line { color: #7a8aaa; }
+.term-line.ok    { color: #3fb950; }
+.term-line.warn  { color: #d29922; }
+
+/* ── NODE TABLE ── */
+.node-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+.node-table th { background: var(--bg3); color: var(--muted); text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+.node-table td { padding: 9px 12px; border-bottom: 1px solid rgba(30,45,80,.5); color: var(--text); vertical-align: top; }
+.node-table tr:last-child td { border-bottom: none; }
+.node-table tr:hover td { background: rgba(13,148,136,.05); }
+
+/* ── ALERT BOX ── */
+.alert-box { border-radius: 8px; padding: 14px 18px; margin: 12px 0; display: flex; gap: 12px; align-items: flex-start; }
+.alert-box.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); }
+.alert-box.danger { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); }
+.alert-box.info  { background: rgba(79,142,247,.08); border: 1px solid rgba(79,142,247,.25); }
+.alert-box.success { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.25); }
+.alert-box.teal { background: rgba(13,148,136,.08); border: 1px solid rgba(13,148,136,.3); }
+.alert-box .icon { font-size: 18px; flex-shrink: 0; }
+.alert-box p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text); }
+
+/* ── MISSION FLOW (diagrama de 4 fases) ── */
+.mission-flow { display: flex; gap: 0; margin: 20px 0; flex-wrap: wrap; }
+.mf-step { flex: 1; min-width: 140px; background: var(--bg3); border: 1px solid var(--border); padding: 16px 12px; text-align: center; position: relative; }
+.mf-step:first-child { border-radius: 8px 0 0 8px; }
+.mf-step:last-child  { border-radius: 0 8px 8px 0; }
+.mf-step:not(:last-child)::after { content: '→'; position: absolute; right: -14px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--teal); z-index: 1; }
+.mf-icon { font-size: 26px; display: block; margin-bottom: 6px; }
+.mf-num { font-size: 11px; font-weight: 800; color: var(--teal); display: block; text-transform: uppercase; letter-spacing: .5px; }
+.mf-label { font-size: 13px; color: #fff; font-weight: 700; display: block; margin-top: 2px; }
+.mf-role { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
+
+/* ── ROLE PILL ── */
+.role-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 100px; font-size: 11.5px; font-weight: 700; }
+.role-pill.t1 { background: rgba(6,182,212,.15); color: var(--cyan); border: 1px solid rgba(6,182,212,.3); }
+.role-pill.t2 { background: rgba(124,58,237,.15); color: #a78bfa; border: 1px solid rgba(124,58,237,.3); }
+.role-pill.resp { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+.role-pill.com { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
+
+/* ── CAT TABS (catálogo de ataques) ── */
+.cat-banner { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 8px; margin: 18px 0 14px; font-weight: 700; font-size: 13.5px; }
+.cat-banner.red { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
+.cat-banner.sst { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: #fcd34d; }
+.cat-banner.hw  { background: rgba(156,163,175,.12); border: 1px solid rgba(156,163,175,.3); color: #d1d5db; }
+.cat-banner.ssl { background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.3); color: #c4b5fd; }
+
+/* ── MOCKUP (banner simulado dentro del simulador) ── */
+.mockup { background: #0f172a; border: 2px solid #0d9488; border-radius: 10px; padding: 10px; max-width: 360px; font-size: 11px; }
+.mockup .mhead { background: #0d9488; color: #fff; font-weight: 700; padding: 6px 8px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px; font-size: 11.5px; }
+.mockup .mattack { background: #7c2d12; color: #fed7aa; font-weight: 700; padding: 6px 8px; border-radius: 6px; margin-bottom: 6px; }
+.mockup .mphase { border-radius: 6px; padding: 5px 7px; margin-bottom: 4px; font-size: 10.5px; line-height: 1.4; }
+.mockup .mphase.active { background: #1e3a3a; border: 1px solid #0d9488; color: #5eead4; }
+.mockup .mphase.inactive { background: #0c1a2e; border: 1px solid #134e4a; color: #cbd5e1; }
+
+/* ── LOCK MOCKUP ── */
+.lock-mockup { background: rgba(10,14,26,.96); border: 1px solid var(--border); border-radius: 10px; padding: 30px 20px; text-align: center; max-width: 380px; }
+.lock-mockup .licon { font-size: 38px; margin-bottom: 10px; }
+.lock-mockup h5 { color: var(--yellow); font-size: 14px; margin-bottom: 8px; }
+.lock-mockup p { font-size: 12px; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+/* ── CHECKLIST ── */
+.checklist { list-style: none; padding: 0; }
+.checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid rgba(30,45,80,.4); font-size: 13.5px; color: var(--text); }
+.checklist li:last-child { border-bottom: none; }
+.checklist .chk { color: var(--green); font-weight: 800; flex-shrink: 0; }
+
+@media print {
+  #sidebar { display: none; }
+  #content { margin-left: 0; padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="logo">🤝 Sala Colaborativa<span>DC Monitoring Simulator</span></div>
+  <nav>
+    <div class="nav-section">Introducción</div>
+    <a href="#intro">¿Qué es la Sala Colaborativa?</a>
+    <a href="#exclusivo">🔒 Modo Exclusivo</a>
+
+    <div class="nav-section">El Equipo</div>
+    <a href="#roles">Los 4 roles</a>
+    <a class="sub" href="#role-t1">📡 T1-Monitor</a>
+    <a class="sub" href="#role-t2">🔍 T2-Analista</a>
+    <a class="sub" href="#role-resp">🛡️ Responder</a>
+    <a class="sub" href="#role-com">📢 Comunicador</a>
+
+    <div class="nav-section">La Sesión</div>
+    <a href="#flujo">Flujo de equipo paso a paso</a>
+    <a href="#fases">Tu pantalla: ataque + fases</a>
+    <a href="#acciones">Acciones automáticas</a>
+
+    <div class="nav-section">Catálogo de Ataques</div>
+    <a href="#cat-red">⚔️ Ataques de Red</a>
+    <a href="#cat-hw">💾 Fallas de Hardware</a>
+    <a href="#cat-sst">🏢 Seguridad Física (SST)</a>
+    <a href="#cat-ssl">🔐 SSL / TLS</a>
+
+    <div class="nav-section">Cierre</div>
+    <a href="#bitacora">Bitácora Colaborativa</a>
+    <a href="#informe">Informe de cierre con IA</a>
+    <a href="#checklist">Checklist final</a>
+  </nav>
+</aside>
+
+<main id="content">
+
+<div class="hero">
+  <h1>🤝 Manual de Sala Colaborativa</h1>
+  <p class="subtitle">Cómo trabajar en equipo para detectar, analizar y mitigar un incidente real, con roles claros y un objetivo común.</p>
+  <div class="badges">
+    <span class="badge teal">4 Roles</span>
+    <span class="badge info">25 tipos de incidente</span>
+    <span class="badge success">Bitácora + Informe IA</span>
+    <span class="badge warning">Modo Exclusivo</span>
+  </div>
+</div>
+
+<!-- ═══ INTRO ═══ -->
+<section class="section" id="intro">
+  <h2><span class="icon">❓</span>¿Qué es la Sala Colaborativa?</h2>
+  <p>La Sala Colaborativa simula un <strong>equipo SOC (Security Operations Center) real</strong>: el instructor asigna un incidente activo (un tipo de ataque, en un nodo específico) a un grupo de <strong>4 aprendices</strong>, cada uno con un rol distinto. El equipo debe coordinarse — por chat y por sus herramientas individuales — para detectar, analizar y mitigar el incidente <strong>antes de que el instructor cierre la sala</strong>.</p>
+
+  <div class="alert-box teal">
+    <span class="icon">ℹ️</span>
+    <p><strong>¿Cómo sé que estoy en una sala?</strong> El instructor te asigna desde su panel. En cuanto lo haga, verás aparecer el botón <strong>🤝 Sala</strong> en la barra superior de tu dashboard. Haz clic ahí para abrir el panel de equipo — verás tu rol, tus compañeros, el chat y la guía de fases del ataque asignado.</p>
+  </div>
+
+  <h3>Diferencia con el panel guiado individual</h3>
+  <table class="node-table">
+    <thead><tr><th></th><th>Panel Guiado (individual)</th><th>Sala Colaborativa</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Quién resuelve</strong></td><td>Tú solo, contra el cronómetro</td><td>Un equipo de 4, coordinado por chat</td></tr>
+      <tr><td><strong>Cómo se evalúa</strong></td><td>4 preguntas de opción múltiple + misión</td><td>Acciones reales (firewall, terminal, logs) + bitácora</td></tr>
+      <tr><td><strong>Tu bitácora</strong></td><td>Resume lo que tú resolviste</td><td>Resume lo que tú aportaste desde tu rol específico</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ MODO EXCLUSIVO ═══ -->
+<section class="section" id="exclusivo">
+  <h2><span class="icon">🔒</span>Modo Exclusivo de Sala Colaborativa</h2>
+  <p>Cuando el instructor quiere que <strong>toda la clase</strong> se concentre solo en el ejercicio de Sala Colaborativa (sin ataques individuales sueltos compitiendo por atención), activa el <strong>Modo Exclusivo</strong>. Esto cambia el comportamiento del simulador para todos:</p>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <div class="label">✅ Si estás asignado a una sala activa</div>
+      <ul>
+        <li>No notas ningún cambio — sigues trabajando con normalidad en tu rol.</li>
+        <li>El chat, el firewall, los logs y la terminal de tu rol siguen disponibles.</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <div class="label">🔒 Si NO estás en ninguna sala activa</div>
+      <ul>
+        <li>Tu dashboard se bloquea por completo con una pantalla de aviso.</li>
+        <li>No puedes detectar incidentes individuales ni interactuar con nada hasta que el instructor desactive el modo o te asignen a una sala.</li>
+        <li>Los ataques automáticos sueltos quedan desactivados — no aparecen incidentes nuevos fuera de las salas.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Lo que verás si quedas bloqueado</h3>
+  <div class="lock-mockup">
+    <div class="licon">🤝🔒</div>
+    <h5>Modo Sala Colaborativa Exclusiva</h5>
+    <p style="color:#fef3c7">El instructor activó una práctica exclusiva de Sala Colaborativa. Solo los aprendices asignados a una sala pueden interactuar con el simulador en este momento.</p>
+  </div>
+
+  <div class="alert-box warn">
+    <span class="icon">⚠️</span>
+    <p>Si ves esta pantalla y crees que deberías estar en una sala, <strong>avisa al instructor de inmediato</strong> — probablemente falta agregarte como miembro.</p>
+  </div>
+</section>
+
+<!-- ═══ ROLES ═══ -->
+<section class="section" id="roles">
+  <h2><span class="icon">🎭</span>Los 4 Roles del Equipo</h2>
+  <p>Cada rol tiene una responsabilidad clara y una herramienta principal que se abre automáticamente al entrar a la sala. No son compartimentos cerrados — puedes ver otras pestañas — pero <strong>tu aporte principal es el de tu rol</strong>. El orden natural de trabajo es: <span class="role-pill t1">📡 T1</span> detecta → <span class="role-pill t2">🔍 T2</span> analiza → <span class="role-pill resp">🛡️ Responder</span> mitiga → <span class="role-pill com">📢 Comunicador</span> documenta y cierra.</p>
+
+  <!-- T1-Monitor -->
+  <div class="role-card" id="role-t1">
+    <div class="role-header" style="background:rgba(6,182,212,.1)">
+      <div class="role-icon" style="background:rgba(6,182,212,.18)">📡</div>
+      <div><div class="role-name">T1-Monitor</div><div class="role-meta">Vigilancia de métricas en tiempo real</div></div>
+      <span class="role-pill t1" style="margin-left:auto">FASE 1 · DETECTAR</span>
+    </div>
+    <div class="role-body">
+      <p>Eres los ojos del equipo. Observas el mapa de red y las métricas de todos los nodos para identificar cuál está bajo ataque y qué tan grave es. <strong>Hablas primero</strong> — sin tu reporte, nadie más sabe dónde mirar.</p>
+      <div class="steps">
+        <div class="step"><div class="step-num teal">1</div><div class="step-content"><h5>Observa el mapa de red</h5><p>Busca nodos en rojo (ataque activo) o amarillo (warning). El nodo afectado tendrá CPU, RAM, latencia o tráfico fuera de lo normal.</p></div></div>
+        <div class="step"><div class="step-num teal">2</div><div class="step-content"><h5>Informa al equipo por chat</h5><p>Escribe en el chat algo como: <code>Nodo WEB-01 — CPU 98% — tráfico entrante 920 Mbps. Posible DDoS.</code></p></div></div>
+        <div class="step"><div class="step-num teal">3</div><div class="step-content"><h5>Monitorea durante toda la respuesta</h5><p>Informa si las métricas mejoran o empeoran mientras el equipo actúa: "bajó a 60% CPU" o "sigue crítico".</p></div></div>
+        <div class="step"><div class="step-num teal">4</div><div class="step-content"><h5>Confirma la mitigación</h5><p>Cuando el Responder bloquee la IP o aplique la acción, confirma si las métricas vuelven a niveles normales.</p></div></div>
+      </div>
+      <div class="alert-box success"><span class="icon">✅</span><p><strong>Frase clave de reporte:</strong> "Nodo [NOMBRE] — [MÉTRICA] en [VALOR] — [TENDENCIA: subiendo / bajando / estable]"</p></div>
+    </div>
+  </div>
+
+  <!-- T2-Analista -->
+  <div class="role-card" id="role-t2">
+    <div class="role-header" style="background:rgba(124,58,237,.1)">
+      <div class="role-icon" style="background:rgba(124,58,237,.18)">🔍</div>
+      <div><div class="role-name">T2-Analista</div><div class="role-meta">Análisis de logs y evidencias</div></div>
+      <span class="role-pill t2" style="margin-left:auto">FASE 2 · ANALIZAR</span>
+    </div>
+    <div class="role-body">
+      <p>Eres el investigador forense del equipo. Revisas los logs del nodo afectado para identificar la IP atacante, el proceso malicioso o el patrón del ataque. Tu análisis es lo que el Responder necesita antes de actuar.</p>
+      <div class="steps">
+        <div class="step"><div class="step-num purple">1</div><div class="step-content"><h5>Abre la pestaña Logs</h5><p>El simulador la abre automáticamente al entrar a la sala. Busca líneas en rojo (crítico) con IPs externas o mensajes de error.</p></div></div>
+        <div class="step"><div class="step-num purple">2</div><div class="step-content"><h5>Identifica la IP atacante</h5><p>Cada categoría de ataque tiene su propio rango de IP (ver el catálogo más abajo). Cruza el rango con lo que ves en el log.</p></div></div>
+        <div class="step"><div class="step-num purple">3</div><div class="step-content"><h5>Marca la línea como IOC</h5><p>Haz clic en la línea sospechosa para marcarla 🚩. Aparecerá el botón <code>🔥 IP → FW</code> que precarga la IP en Firewall.</p></div></div>
+        <div class="step"><div class="step-num purple">4</div><div class="step-content"><h5>Informa la IP al equipo</h5><p>Escribe en chat: <code>IP atacante confirmada: 203.0.113.47 — brute force SSH — 847 intentos en 2 min</code></p></div></div>
+        <div class="step"><div class="step-num purple">5</div><div class="step-content"><h5>Ejecuta comandos de verificación</h5><p>En Terminal: <code>netstat -an</code>, <code>tail -f /var/log/auth.log</code>, <code>ps aux</code>. Comparte los hallazgos relevantes por chat.</p></div></div>
+      </div>
+      <div class="alert-box warn"><span class="icon">⚠️</span><p><strong>No bloquees tú la IP</strong> — esa acción le corresponde al Responder. Tu trabajo es identificarla y comunicarla con total claridad.</p></div>
+    </div>
+  </div>
+
+  <!-- Responder -->
+  <div class="role-card" id="role-resp">
+    <div class="role-header" style="background:rgba(239,68,68,.1)">
+      <div class="role-icon" style="background:rgba(239,68,68,.18)">🛡️</div>
+      <div><div class="role-name">Responder</div><div class="role-meta">Contención y mitigación activa</div></div>
+      <span class="role-pill resp" style="margin-left:auto">FASE 3 · MITIGAR</span>
+    </div>
+    <div class="role-body">
+      <p>Eres quien ejecuta las acciones defensivas. Cuando el Analista confirme la IP o la causa, tú aplicas la regla de firewall, reinicias el servicio comprometido o ejecutas el protocolo físico correspondiente (en incidentes SST).</p>
+      <div class="steps">
+        <div class="step"><div class="step-num red">1</div><div class="step-content"><h5>Espera la confirmación del Analista</h5><p>No actúes hasta tener la IP o causa confirmada en el chat. Actuar sobre datos equivocados bloquea tráfico legítimo o pierde tiempo valioso.</p></div></div>
+        <div class="step"><div class="step-num red">2</div><div class="step-content"><h5>Abre la pestaña Firewall</h5><p>Se abre automáticamente al entrar a la sala. Ingresa la IP en "Bloquear IP" o el puerto en "Bloquear Puerto" y confirma.</p></div></div>
+        <div class="step"><div class="step-num red">3</div><div class="step-content"><h5>Confirma la regla aplicada</h5><p>Verifica que aparece como <code>DROP &lt;IP&gt;</code> en la lista. Esta acción se publica <strong>automáticamente</strong> en el chat de la sala.</p></div></div>
+        <div class="step"><div class="step-num red">4</div><div class="step-content"><h5>Reinicia el servicio si aplica</h5><p>Para fallas de proceso/servicio, en Terminal: <code>systemctl restart ssh</code> o <code>systemctl restart nginx</code>. También se registra automáticamente.</p></div></div>
+        <div class="step"><div class="step-num red">5</div><div class="step-content"><h5>Informa al equipo</h5><p>Escribe: <code>IP 203.0.113.47 bloqueada. Regla DROP aplicada. Esperando confirmación del monitor.</code></p></div></div>
+      </div>
+      <div class="alert-box success"><span class="icon">✅</span><p><strong>Cada bloqueo o reinicio que aplicas queda registrado automáticamente</strong> en el chat y en el Informe de cierre — no necesitas escribirlo dos veces.</p></div>
+    </div>
+  </div>
+
+  <!-- Comunicador -->
+  <div class="role-card" id="role-com">
+    <div class="role-header" style="background:rgba(245,158,11,.1)">
+      <div class="role-icon" style="background:rgba(245,158,11,.18)">📢</div>
+      <div><div class="role-name">Comunicador</div><div class="role-meta">Coordinación y documentación del equipo</div></div>
+      <span class="role-pill com" style="margin-left:auto">FASE 4 · REPORTAR</span>
+    </div>
+    <div class="role-body">
+      <p>Eres el coordinador del equipo. Mantienes el hilo de la conversación, sintetizas lo que dice cada rol, y eres quien redacta el resumen final del incidente que alimenta el Informe de cierre.</p>
+      <div class="steps">
+        <div class="step"><div class="step-num yellow">1</div><div class="step-content"><h5>Abre el ejercicio</h5><p>Cuando la sala se activa, presenta al equipo: <code>Sala activa. Equipo: T1, T2, Responder, Comunicador. Comenzamos.</code></p></div></div>
+        <div class="step"><div class="step-num yellow">2</div><div class="step-content"><h5>Registra los hallazgos</h5><p>A medida que el equipo reporta, anota: nodo afectado, IP atacante, tipo de ataque, hora de cada paso.</p></div></div>
+        <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>Coordina si hay silencio</h5><p>Si alguien no reporta, pregunta directo: <code>T2 — ¿encontraste la IP atacante?</code> o <code>Monitor — ¿cómo van las métricas?</code></p></div></div>
+        <div class="step"><div class="step-num yellow">4</div><div class="step-content"><h5>Redacta el resumen final</h5><p>Cuando el Responder confirme la mitigación, publica el cierre del incidente en el chat:</p>
+          <div class="terminal" style="margin-top:8px">
+            <div class="terminal-header"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><span class="terminal-title">chat — sala</span></div>
+            <div class="terminal-body">
+              <div class="term-line">RESUMEN DEL INCIDENTE</div>
+              <div class="term-line">Nodo: WEB-01 | Ataque: DDoS | Severidad: Crítica</div>
+              <div class="term-line">IP bloqueada: 203.0.113.47</div>
+              <div class="term-line">Tiempo de respuesta: ~8 minutos</div>
+              <div class="term-line ok">Estado: MITIGADO ✅</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="step"><div class="step-num yellow">5</div><div class="step-content"><h5>Completa la Bitácora Colaborativa</h5><p>Abre 📋 Bitácora y llena tu sección (Comunicador → Lecciones aprendidas) con base en todo lo que coordinaste.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FLUJO ═══ -->
+<section class="section" id="flujo">
+  <h2><span class="icon">🔄</span>Flujo de Equipo Paso a Paso</h2>
+  <p>Así se ve un ejercicio colaborativo completo, desde que el instructor activa la sala hasta que documentan el cierre. Las 4 fases del banner de tu pantalla corresponden directamente a este flujo:</p>
+
+  <div class="mission-flow">
+    <div class="mf-step"><span class="mf-icon">📡</span><span class="mf-num">FASE 1</span><span class="mf-label">Detectar</span><span class="mf-role">T1-Monitor</span></div>
+    <div class="mf-step"><span class="mf-icon">🔍</span><span class="mf-num">FASE 2</span><span class="mf-label">Analizar</span><span class="mf-role">T2-Analista</span></div>
+    <div class="mf-step"><span class="mf-icon">🛡️</span><span class="mf-num">FASE 3</span><span class="mf-label">Mitigar</span><span class="mf-role">Responder</span></div>
+    <div class="mf-step"><span class="mf-icon">📢</span><span class="mf-num">FASE 4</span><span class="mf-label">Reportar</span><span class="mf-role">Comunicador</span></div>
+  </div>
+
+  <div class="steps" style="margin-top:24px">
+    <div class="step"><div class="step-num teal">1</div><div class="step-content"><h5>El instructor crea la sala</h5><p>Recibes una notificación y aparece el botón <strong>🤝 Sala</strong> en tu barra superior. Haz clic para abrir el panel colaborativo.</p></div></div>
+    <div class="step"><div class="step-num teal">2</div><div class="step-content"><h5>Conoces tu rol y el ataque asignado</h5><p>El banner naranja te muestra el tipo de ataque y el nodo. Debajo, las 4 fases con el contenido específico de ese ataque — la tuya queda resaltada en verde.</p></div></div>
+    <div class="step"><div class="step-num green">3</div><div class="step-content"><h5>T1-Monitor reporta primero</h5><p>Identifica el nodo afectado en el mapa y comunica qué métricas están fuera de rango.</p></div></div>
+    <div class="step"><div class="step-num green">4</div><div class="step-content"><h5>T2-Analista investiga</h5><p>Revisa los logs, marca la línea IOC y comunica la IP atacante y el tipo de ataque al equipo.</p></div></div>
+    <div class="step"><div class="step-num yellow">5</div><div class="step-content"><h5>Responder actúa</h5><p>Con la causa confirmada, aplica la regla en Firewall o el protocolo correspondiente. Esto se publica automáticamente en el chat.</p></div></div>
+    <div class="step"><div class="step-num yellow">6</div><div class="step-content"><h5>T1-Monitor confirma la mejora</h5><p>Reporta si las métricas vuelven a la normalidad. Si no mejoran, el equipo revisa si hay más causas activas.</p></div></div>
+    <div class="step"><div class="step-num red">7</div><div class="step-content"><h5>Comunicador redacta el cierre</h5><p>Publica el resumen final: nodo, causa, tiempo de respuesta y estado.</p></div></div>
+    <div class="step"><div class="step-num red">8</div><div class="step-content"><h5>Todos completan su sección de la Bitácora Colaborativa</h5><p>Cada integrante llena su parte según su rol — la bitácora queda vinculada automáticamente a la sala.</p></div></div>
+  </div>
+
+  <div class="alert-box warn">
+    <span class="icon">⏱️</span>
+    <p><strong>Tiempo objetivo:</strong> un equipo bien coordinado resuelve el incidente en 5 a 10 minutos. Mientras más rápido y claro sea el reporte de cada rol, mejor queda el Informe de cierre.</p>
+  </div>
+</section>
+
+<!-- ═══ FASES EN PANTALLA ═══ -->
+<section class="section" id="fases">
+  <h2><span class="icon">🖥️</span>Tu Pantalla: Banner de Ataque + Fases</h2>
+  <p>Dentro del panel de la sala, en la columna izquierda, siempre vas a ver con total claridad <strong>qué ataque se está dando</strong> y <strong>las 4 fases a seguir</strong>, con contenido específico para ese tipo de incidente — no un texto genérico. La fase de tu propio rol queda resaltada.</p>
+
+  <div class="mockup">
+    <div class="mhead">🤝 Sala Colaborativa — Equipo Rojo</div>
+    <div class="mattack">🚨 Ataque DDoS Distribuido — Nodo WEB-01</div>
+    <div class="mphase active"><strong>📡 1. Detectar (tú)</strong><br>net_in_mbps &gt; 900 · connections &gt; 50000</div>
+    <div class="mphase inactive"><strong>🔍 2. Analizar</strong><br>Ataque coordinado desde múltiples IPs. Alta volumetría, difícil de bloquear por IP.</div>
+    <div class="mphase inactive"><strong>🛡️ 3. Mitigar</strong><br>Activar scrubbing center / CDN DDoS protection · Implementar blackhole routing (RTBH)</div>
+    <div class="mphase inactive"><strong>📢 4. Reportar</strong><br>Documenta lo ocurrido en la Bitácora Colaborativa y comunica el cierre al instructor.</div>
+  </div>
+
+  <div class="alert-box info">
+    <span class="icon">ℹ️</span>
+    <p>Este contenido viene directo del catálogo real de ataques del simulador — los mismos indicadores y pasos de mitigación que vas a encontrar en el catálogo completo más abajo. Si tienes dudas sobre qué significa un indicador, búscalo en la sección de tu categoría de ataque.</p>
+  </div>
+</section>
+
+<!-- ═══ ACCIONES AUTOMÁTICAS ═══ -->
+<section class="section" id="acciones">
+  <h2><span class="icon">⚡</span>Acciones que se Registran Automáticamente</h2>
+  <p>No necesitas escribir en el chat cada vez que ejecutas una acción técnica real — el simulador la detecta y la publica automáticamente para que todo el equipo (y el Informe de cierre) la vea.</p>
+
+  <table class="node-table">
+    <thead><tr><th>Acción</th><th>Cómo ejecutarla</th><th>Lo que aparece en el chat</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Bloquear IP</strong></td><td>Pestaña Firewall → campo "Bloquear IP" → clic en Bloquear</td><td><code>🛡️ Bloqueó IP: 203.0.113.47</code></td></tr>
+      <tr><td><strong>Bloquear Puerto</strong></td><td>Pestaña Firewall → campo "Bloquear Puerto" → clic en Bloquear</td><td><code>🛡️ Bloqueó puerto: 22</code></td></tr>
+      <tr><td><strong>Reiniciar servicio</strong></td><td>Terminal → <code>systemctl restart &lt;servicio&gt;</code></td><td><code>⚙️ Reinició servicio: systemctl restart ssh</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert-box info">
+    <span class="icon">ℹ️</span>
+    <p><strong>Estas mismas acciones alimentan el gráfico del Informe de cierre con IA</strong> que ve el instructor — entre más acciones técnicas reales registre el equipo (no solo mensajes de chat), más completo y preciso queda ese informe.</p>
+  </div>
+
+  <h3>Mensajes manuales de chat</h3>
+  <p>Para todo lo demás, usa el campo de texto de la columna derecha. Pulsa <strong>Enter</strong> o el botón <strong>Enviar</strong> para que llegue a todos los miembros en tiempo real. También puedes escribir <code>@IA tu pregunta</code> para consultar al asistente — responde para todo el equipo.</p>
+</section>
+
+<!-- ═══ CATÁLOGO — RED ═══ -->
+<section class="section" id="cat-red">
+  <h2><span class="icon">⚔️</span>Catálogo de Ataques — Red</h2>
+  <div class="cat-banner red">🔴 Estos incidentes siguen el flujo Terminal → Logs → Firewall. El Analista busca la IP, el Responder bloquea.</div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">💥</div><div><div class="attack-name">Ataque DoS</div><div class="attack-meta">Inundación desde una sola IP — satura el ancho de banda</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_in_mbps &gt; 800</li><li>latency_ms &gt; 200</li><li>packet_loss_pct &gt; 10</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar IP origen en logs del firewall</li><li>Aplicar ACL para bloquear IP atacante</li><li>Activar rate limiting en FW-01</li><li>Notificar al ISP si el ataque es externo</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🌊</div><div><div class="attack-name">Ataque DDoS Distribuido</div><div class="attack-meta">Coordinado desde múltiples IPs — alta volumetría</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_in_mbps &gt; 900</li><li>connections &gt; 50.000</li><li>packet_loss_pct &gt; 25</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Activar scrubbing center / CDN DDoS protection</li><li>Implementar blackhole routing (RTBH)</li><li>Distribuir carga entre múltiples servidores</li><li>Contactar al proveedor de upstream</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🌐</div><div><div class="attack-name">SYN Flood</div><div class="attack-meta">Explota el handshake TCP — agota conexiones semi-abiertas</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>connections &gt; 60.000</li><li>cpu_pct &gt; 85</li><li>latency_ms &gt; 300</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Habilitar SYN Cookies en el kernel</li><li>Reducir timeout de conexiones TCP</li><li>Implementar SYN proxy en el firewall</li><li>Filtrar por geolocalización si aplica</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🔑</div><div><div class="attack-name">Brute Force SSH</div><div class="attack-meta">Intentos masivos de autenticación desde IP externa</div></div><span class="badge warning" style="margin-left:auto">Warning</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>auth_failures &gt; 100/min</li><li>connections &gt; +200</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Bloquear IP atacante con fail2ban</li><li>Cambiar puerto SSH a no estándar</li><li>Deshabilitar login por contraseña (solo llaves)</li><li>Revisar /var/log/auth.log para IPs adicionales</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🔎</div><div><div class="attack-name">Escaneo de Puertos</div><div class="attack-meta">Reconocimiento activo — mapea servicios expuestos</div></div><span class="badge warning" style="margin-left:auto">Warning</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_in_mbps en picos</li><li>conexiones desde 1 IP a múltiples puertos</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar IP origen en logs</li><li>Bloquear IP en firewall perimetral</li><li>Revisar qué puertos fueron escaneados</li><li>Verificar que no hay puertos innecesarios abiertos</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">☠️</div><div><div class="attack-name">ARP Spoofing / MITM</div><div class="attack-meta">Envenenamiento de caché ARP — redirige tráfico de red</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>tablas ARP inconsistentes</li><li>latencia aumenta</li><li>advertencias SSL</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Activar Dynamic ARP Inspection en switches</li><li>Implementar ARP estático para IPs críticas</li><li>Aislar el segmento de red afectado</li><li>Identificar la MAC del atacante</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🔀</div><div><div class="attack-name">VLAN Hopping</div><div class="attack-meta">Salta entre VLANs explotando trunking 802.1Q</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>tráfico entre VLANs sin gateway</li><li>doble encapsulación 802.1Q</li><li>VLAN nativa sin cifrar</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Deshabilitar trunking automático (DTP)</li><li>Cambiar VLAN nativa a una sin uso</li><li>Activar VLAN pruning</li><li>Auditar trunks con <code>show interfaces trunk</code></li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">📡</div><div><div class="attack-name">Servidor DHCP Falso</div><div class="attack-meta">DHCP no autorizado asigna IPs falsas — MITM masivo</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>clientes con IPs inesperadas</li><li>gateway incorrecto asignado</li><li>múltiples DHCP OFFER en la red</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Activar DHCP Snooping en switches</li><li>Apagar el puerto del servidor falso</li><li>Marcar solo puertos legítimos como "trusted"</li><li>Renovar IPs de clientes afectados</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🧬</div><div><div class="attack-name">DNS Spoofing</div><div class="attack-meta">Caché DNS envenenada — redirige a sitios maliciosos</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>resoluciones DNS inconsistentes</li><li>certificado SSL no coincide con el dominio</li><li>usuarios reportan redirecciones</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Limpiar caché DNS (<code>rndc flush</code>)</li><li>Habilitar DNSSEC</li><li>Configurar DoH/DoT</li><li>Verificar integridad de <code>/etc/hosts</code></li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🌳</div><div><div class="attack-name">Ataque STP (Spanning Tree)</div><div class="attack-meta">BPDUs falsos para tomar el Root Bridge</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>el Root Bridge cambia inesperadamente</li><li>bucles de red activos</li><li>tráfico interrumpido en el segmento</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Habilitar BPDU Guard en puertos de acceso</li><li>Configurar Root Guard en uplinks legítimos</li><li>Definir manualmente el Root Bridge (prioridad baja)</li><li>Monitorear con <code>show spanning-tree detail</code></li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🔓</div><div><div class="attack-name">Escalada de Privilegios</div><div class="attack-meta">Usuario/proceso obtiene permisos root sin autorización</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li><code>sudo</code> inusual en logs</li><li>proceso no-root con UID=0</li><li>cambios en /etc/sudoers</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar proceso/usuario con <code>ps aux</code></li><li>Revocar permisos inmediatamente</li><li>Auditar /etc/sudoers y /etc/passwd</li><li>Aislar el servidor si el compromiso fue exitoso</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">📤</div><div><div class="attack-name">Exfiltración de Datos</div><div class="attack-meta">Transferencia masiva a destino externo no autorizado</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_out_mbps alto sostenido</li><li>conexiones a IPs externas inusuales</li><li>acceso masivo a base de datos</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Bloquear IP destino en firewall</li><li>Identificar proceso con <code>netstat -tulnp</code></li><li>Capturar tráfico para evidencia forense</li><li>Notificar al DPO según normativa</li></ul></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ═══ CATÁLOGO — HARDWARE ═══ -->
+<section class="section" id="cat-hw">
+  <h2><span class="icon">💾</span>Catálogo de Ataques — Fallas de Hardware</h2>
+  <div class="cat-banner hw">⚙️ No son ciberataques externos — son fallas internas de infraestructura. Igual requieren Terminal + Firewall/acción correctiva.</div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">💿</div><div><div class="attack-name">Falla de Disco RAID</div><div class="attack-meta">Errores SMART — degradación progresiva</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>disk_io_mbps &gt; 400</li><li>errores SMART</li><li>pico de I/O wait</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Verificar RAID: <code>mdadm --detail /dev/md0</code></li><li>Identificar disco con <code>smartctl -a /dev/sdX</code></li><li>Iniciar reconstrucción con disco de repuesto</li><li>Crear snapshot de datos críticos</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🧠</div><div><div class="attack-name">Memory Leak (Fuga de Memoria)</div><div class="attack-meta">RAM se agota progresivamente (+2%/min)</div></div><span class="badge warning" style="margin-left:auto">Warning</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>ram_pct sube progresivamente</li><li>swap activo</li><li>OOM killer</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar proceso con <code>top</code>/<code>htop</code></li><li>Verificar consumo: <code>ps aux --sort=-%mem</code></li><li>Reiniciar el servicio afectado</li><li>Implementar watchdog para reinicio automático</li></ul></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ═══ CATÁLOGO — SST ═══ -->
+<section class="section" id="cat-sst">
+  <h2><span class="icon">🏢</span>Catálogo de Ataques — Seguridad Física (SST)</h2>
+  <div class="cat-banner sst">🟡 No usan Terminal ni Firewall — son emergencias físicas. El Responder ejecuta el <strong>protocolo de respuesta físico</strong> correspondiente.</div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🌡️</div><div><div class="attack-name">Sobrecalentamiento</div><div class="attack-meta">Falla de CRAC — temperatura sube 0.5°C/min</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>temperatura &gt; 28°C</li><li>throttling de CPU</li><li>ventiladores a velocidad máxima</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar unidades CRAC/CRAH</li><li>Activar enfriamiento de emergencia</li><li>Migrar cargas críticas a otros racks</li><li>Apagar servidores no críticos</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">⚡</div><div><div class="attack-name">Corte de Energía</div><div class="attack-meta">PDU principal falla — UPS dura 15 min</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>UPS activo</li><li>baterías drenando</li><li>generador no arranca</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar UPS: <code>apcupsd status</code></li><li>Intentar activar generador de emergencia</li><li>Apagar sistemas no críticos</li><li>Activar plan de continuidad</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">💨</div><div><div class="attack-name">Alerta de Humo / Incendio</div><div class="attack-meta">Sensor de humo detecta partículas</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>smoke_ppm &gt; 10</li><li>detector activado</li><li>temperatura anómala en la zona</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar la zona físicamente</li><li>Activar supresión FM-200 si se confirma</li><li>Evacuar personal del DC</li><li>Activar plan de evacuación</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🚪</div><div><div class="attack-name">Acceso No Autorizado</div><div class="attack-meta">Intento de acceso físico sin credenciales válidas</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>ACCESS DENIED en zona restringida</li><li>badge inválido</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Revisar cámara CCTV del punto de acceso</li><li>Bloquear la tarjeta reportada</li><li>Notificar a seguridad física</li><li>Revisar logs de acceso de 24h</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🖐️</div><div><div class="attack-name">Violación de Biometría</div><div class="attack-meta">Huella o retina clonada — acceso con biometría falsificada</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>ACCESS GRANTED con biometría sospechosa</li><li>hora inusual de acceso</li><li>badge + biometría no coinciden</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Bloquear el lector biométrico comprometido</li><li>Revisar CCTV de las últimas 2 horas</li><li>Revocar el template biométrico afectado</li><li>Escalar a seguridad física y RRHH</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🚶</div><div><div class="attack-name">Tailgating</div><div class="attack-meta">Persona no autorizada entra siguiendo a un empleado</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>sensor de doble entrada activado</li><li>CCTV muestra 2 personas en 1 acceso</li><li>badge sin contrapartida de salida</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Activar bloqueo de mantrap</li><li>Identificar a la persona no autorizada en CCTV</li><li>Entrevistar al empleado que generó el acceso</li><li>Reforzar capacitación de escolta de visitantes</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">🪪</div><div><div class="attack-name">Clonación de Tarjeta RFID</div><div class="attack-meta">Badge duplicado ilegalmente</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>badge activo en dos ubicaciones simultáneas</li><li>acceso en horario no habitual</li><li>reporte de tarjeta robada</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Revocar el UID de la tarjeta comprometida</li><li>Emitir tarjeta nueva con UID diferente</li><li>Revisar accesos de las últimas 72h</li><li>Verificar lectores con posibles skimmers</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">📷</div><div><div class="attack-name">Sabotaje de Cámaras CCTV</div><div class="attack-meta">Cámara bloqueada, girada o desconectada</div></div><span class="badge warning" style="margin-left:auto">Warning</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>señal de cámara perdida</li><li>imagen congelada</li><li>cámara girada sin mantenimiento</li></ul></div>
+      <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar la cámara físicamente</li><li>Activar cámara de respaldo si existe</li><li>Incrementar patrullaje mientras se restaura</li><li>Investigar si fue intencional</li></ul></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ═══ CATÁLOGO — SSL ═══ -->
+<section class="section" id="cat-ssl">
+  <h2><span class="icon">🔐</span>Catálogo de Ataques — SSL / TLS</h2>
+  <div class="cat-banner ssl">🟣 El indicador clave no es una métrica de rendimiento, sino el estado del certificado/protocolo.</div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">❌</div><div><div class="attack-name">Certificado SSL Expirado</div><div class="attack-meta">HTTPS caído — error de seguridad en el navegador</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>days_to_expire ≤ 0</li><li>error SSL en el navegador</li><li>HTTPS caído</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Generar nuevo CSR para el dominio</li><li>Renovar el certificado con la CA</li><li>Instalar certificado en el servidor</li><li>Reiniciar nginx/apache</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">⌛</div><div><div class="attack-name">SSL Próximo a Vencer</div><div class="attack-meta">Vence en menos de 30 días</div></div><span class="badge warning" style="margin-left:auto">Warning</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>days_to_expire &lt; 30</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Programar la renovación</li><li>Verificar renovación automática (Let's Encrypt)</li><li>Notificar al equipo responsable</li></ul></div>
+    </div></div>
+  </div>
+
+  <div class="attack-card">
+    <div class="attack-header"><div class="attack-icon">⬇️</div><div><div class="attack-name">Downgrade de TLS</div><div class="attack-meta">Atacante fuerza TLS 1.0 — comunicación vulnerable</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
+    <div class="attack-body"><div class="info-grid">
+      <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>TLS 1.0 detectado</li><li>vulnerabilidad tipo POODLE/BEAST</li></ul></div>
+      <div class="info-box"><div class="label">Mitigación</div><ul><li>Deshabilitar TLS 1.0/1.1</li><li>Forzar TLS 1.2 mínimo (idealmente 1.3)</li><li>Revisar cipher suites configuradas</li><li>Auditar con <code>testssl.sh</code></li></ul></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ═══ BITÁCORA ═══ -->
+<section class="section" id="bitacora">
+  <h2><span class="icon">📋</span>Bitácora Colaborativa</h2>
+  <p>Cada integrante completa <strong>su propia sección</strong> dentro de una única bitácora por sala (botón 📋 Bitácora en el panel). Las secciones de tus compañeros son de solo lectura — la bitácora queda <strong>completa</strong> cuando los 4 roles guardaron la suya.</p>
+
+  <h3>¿Qué escribir según tu rol?</h3>
+  <table class="node-table">
+    <thead><tr><th>Rol</th><th>Sección</th><th>Qué redactar</th></tr></thead>
+    <tbody>
+      <tr><td><span class="role-pill t1">📡 T1-Monitor</span></td><td>Síntomas observados</td><td>Métricas que viste: CPU, RAM, tráfico de red, qué nodo y desde cuándo.</td></tr>
+      <tr><td><span class="role-pill t2">🔍 T2-Analista</span></td><td>Causa raíz</td><td>Qué encontraste en logs/terminal: IP, proceso, patrón. Por qué concluiste que era ese tipo de ataque.</td></tr>
+      <tr><td><span class="role-pill resp">🛡️ Responder</span></td><td>Acciones tomadas</td><td>Qué regla/protocolo aplicaste, en qué momento, y si funcionó a la primera o tuviste que ajustar.</td></tr>
+      <tr><td><span class="role-pill com">📢 Comunicador</span></td><td>Lecciones aprendidas</td><td>Qué aprendió el equipo, qué se podría mejorar en coordinación, y el resumen del cierre.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Ejemplo completo (DDoS en WEB-01)</h3>
+  <table class="node-table">
+    <tbody>
+      <tr><td><strong>Síntomas (T1)</strong></td><td>"A las 14:32 noté que WEB-01 subió a 920 Mbps de tráfico entrante y 50.300 conexiones simultáneas, muy por encima del umbral normal de 200 Mbps. Lo reporté al equipo de inmediato."</td></tr>
+      <tr><td><strong>Causa raíz (T2)</strong></td><td>"Revisé los logs de acceso y encontré más de 12.000 solicitudes/min desde múltiples IPs en el rango 203.0.113.x, sin patrón geográfico único — coincide con DDoS distribuido, no con un solo atacante."</td></tr>
+      <tr><td><strong>Acciones (Responder)</strong></td><td>"Activé rate limiting en FW-01 y bloqueé el rango 203.0.113.0/24. El tráfico bajó de 920 a 110 Mbps en 90 segundos. No fue necesario reiniciar ningún servicio."</td></tr>
+      <tr><td><strong>Lecciones (Comunicador)</strong></td><td>"El equipo coordinó bien — T1 detectó en menos de 1 min y T2 confirmó la causa en 3 min. Para la próxima, acordar desde el inicio quién reporta primero evita mensajes cruzados."</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert-box success">
+    <span class="icon">✅</span>
+    <p><strong>Truco:</strong> mientras trabajas, anota en un bloc aparte lo que hace tu rol en tiempo real (hora, valor, acción). Al cerrar el incidente, usa esas notas para redactar tu sección — quedará más detallada y con mejor calidad textual.</p>
+  </div>
+
+  <div class="alert-box warn">
+    <span class="icon">⚠️</span>
+    <p><strong>Evita:</strong> respuestas de una sola palabra ("bien", "se arregló"), copiar y pegar el mismo texto en las 4 secciones, o inventar datos que no ocurrieron durante el ejercicio — el sistema detecta calidad textual baja y penaliza el puntaje.</p>
+  </div>
+</section>
+
+<!-- ═══ INFORME DE CIERRE ═══ -->
+<section class="section" id="informe">
+  <h2><span class="icon">🤖</span>Informe de Cierre con IA</h2>
+  <p>Al terminar la sala, el instructor genera un <strong>Informe de Sala con IA</strong> que combina lo que el equipo redactó en la Bitácora Colaborativa con los datos técnicos reales registrados durante el ejercicio:</p>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <div class="label">📊 Gráfico (datos reales, no inventados)</div>
+      <ul>
+        <li>Cuántas acciones técnicas aplicó el equipo, por tipo (bloqueos de IP, de puerto, reinicios de servicio).</li>
+        <li>Línea de tiempo de cada acción, con quién la ejecutó.</li>
+        <li>Tabla de mitigaciones formales registradas, con su efectividad.</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <div class="label">📝 Narrativa con IA</div>
+      <ul>
+        <li>Resumen ejecutivo del incidente.</li>
+        <li>Desarrollo cronológico de la respuesta del equipo.</li>
+        <li>Procesos de mitigación aplicados y quién los ejecutó.</li>
+        <li>Contribución por rol y lecciones aprendidas.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="alert-box teal">
+    <span class="icon">💡</span>
+    <p><strong>Por qué te importa esto:</strong> el gráfico y la narrativa se construyen con lo que el equipo realmente hizo — entre más completas sean las acciones técnicas (no solo mensajes de chat) y más detallada tu bitácora, mejor y más justo queda tu informe de cierre.</p>
+  </div>
+</section>
+
+<!-- ═══ CHECKLIST ═══ -->
+<section class="section" id="checklist">
+  <h2><span class="icon">✅</span>Checklist Final</h2>
+  <ul class="checklist">
+    <li><span class="chk">✔</span> Entré a la sala y confirmé mi rol y el ataque/nodo asignado.</li>
+    <li><span class="chk">✔</span> Leí las 4 fases en el banner y entiendo qué hace cada rol.</li>
+    <li><span class="chk">✔</span> Reporté por chat lo que correspondía a mi rol, con datos concretos (no solo "hay un ataque").</li>
+    <li><span class="chk">✔</span> Si soy Responder, esperé la confirmación del Analista antes de actuar.</li>
+    <li><span class="chk">✔</span> Verifiqué que mis acciones técnicas (bloqueo, reinicio) quedaron reflejadas en el chat.</li>
+    <li><span class="chk">✔</span> Completé mi sección de la Bitácora Colaborativa con detalle real del ejercicio.</li>
+    <li><span class="chk">✔</span> Si el Modo Exclusivo está activo y no estoy en sala, avisé al instructor en vez de insistir.</li>
+  </ul>
+</section>
+
+<hr class="divider">
+
+<div style="text-align:center; padding: 20px 0 40px; color: var(--muted); font-size: 13px;">
+  <p>DC Monitoring Simulator — Manual de Sala Colaborativa v1.0 · SENA Complementaria · Herramienta Excel · 2026</p>
+  <p style="margin-top:6px;">Instructor: Lubeto Vásquez · Generado con Claude Code</p>
+</div>
+
+</main>
+
+<script>
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('#sidebar a[href^="#"]');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    }
+  });
+}, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
