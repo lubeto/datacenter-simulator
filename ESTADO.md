@@ -1,6 +1,83 @@
 # Estado del Proyecto — DC Monitoring Simulator
 
-## Última sesión: 2026-06-25 (cont.) — Resaltado de nodo analizado + comunicación por sala (pendientes del cierre de curso, ya implementados)
+## Última sesión: 2026-06-26 (cont.) — Sala Colaborativa: modo exclusivo + fases por ataque + impresión + informe IA con gráficos
+
+---
+
+## Sesión 2026-06-26 (cont.) — Preparación de pruebas exclusivas de Sala Colaborativa
+
+### Contexto: el instructor va a hacer pruebas dedicadas solo a Sala Colaborativa
+Pedido: que mientras se prueba la Sala Colaborativa no haya interferencia de otras pruebas (ataques individuales/paneles guiados), que el ataque y las fases a seguir queden claros para el aprendiz dentro de la sala, poder imprimir las bitácoras colaborativas, y que el informe con IA incluya gráficos y qué procesos de mitigación se aplicaron.
+
+### 1. Modo Exclusivo de Sala Colaborativa
+- `backend/simulation/engine.py`: nuevo flag `sim_state.collab_exclusive`.
+- `backend/api/routes_instructor.py`: comandos `collab_exclusive_on`/`collab_exclusive_off` en `POST /api/instructor/broadcast`. Al activar, además desactiva automáticamente los ataques automáticos (`scheduler.set_auto_attacks(False)`).
+- `backend/api/routes_collab.py`: helper `check_collab_exclusive_lock()` + endpoint `GET /api/collab/exclusive-status`. Bloquea con `423` a cualquier estudiante que no sea instructor ni miembro de una sala colaborativa activa.
+- Aplicado como guard en los 3 puntos de entrada individuales que importan: `POST /api/attacks/incidents/detect`, `POST /api/attacks/mitigate` (`routes_attacks.py`) y `POST /api/bitacoras` (`routes_bitacoras.py`, exento si `collab_room_id` viene seteado).
+- `frontend/index.html`: overlay de pantalla completa `#collabExclusiveOverlay` — bloquea visual y completamente el dashboard a cualquier aprendiz fuera de una sala activa, sincronizado vía WS (`collab_exclusive_changed`) y polling cada 60s (`checkCollabExclusiveStatus`).
+- `frontend/instructor.html`: botón "🔒 Activar/🔓 Desactivar Modo Exclusivo" en la pestaña Sala Colaborativa, con `confirm()` antes de activar (acción de alto impacto).
+- **Verificado en local con 2 estudiantes reales**: el que SÍ estaba en sala activa siguió operando con normalidad (detectó un incidente sin bloqueo); el que NO estaba en ninguna sala vio el overlay de bloqueo total, sin poder interactuar con nada del dashboard.
+
+### 2. Banner de ataque + fases específicas por tipo de ataque
+- `frontend/index.html`: nuevo banner `#cpAttackBanner` + `#cpPhases` dentro del panel de Sala Colaborativa, función `_renderCollabPhases()`.
+- En vez de duplicar contenido educativo, reutiliza el catálogo real del backend (`GET /api/attacks/catalog`, ya público): indicadores → fase "Detectar" (T1-Monitor), descripción → fase "Analizar" (T2-Analista), `mitigation_steps` → fase "Mitigar" (Responder), + fase fija "Reportar" (Comunicador). Resalta la fase del rol propio del aprendiz.
+- **Verificado visualmente**: para un incidente DDoS en WEB-01 mostró indicadores reales (`net_in_mbps > 900 · connections > 50000`), descripción real y pasos de mitigación reales — sin necesidad de mantener un catálogo paralelo que se desincronice del backend.
+
+### 3. Imprimir Bitácoras Colaborativas (no existía)
+- `frontend/instructor.html`: botón "🖨️ Imprimir Bitácoras" en la pestaña Sala Colaborativa, función `printCollabBitacoras()` — mismo patrón que `printDayReport()`/`printClassReport()` ya existentes (ventana nueva con botón de impresión/PDF), usando `GET /api/collab/bitacoras` (ya existía en el backend, nunca se exponía en UI).
+
+### 4. Informe IA de Sala — narrativa + gráficos + mitigaciones reales
+- `backend/api/routes_ai_feedback.py`: nuevo endpoint `POST /api/ai/collab-report` (`room_id`). Devuelve:
+  - `chart`: datos **deterministas** calculados en el servidor (no dependen de la IA) — conteo de acciones técnicas por tipo (`CollabAction`, excluyendo chat), línea de tiempo, y cruce con la tabla formal `mitigation_actions` (incidentes del nodo de la sala dentro de su ventana activa, ejecutados por miembros de la sala) con efectividad real.
+  - `report`: narrativa con Claude Haiku (prompt `COLLAB_REPORT_PROMPT`) que incluye sección explícita "Procesos de Mitigación Aplicados", instruida a no inventar acciones fuera de los registros provistos.
+- `frontend/instructor.html`: botón "🤖 Informe IA" por sala, modal con gráfico de barras (Chart.js, reutilizando la librería ya cargada) + tabla de mitigaciones formales + narrativa (reusa `_mdToHtmlSafe` ya existente para el Informe IA de Grupo, en vez de duplicarlo).
+- **Verificado en local**: gráfico se renderiza con datos reales (`block_ip: 1`) tomados de una acción de sala real registrada vía API; sin `ANTHROPIC_API_KEY` local muestra el aviso correspondiente sin romper — en producción la clave sí está configurada.
+
+### Entorno de prueba usado
+Mismo venv local (Python 3.12) de la sesión anterior. Flujo de prueba: sala real creada vía API, estudiante real agregado como T1-Monitor, acción técnica registrada, modo exclusivo activado/desactivado con un segundo estudiante de control para confirmar que NO queda exento. Verificado también con Chrome real (login, banner de fases visible en el dashboard del estudiante, overlay de bloqueo visible para el estudiante sin sala).
+
+### Aprendizajes para recordar
+- Antes de construir un catálogo educativo nuevo (fases por ataque, indicadores, mitigaciones), revisar si el backend ya expone esa información (`ATTACK_CATALOG` vía `/api/attacks/catalog`) — evita mantener dos fuentes de verdad que se desincronizan.
+- El proyecto ya tenía el patrón `_mdToHtmlSafe` para render de markdown de informes IA — reutilizar en lugar de duplicar.
+- La base de datos local (SQLite) tiene una limitación preexistente no relacionada con este trabajo: la migración de `collab_room_id` en `bitacoras` usa sintaxis solo válida en Postgres (`ADD COLUMN IF NOT EXISTS`), por lo que cualquier consulta a la tabla `bitacoras` completa falla en local con `OperationalError`. No afecta producción (Postgres real), solo limita pruebas locales de bitácoras individuales.
+
+### Pendiente para cuando el instructor lo pruebe en producción
+- Confirmar que `ANTHROPIC_API_KEY` sigue activa en Render (se verificó configurada en sesiones anteriores) para que el Informe IA de Sala genere la narrativa real, no solo el gráfico.
+- El Modo Exclusivo es una acción de alto impacto para TODA la plataforma — usar solo durante la ventana de prueba dedicada a Sala Colaborativa, y desactivarlo explícitamente al terminar (no hay auto-apagado).
+
+---
+
+## Sesión 2026-06-26 — Fix panel guiado SST incoherente + bitácora que no abría
+
+### Origen: reporte del instructor tras la clase del 26/06
+Ataques individuales del día: en la mitigación del panel guiado, los incidentes **SST salían incompletos/incoherentes** (las opciones de respuesta no correspondían al ataque mostrado) y **la bitácora no se podía abrir** al terminar.
+
+### Bug 1 — Respuestas incoherentes para 4 tipos de ataque físico (`frontend/index.html`)
+`_gCorrectDecide(inc)` no tenía ninguna entrada para `badge_cloning`, `tailgating`, `biometric_bypass`, `cctv_tampering` (los 4 ataques de "Seguridad Física" del catálogo real del backend — `GET /api/attacks/catalog`). Sin match, la función caía al `return 'ddos'` por defecto. Pero las opciones de Stage 3/4 mostradas para categoría SST son fijas (`thermal/smoke/power_fail/unauth`) — **`'ddos'` nunca aparece entre ellas**, así que el estudiante no podía acertar nunca esas etapas, sin importar qué eligiera.
+- Fix: esos 4 tipos ahora mapean a `'unauth'` (acceso físico no autorizado), que sí es una opción visible y coherente con la narrativa de cada ataque.
+- También se ajustó `_gBuildAnalyzeStage` (Stage 2) para marcar el sensor "Control de acceso" como ALERTA en esos 4 casos (antes mostraba todos los sensores en estado normal).
+- De paso se agregó soporte para `humidity`/`ups_failure` en `_gCategory`/`_gCorrectAnalyze`/`_gCorrectDecide` — identificadores presentes en el `Set` del frontend pero que **no existen en el catálogo real del backend** (confirmado con `/api/attacks/catalog`); cambio inofensivo, no corresponde a un bug observado en producción.
+
+### Bug 2 — Bitácora nunca se abría para SST/hardware/SSL (`frontend/index.html`)
+En la Etapa 4 (Misión), el botón "Siguiente/Ver resultado" solo se hace visible dentro de `_missionComplete()`, que requiere `missionState.verifyDone=true`. Esa bandera solo se activaba dentro de `showGuidedResults()` — función que **a su vez solo se ejecuta al hacer clic en ese mismo botón**. Para ataques de red existe un disparador externo (ejecutar un comando en Terminal tras aplicar el Firewall) que rompe el círculo, pero las categorías SST/hardware/SSL no usan terminal/firewall — nada externo llamaba nunca a `verify`, dejando el botón oculto para siempre y el panel atascado en la Etapa 4.
+- Fix en `renderGuidedStage`: para `missionCat !== 'red'`, el botón "🏁 Ver resultado" se habilita de inmediato al entrar a la Etapa 4, sin esperar un evento de mission-complete.
+
+### Verificación en local (no solo lectura de código)
+Se montó un entorno local completo por primera vez en esta máquina (no existía `venv`):
+- Python 3.14 (preinstalado) no tiene wheels para `numpy==1.26.4`/`pydantic-core` ni compilador disponible → se instaló **Python 3.12** vía `winget` y se recreó el venv.
+- `pip install -r backend/requirements.txt` + `aiosqlite` (no está en requirements.txt, que solo trae `asyncpg` para Postgres de producción; es necesario para correr local con SQLite vía `.env.example`).
+- Servidor levantado con `python -m uvicorn backend.main:app --port 8000`, DB local SQLite separada de producción (`data/simulator.db`), instructor + estudiante de prueba creados vía API.
+- Se inyectó `badge_cloning` en WEB-01 y se completó el panel guiado de punta a punta vía navegador (Claude in Chrome): Stage 2 mostró el sensor correcto en alerta, Stage 3 confirmó clasificación correcta ("¡Exacto!"), Stage 4 mostró el botón de inmediato, **la bitácora se abrió** con los datos esperados (3/4 correctas, 100 pts, tipo `badge_cloning`, nodo WEB-01).
+- Se inyectaron también `biometric_bypass`, `tailgating`, `cctv_tampering` (mismo código, mismo fix — no requieren repetir el flujo completo en UI).
+- `humidity` y `ups_failure` confirmados como inexistentes en el backend (`{"detail":"Tipo de ataque '...' no encontrado"}`).
+
+### Commits
+- `c3c8009` — fix: corregir incoherencia SST en panel guiado y bloqueo de bitácora
+
+### Aprendizajes para recordar
+- **El catálogo real de tipos de ataque está en `backend/simulation/attacks.py` (`ATTACK_CATALOG`), expuesto en `GET /api/attacks/catalog`** — los `Set` de tipos en el frontend (`_SST_ATTACKS`, etc.) pueden contener identificadores obsoletos/nunca usados; verificar contra el catálogo real antes de asumir que un tipo de ataque se inyecta alguna vez.
+- En este equipo no había `venv` ni Python compatible con las versiones pineadas del proyecto — Python 3.14 no tiene wheels para `numpy 1.26.4`/`pydantic-core`. **Usar Python 3.12 para entorno local** (instalado vía `winget install -e --id Python.Python.3.12`).
+- `requirements.txt` solo trae `asyncpg` (Postgres de producción); para correr local con SQLite hay que instalar `aiosqlite` aparte.
 
 ---
 
