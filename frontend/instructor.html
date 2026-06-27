@@ -2044,6 +2044,11 @@ async function createStudent() {
     document.getElementById('newStudentEmail').value = '';
     document.getElementById('newStudentPass').value = '';
     loadStudentList();
+    // Refrescar selectores que dependen de la lista de aprendices, para que
+    // el nuevo estudiante quede disponible de inmediato en Sala Colaborativa
+    // y en Clase Guiada sin necesidad de recargar la página.
+    if (document.getElementById('addMemberStudent')) loadStudentsForSelect();
+    if (document.getElementById('evalStudentSel')) _loadEvalStudentFilter();
     notify('✅ Estudiante creado', name + ' — ' + email, 'ok');
     setTimeout(() => { msgEl.textContent = ''; }, 4000);
   } catch(e) {
@@ -4333,10 +4338,11 @@ async function loadManageMembers() {
 }
 
 async function loadStudentsForSelect() {
-  if (!_collabStudents.length) {
-    const res = await fetch('/api/students/', { headers: { Authorization: 'Bearer ' + TOKEN } });
-    _collabStudents = (await res.json()).filter(s => s.role === 'student');
-  }
+  // Siempre se consulta fresco — esta lista cambia cuando el instructor crea
+  // aprendices nuevos, y cachearla dejaba el selector desactualizado hasta
+  // recargar la página completa.
+  const res = await fetch('/api/students/', { headers: { Authorization: 'Bearer ' + TOKEN } });
+  _collabStudents = (await res.json()).filter(s => s.role === 'student');
   const sel = document.getElementById('addMemberStudent');
   sel.innerHTML = _collabStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 }
