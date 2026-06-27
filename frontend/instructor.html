@@ -1245,8 +1245,8 @@ input[type=range]{padding:.3rem 0;cursor:pointer}
         <select id="addMemberRole" style="background:#0f172a;border:1px solid #1e3a5f;border-radius:6px;padding:.4rem .6rem;color:#f9fafb;font-size:.82rem">
           <option value="T1-Monitor">T1-Monitor</option>
           <option value="T2-Analista">T2-Analista</option>
-          <option value="Responder">Responder</option>
-          <option value="Comunicador">Comunicador</option>
+          <option value="Responder">Técnico de Respuesta</option>
+          <option value="Comunicador">Líder TIC</option>
         </select>
         <button class="btn btn-success btn-sm" onclick="addCollabMember()">Agregar</button>
       </div>
@@ -4213,7 +4213,7 @@ async function loadCollabRooms() {
       el2.innerHTML = detail.members.length
         ? detail.members.map(m => `
             <span style="background:#1e293b;border:1px solid #1e3a5f;border-radius:6px;padding:2px 8px;font-size:.72rem;color:#e2e8f0">
-              ${_roleIcon(m.role)} ${m.student_name} <span style="color:#6b7280">(${m.role})</span>
+              ${_roleIcon(m.role)} ${m.student_name} <span style="color:#6b7280">(${_roleLabel(m.role)})</span>
             </span>`).join('')
         : '<span style="font-size:.75rem;color:#6b7280">Sin miembros</span>';
     }
@@ -4234,6 +4234,9 @@ async function loadCollabRooms() {
 function _roleIcon(role) {
   return { 'T1-Monitor': '📡', 'T2-Analista': '🔍', 'Responder': '🛡️', 'Comunicador': '📢' }[role] || '👤';
 }
+// Etiqueta visible — el valor interno (guardado en BD) no cambia.
+const _ROLE_LABEL = { 'T1-Monitor': 'T1-Monitor', 'T2-Analista': 'T2-Analista', 'Responder': 'Técnico de Respuesta', 'Comunicador': 'Líder TIC' };
+function _roleLabel(role) { return _ROLE_LABEL[role] || role; }
 
 function renderCollabReport(rooms) {
   const el = document.getElementById('collabReportTable');
@@ -4324,7 +4327,7 @@ async function loadManageMembers() {
   }
   el.innerHTML = room.members.map(m => `
     <div style="display:flex;align-items:center;justify-content:space-between;background:#1e293b;border-radius:7px;padding:.4rem .75rem">
-      <span style="font-size:.82rem;color:#e2e8f0">${_roleIcon(m.role)} <strong>${m.student_name}</strong> <span style="color:#6b7280;font-size:.75rem">${m.role}</span></span>
+      <span style="font-size:.82rem;color:#e2e8f0">${_roleIcon(m.role)} <strong>${m.student_name}</strong> <span style="color:#6b7280;font-size:.75rem">${_roleLabel(m.role)}</span></span>
       <button onclick="removeCollabMember(${m.student_id})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.8rem">✕</button>
     </div>`).join('');
 }
@@ -4430,7 +4433,7 @@ async function printCollabBitacoras() {
     const now = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
     const roleLabels = {
       'T1-Monitor': 'T1-Monitor (síntomas)', 'T2-Analista': 'T2-Analista (causa raíz)',
-      'Responder': 'Responder (acciones)', 'Comunicador': 'Comunicador (lecciones)',
+      'Responder': 'Técnico de Respuesta (acciones)', 'Comunicador': 'Líder TIC (lecciones)',
     };
     const body = bits.map(b => {
       const created = b.created_at ? new Date(b.created_at).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) : '—';

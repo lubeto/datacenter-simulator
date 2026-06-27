@@ -4537,7 +4537,7 @@ async function checkMyCollabRoom() {
       _collabRole = data.role;
       document.getElementById('collabNavBtn').style.display = 'block';
       document.getElementById('cpRoomName').textContent = data.room.name;
-      document.getElementById('cpRoleBadge').textContent = _roleIcon(_collabRole) + ' ' + _collabRole;
+      document.getElementById('cpRoleBadge').textContent = _roleIcon(_collabRole) + ' ' + _roleLabel(_collabRole);
       renderCollabMembers(data.room.members || []);
       _renderCollabPhases();
       // Registrar canal WS privado
@@ -4558,6 +4558,10 @@ async function checkMyCollabRoom() {
 function _roleIcon(role) {
   return { 'T1-Monitor': '📡', 'T2-Analista': '🔍', 'Responder': '🛡️', 'Comunicador': '📢' }[role] || '👤';
 }
+// Etiqueta visible para el usuario — el valor interno (clave del rol, guardado
+// en BD) NO cambia, solo el texto que se muestra en pantalla.
+const _ROLE_LABEL = { 'T1-Monitor': 'T1-Monitor', 'T2-Analista': 'T2-Analista', 'Responder': 'Técnico de Respuesta', 'Comunicador': 'Líder TIC' };
+function _roleLabel(role) { return _ROLE_LABEL[role] || role; }
 
 const _ROLE_CONFIG = {
   'T1-Monitor':  { icon:'📡', hint:'Tu foco: <strong>Métricas en tiempo real</strong>. Monitorea CPU, RAM y red de todos los nodos. Informa al equipo cualquier anomalía.', tool: null },
@@ -4588,7 +4592,7 @@ function _applyRoleView() {
   if (!cfg) return;
   // Banner de rol
   const banner = document.getElementById('cpRoleBanner');
-  if (banner) banner.innerHTML = cfg.icon + ' <strong>' + _collabRole + '</strong><br>' + cfg.hint;
+  if (banner) banner.innerHTML = cfg.icon + ' <strong>' + _roleLabel(_collabRole) + '</strong><br>' + cfg.hint;
   _renderCollabPhases();
   // Abrir herramienta principal según rol (solo primera vez)
   if (cfg.tool) _openToolsDrawer(cfg.tool);
@@ -4640,7 +4644,7 @@ function renderCollabMembers(members) {
       <span style="font-size:.9rem">${_roleIcon(m.role)}</span>
       <div>
         <div style="font-size:.75rem;color:#f1f5f9;font-weight:600">${_esc(m.student_name)}</div>
-        <div style="font-size:.65rem;color:#5eead4">${m.role}</div>
+        <div style="font-size:.65rem;color:#5eead4">${_roleLabel(m.role)}</div>
       </div>
     </div>`).join('');
 }
@@ -4857,7 +4861,7 @@ function _renderCollabBitacora() {
     return `<div style="background:${isMine?'rgba(13,148,136,.08)':'#0c1a2e'};border:1px solid ${isMine?cfg.color:'#1e3a5f'};border-radius:10px;padding:12px 14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="font-size:1rem">${cfg.icon}</span>
-        <strong style="color:${cfg.color};font-size:.88rem">${role}</strong>
+        <strong style="color:${cfg.color};font-size:.88rem">${_roleLabel(role)}</strong>
         ${isMine ? '<span style="background:rgba(13,148,136,.2);color:#5eead4;border-radius:100px;font-size:.65rem;padding:1px 8px;font-weight:700">TÚ</span>' : ''}
         ${savedBy ? `<span style="margin-left:auto;font-size:.68rem;color:#4ade80">✅ ${savedBy}</span>` : '<span style="margin-left:auto;font-size:.68rem;color:#6b7280">Pendiente</span>'}
       </div>
@@ -4914,7 +4918,7 @@ function handleCollabBitacoraUpdated(data) {
       if (r !== _collabRole && secs[r]?.name && secs[r]?.saved_at) {
         const recent = new Date(secs[r].saved_at);
         if (Date.now() - recent.getTime() < 5000) {
-          notify('📋 Bitácora', `${secs[r].name} completó la sección ${r}`, 'ok');
+          notify('📋 Bitácora', `${secs[r].name} completó la sección ${_roleLabel(r)}`, 'ok');
           break;
         }
       }

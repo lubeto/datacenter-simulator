@@ -186,6 +186,25 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 .lock-mockup h5 { color: var(--yellow); font-size: 14px; margin-bottom: 8px; }
 .lock-mockup p { font-size: 12px; }
 
+/* ── LOGS PANEL MOCKUP ── */
+.logs-mockup { background: #0f172a; border: 1px solid #1e3a5f; border-radius: 10px; overflow: hidden; max-width: 560px; margin: 8px 0 16px; }
+.logs-mockup .lm-head { background: #1e3a5f; padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
+.logs-mockup .lm-sel { background: #0a0e1a; border: 1px solid #2d4a7a; color: #cbd5e1; font-size: 11px; padding: 3px 8px; border-radius: 4px; }
+.logs-mockup .lm-sel.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: 700; }
+.logs-mockup .lm-body { padding: 8px; font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 11px; }
+.logs-mockup .lm-line { padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,.04); color: #7a8aaa; display: flex; gap: 8px; align-items: flex-start; cursor: default; }
+.logs-mockup .lm-line.crit { color: #fca5a5; }
+.logs-mockup .lm-line.ioc { background: rgba(239,68,68,.12); border-left: 3px solid var(--red); color: #fecaca; }
+.logs-mockup .lm-flag { font-size: 13px; flex-shrink: 0; }
+
+/* ── FIREWALL PANEL MOCKUP ── */
+.fw-mockup { background: #0f172a; border: 1px solid #1e3a5f; border-radius: 10px; padding: 12px; max-width: 480px; margin: 8px 0 16px; }
+.fw-mockup .fw-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.fw-mockup input.fw-fake { flex: 1; background: #0a0e1a; border: 1px solid #2d4a7a; border-radius: 6px; padding: 6px 10px; color: #fca5a5; font-size: 12px; font-family: monospace; }
+.fw-mockup .fw-btn { background: var(--red); color: #fff; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; }
+.fw-mockup .fw-rules { background: #0a0e1a; border-radius: 6px; padding: 8px 10px; font-family: monospace; font-size: 10.5px; color: #94a3b8; line-height: 1.7; }
+.fw-mockup .fw-rules .new-rule { color: #fca5a5; font-weight: 700; }
+
 /* ── DIVIDER ── */
 .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 
@@ -214,8 +233,8 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <a href="#roles">Los 4 roles</a>
     <a class="sub" href="#role-t1">📡 T1-Monitor</a>
     <a class="sub" href="#role-t2">🔍 T2-Analista</a>
-    <a class="sub" href="#role-resp">🛡️ Responder</a>
-    <a class="sub" href="#role-com">📢 Comunicador</a>
+    <a class="sub" href="#role-resp">🛡️ Técnico de Respuesta</a>
+    <a class="sub" href="#role-com">📢 Líder TIC</a>
 
     <div class="nav-section">La Sesión</div>
     <a href="#flujo">Flujo de equipo paso a paso</a>
@@ -308,7 +327,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 <!-- ═══ ROLES ═══ -->
 <section class="section" id="roles">
   <h2><span class="icon">🎭</span>Los 4 Roles del Equipo</h2>
-  <p>Cada rol tiene una responsabilidad clara y una herramienta principal que se abre automáticamente al entrar a la sala. No son compartimentos cerrados — puedes ver otras pestañas — pero <strong>tu aporte principal es el de tu rol</strong>. El orden natural de trabajo es: <span class="role-pill t1">📡 T1</span> detecta → <span class="role-pill t2">🔍 T2</span> analiza → <span class="role-pill resp">🛡️ Responder</span> mitiga → <span class="role-pill com">📢 Comunicador</span> documenta y cierra.</p>
+  <p>Cada rol tiene una responsabilidad clara y una herramienta principal que se abre automáticamente al entrar a la sala. No son compartimentos cerrados — puedes ver otras pestañas — pero <strong>tu aporte principal es el de tu rol</strong>. El orden natural de trabajo es: <span class="role-pill t1">📡 T1</span> detecta → <span class="role-pill t2">🔍 T2</span> analiza → <span class="role-pill resp">🛡️ Técnico de Respuesta</span> mitiga → <span class="role-pill com">📢 Líder TIC</span> documenta y cierra.</p>
 
   <!-- T1-Monitor -->
   <div class="role-card" id="role-t1">
@@ -323,7 +342,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
         <div class="step"><div class="step-num teal">1</div><div class="step-content"><h5>Observa el mapa de red</h5><p>Busca nodos en rojo (ataque activo) o amarillo (warning). El nodo afectado tendrá CPU, RAM, latencia o tráfico fuera de lo normal.</p></div></div>
         <div class="step"><div class="step-num teal">2</div><div class="step-content"><h5>Informa al equipo por chat</h5><p>Escribe en el chat algo como: <code>Nodo WEB-01 — CPU 98% — tráfico entrante 920 Mbps. Posible DDoS.</code></p></div></div>
         <div class="step"><div class="step-num teal">3</div><div class="step-content"><h5>Monitorea durante toda la respuesta</h5><p>Informa si las métricas mejoran o empeoran mientras el equipo actúa: "bajó a 60% CPU" o "sigue crítico".</p></div></div>
-        <div class="step"><div class="step-num teal">4</div><div class="step-content"><h5>Confirma la mitigación</h5><p>Cuando el Responder bloquee la IP o aplique la acción, confirma si las métricas vuelven a niveles normales.</p></div></div>
+        <div class="step"><div class="step-num teal">4</div><div class="step-content"><h5>Confirma la mitigación</h5><p>Cuando el Técnico de Respuesta bloquee la IP o aplique la acción, confirma si las métricas vuelven a niveles normales.</p></div></div>
       </div>
       <div class="alert-box success"><span class="icon">✅</span><p><strong>Frase clave de reporte:</strong> "Nodo [NOMBRE] — [MÉTRICA] en [VALOR] — [TENDENCIA: subiendo / bajando / estable]"</p></div>
     </div>
@@ -337,27 +356,106 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
       <span class="role-pill t2" style="margin-left:auto">FASE 2 · ANALIZAR</span>
     </div>
     <div class="role-body">
-      <p>Eres el investigador forense del equipo. Revisas los logs del nodo afectado para identificar la IP atacante, el proceso malicioso o el patrón del ataque. Tu análisis es lo que el Responder necesita antes de actuar.</p>
-      <div class="steps">
-        <div class="step"><div class="step-num purple">1</div><div class="step-content"><h5>Abre la pestaña Logs</h5><p>El simulador la abre automáticamente al entrar a la sala. Busca líneas en rojo (crítico) con IPs externas o mensajes de error.</p></div></div>
-        <div class="step"><div class="step-num purple">2</div><div class="step-content"><h5>Identifica la IP atacante</h5><p>Cada categoría de ataque tiene su propio rango de IP (ver el catálogo más abajo). Cruza el rango con lo que ves en el log.</p></div></div>
-        <div class="step"><div class="step-num purple">3</div><div class="step-content"><h5>Marca la línea como IOC</h5><p>Haz clic en la línea sospechosa para marcarla 🚩. Aparecerá el botón <code>🔥 IP → FW</code> que precarga la IP en Firewall.</p></div></div>
-        <div class="step"><div class="step-num purple">4</div><div class="step-content"><h5>Informa la IP al equipo</h5><p>Escribe en chat: <code>IP atacante confirmada: 203.0.113.47 — brute force SSH — 847 intentos en 2 min</code></p></div></div>
-        <div class="step"><div class="step-num purple">5</div><div class="step-content"><h5>Ejecuta comandos de verificación</h5><p>En Terminal: <code>netstat -an</code>, <code>tail -f /var/log/auth.log</code>, <code>ps aux</code>. Comparte los hallazgos relevantes por chat.</p></div></div>
+      <p>Eres el investigador forense del equipo. Revisas los logs del nodo afectado para identificar la IP atacante, el proceso malicioso o el patrón del ataque. Tu análisis es lo que el Técnico de Respuesta necesita antes de actuar.</p>
+
+      <h4>Los 3 tipos de log — cuál abrir según el ataque</h4>
+      <p>El visor de Logs tiene un selector con exactamente <strong>3 tipos</strong>. No revisas los 3 a la vez — el tipo correcto depende de la categoría de ataque (lo verás detallado en cada tarjeta del catálogo, más abajo):</p>
+      <table class="node-table">
+        <thead><tr><th>Tipo de log</th><th>Qué contiene</th><th>Útil para</th></tr></thead>
+        <tbody>
+          <tr><td><code>access</code></td><td>Tráfico HTTP/HTTPS (nginx): IP, ruta solicitada, código de respuesta</td><td>DDoS/DoS/SYN Flood, Brute Force, Port Scan</td></tr>
+          <tr><td><code>auth</code></td><td>Eventos de autenticación SSH y control de acceso (PAM)</td><td>Brute Force, Acceso No Autorizado</td></tr>
+          <tr><td><code>system</code></td><td>Kernel y systemd: errores críticos, hardware, red</td><td>DDoS/DoS/SYN Flood, Memory Leak, Falla de Disco, Sobrecalentamiento, Brute Force, Port Scan, Acceso No Autorizado</td></tr>
+        </tbody>
+      </table>
+
+      <div class="alert-box info">
+        <span class="icon">🚩</span>
+        <p><strong>Siempre marcas exactamente 2 líneas como IOC</strong> (Indicador de Compromiso) para completar tu paso de la misión — sin importar el tipo de ataque. Haz clic en la línea sospechosa para marcarla; al marcar una con IP, aparece el botón <code>🔥 IP → FW</code> que la precarga directo en Firewall para el Técnico de Respuesta.</p>
       </div>
-      <div class="alert-box warn"><span class="icon">⚠️</span><p><strong>No bloquees tú la IP</strong> — esa acción le corresponde al Responder. Tu trabajo es identificarla y comunicarla con total claridad.</p></div>
+
+      <div class="alert-box warn">
+        <span class="icon">⚠️</span>
+        <p><strong>No todos los incidentes generan líneas de log distintivas.</strong> Los ataques de red interna (VLAN Hopping, DHCP falso, DNS Spoofing, STP, Escalada de Privilegios, Exfiltración), los incidentes SST físicos (biometría, tailgating, clonación de tarjeta, CCTV) y SSL no producen una línea de log especial — para esos, tu evidencia sale de la <strong>Terminal</strong> (netstat) o del propio mapa/panel SST, no del visor de logs. Se indica explícitamente en cada tarjeta del catálogo.</p>
+      </div>
+
+      <h4>Así se ve el panel de Logs — ejemplo Brute Force en <code>auth</code></h4>
+      <div class="logs-mockup">
+        <div class="lm-head">
+          <span class="lm-sel">access</span><span class="lm-sel active">auth</span><span class="lm-sel">system</span>
+        </div>
+        <div class="lm-body">
+          <div class="lm-line"><span class="lm-flag">⬜</span>Jun 26 14:30:02 web-01 CRON[4821]: (root) CMD (/usr/bin/check_health.sh)</div>
+          <div class="lm-line"><span class="lm-flag">⬜</span>Jun 26 14:30:14 web-01 pam_unix(sudo:session): session opened for user admin</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:22 web-01 sshd[5234]: Failed password for root from 203.0.113.45 port 52341 ssh2</div>
+          <div class="lm-line crit ioc"><span class="lm-flag">🚩</span>Jun 26 14:30:25 web-01 sshd[5237]: Failed password for admin from 203.0.113.45 port 52344 ssh2</div>
+          <div class="lm-line crit"><span class="lm-flag">⬜</span>Jun 26 14:30:27 web-01 sshd[5240]: Failed password for ubuntu from 203.0.113.45 port 52349 ssh2</div>
+        </div>
+      </div>
+      <div class="alert-box success" style="margin-top:0"><span class="icon">✅</span><p>Con solo <strong>2 líneas marcadas</strong> (🚩) ya completas tu fase — no necesitas marcar todas las líneas sospechosas, solo las suficientes para confirmar el patrón y la IP.</p></div>
+
+      <div class="steps">
+        <div class="step"><div class="step-num purple">1</div><div class="step-content"><h5>Abre la pestaña Logs y elige el tipo correcto</h5><p>Usa la tabla de arriba o el catálogo para saber si revisar <code>access</code>, <code>auth</code> o <code>system</code> para este ataque.</p></div></div>
+        <div class="step"><div class="step-num purple">2</div><div class="step-content"><h5>Identifica la IP atacante</h5><p>Cada categoría de ataque tiene su propio rango de IP (ver el catálogo más abajo). Cruza el rango con lo que ves en el log.</p></div></div>
+        <div class="step"><div class="step-num purple">3</div><div class="step-content"><h5>Marca 2 líneas como IOC</h5><p>Haz clic en cada línea sospechosa para marcarla 🚩 — necesitas exactamente 2 para completar tu fase de la misión.</p></div></div>
+        <div class="step"><div class="step-num purple">4</div><div class="step-content"><h5>Informa la IP al equipo</h5><p>Escribe en chat: <code>IP atacante confirmada: 203.0.113.47 — brute force SSH — 847 intentos en 2 min</code></p></div></div>
+        <div class="step"><div class="step-num purple">5</div><div class="step-content"><h5>Ejecuta comandos de verificación</h5><p>En Terminal: <code>netstat -an</code>, <code>tail -f /var/log/syslog</code>, <code>ps aux</code>. Comparte los hallazgos relevantes por chat.</p></div></div>
+      </div>
+      <div class="alert-box warn"><span class="icon">⚠️</span><p><strong>No bloquees tú la IP</strong> — esa acción le corresponde al Técnico de Respuesta. Tu trabajo es identificarla y comunicarla con total claridad.</p></div>
     </div>
   </div>
 
-  <!-- Responder -->
+  <!-- Técnico de Respuesta -->
   <div class="role-card" id="role-resp">
     <div class="role-header" style="background:rgba(239,68,68,.1)">
       <div class="role-icon" style="background:rgba(239,68,68,.18)">🛡️</div>
-      <div><div class="role-name">Responder</div><div class="role-meta">Contención y mitigación activa</div></div>
+      <div><div class="role-name">Técnico de Respuesta</div><div class="role-meta">Contención y mitigación activa</div></div>
       <span class="role-pill resp" style="margin-left:auto">FASE 3 · MITIGAR</span>
     </div>
     <div class="role-body">
       <p>Eres quien ejecuta las acciones defensivas. Cuando el Analista confirme la IP o la causa, tú aplicas la regla de firewall, reinicias el servicio comprometido o ejecutas el protocolo físico correspondiente (en incidentes SST).</p>
+
+      <h4>Comandos disponibles en tu Terminal</h4>
+      <p>Estos son <strong>todos</strong> los comandos que reconoce el simulador — el catálogo más abajo te dice cuál usar para cada ataque específico:</p>
+      <table class="node-table">
+        <thead><tr><th>Comando</th><th>Para qué sirve</th></tr></thead>
+        <tbody>
+          <tr><td><code>netstat -an</code></td><td>Lista conexiones de red activas — muestra la IP atacante y el estado (SYN_RECV, ESTABLISHED, SYN_SENT) cuando el ataque tiene IP identificable</td></tr>
+          <tr><td><code>ps aux</code></td><td>Lista procesos — muestra el proceso malicioso marcado ⚠️ cuando el ataque lo genera (ej. <code>hydra</code>, <code>nmap</code>, <code>leaky_app</code>)</td></tr>
+          <tr><td><code>tail -f /var/log/syslog</code></td><td>Últimas líneas del log de sistema en vivo (equivalente en terminal al log <code>system</code>)</td></tr>
+          <tr><td><code>df -h</code></td><td>Uso de disco — clave para Falla de Disco RAID</td></tr>
+          <tr><td><code>free -m</code></td><td>Uso de memoria — clave para Memory Leak</td></tr>
+          <tr><td><code>tcpdump -i eth0</code></td><td>Captura de paquetes en vivo — muestra el patrón de flags TCP del ataque (solo DDoS/DoS/SYN Flood/Port Scan)</td></tr>
+          <tr><td><code>iptables -L</code></td><td>Lista las reglas de firewall activas</td></tr>
+          <tr><td><code>iptables -A INPUT -s &lt;IP&gt; -j DROP</code></td><td>Bloquea una IP por línea de comando (equivalente a usar el campo "Bloquear IP")</td></tr>
+          <tr><td><code>systemctl status/restart &lt;servicio&gt;</code></td><td>Verifica o reinicia un servicio (<code>nginx</code>, <code>sshd</code>, etc.)</td></tr>
+          <tr><td><code>ping &lt;NODO&gt;</code></td><td>Prueba conectividad y latencia a otro nodo</td></tr>
+        </tbody>
+      </table>
+
+      <div class="terminal">
+        <div class="terminal-header"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><span class="terminal-title">terminal@WEB-01</span></div>
+        <div class="terminal-body">
+          <div class="cmd">netstat -an</div>
+          <div class="term-line">Proto Recv-Q Send-Q Local Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Foreign Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;State</div>
+          <div class="term-line warn">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;10.0.1.10:443&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;203.0.113.47:51322&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SYN_RECV</div>
+          <div class="term-line warn">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;10.0.1.10:443&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;203.0.113.47:51890&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SYN_RECV</div>
+          <div class="term-line">Total de conexiones activas: 920</div>
+          <div class="term-line warn">⚠ 920 conexiones es anormalmente alto (umbral normal &lt; 500)</div>
+          <div class="term-line warn">⚠ IP más frecuente: 203.0.113.47 — considera bloquearla en el firewall</div>
+        </div>
+      </div>
+
+      <h4>Así se ve el panel de Firewall — bloqueando la IP confirmada</h4>
+      <div class="fw-mockup">
+        <div class="fw-row"><input class="fw-fake" value="203.0.113.47" readonly><span class="fw-btn">Bloquear IP</span></div>
+        <div class="fw-rules">
+          ACCEPT&nbsp;&nbsp;tcp&nbsp;&nbsp;--&nbsp;&nbsp;0.0.0.0/0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tcp dpt:443<br>
+          ACCEPT&nbsp;&nbsp;tcp&nbsp;&nbsp;--&nbsp;&nbsp;0.0.0.0/0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tcp dpt:22<br>
+          <span class="new-rule">DROP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;all&nbsp;&nbsp;--&nbsp;&nbsp;203.0.113.47&nbsp;&nbsp;&nbsp;0.0.0.0/0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← regla nueva</span>
+        </div>
+      </div>
+
       <div class="steps">
         <div class="step"><div class="step-num red">1</div><div class="step-content"><h5>Espera la confirmación del Analista</h5><p>No actúes hasta tener la IP o causa confirmada en el chat. Actuar sobre datos equivocados bloquea tráfico legítimo o pierde tiempo valioso.</p></div></div>
         <div class="step"><div class="step-num red">2</div><div class="step-content"><h5>Abre la pestaña Firewall</h5><p>Se abre automáticamente al entrar a la sala. Ingresa la IP en "Bloquear IP" o el puerto en "Bloquear Puerto" y confirma.</p></div></div>
@@ -369,20 +467,20 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     </div>
   </div>
 
-  <!-- Comunicador -->
+  <!-- Líder TIC -->
   <div class="role-card" id="role-com">
     <div class="role-header" style="background:rgba(245,158,11,.1)">
       <div class="role-icon" style="background:rgba(245,158,11,.18)">📢</div>
-      <div><div class="role-name">Comunicador</div><div class="role-meta">Coordinación y documentación del equipo</div></div>
+      <div><div class="role-name">Líder TIC</div><div class="role-meta">Coordinación y documentación del equipo</div></div>
       <span class="role-pill com" style="margin-left:auto">FASE 4 · REPORTAR</span>
     </div>
     <div class="role-body">
       <p>Eres el coordinador del equipo. Mantienes el hilo de la conversación, sintetizas lo que dice cada rol, y eres quien redacta el resumen final del incidente que alimenta el Informe de cierre.</p>
       <div class="steps">
-        <div class="step"><div class="step-num yellow">1</div><div class="step-content"><h5>Abre el ejercicio</h5><p>Cuando la sala se activa, presenta al equipo: <code>Sala activa. Equipo: T1, T2, Responder, Comunicador. Comenzamos.</code></p></div></div>
+        <div class="step"><div class="step-num yellow">1</div><div class="step-content"><h5>Abre el ejercicio</h5><p>Cuando la sala se activa, presenta al equipo: <code>Sala activa. Equipo: T1, T2, Técnico de Respuesta, Líder TIC. Comenzamos.</code></p></div></div>
         <div class="step"><div class="step-num yellow">2</div><div class="step-content"><h5>Registra los hallazgos</h5><p>A medida que el equipo reporta, anota: nodo afectado, IP atacante, tipo de ataque, hora de cada paso.</p></div></div>
         <div class="step"><div class="step-num yellow">3</div><div class="step-content"><h5>Coordina si hay silencio</h5><p>Si alguien no reporta, pregunta directo: <code>T2 — ¿encontraste la IP atacante?</code> o <code>Monitor — ¿cómo van las métricas?</code></p></div></div>
-        <div class="step"><div class="step-num yellow">4</div><div class="step-content"><h5>Redacta el resumen final</h5><p>Cuando el Responder confirme la mitigación, publica el cierre del incidente en el chat:</p>
+        <div class="step"><div class="step-num yellow">4</div><div class="step-content"><h5>Redacta el resumen final</h5><p>Cuando el Técnico de Respuesta confirme la mitigación, publica el cierre del incidente en el chat:</p>
           <div class="terminal" style="margin-top:8px">
             <div class="terminal-header"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><span class="terminal-title">chat — sala</span></div>
             <div class="terminal-body">
@@ -394,7 +492,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
             </div>
           </div>
         </div></div>
-        <div class="step"><div class="step-num yellow">5</div><div class="step-content"><h5>Completa la Bitácora Colaborativa</h5><p>Abre 📋 Bitácora y llena tu sección (Comunicador → Lecciones aprendidas) con base en todo lo que coordinaste.</p></div></div>
+        <div class="step"><div class="step-num yellow">5</div><div class="step-content"><h5>Completa la Bitácora Colaborativa</h5><p>Abre 📋 Bitácora y llena tu sección (Líder TIC → Lecciones aprendidas) con base en todo lo que coordinaste.</p></div></div>
       </div>
     </div>
   </div>
@@ -408,8 +506,8 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
   <div class="mission-flow">
     <div class="mf-step"><span class="mf-icon">📡</span><span class="mf-num">FASE 1</span><span class="mf-label">Detectar</span><span class="mf-role">T1-Monitor</span></div>
     <div class="mf-step"><span class="mf-icon">🔍</span><span class="mf-num">FASE 2</span><span class="mf-label">Analizar</span><span class="mf-role">T2-Analista</span></div>
-    <div class="mf-step"><span class="mf-icon">🛡️</span><span class="mf-num">FASE 3</span><span class="mf-label">Mitigar</span><span class="mf-role">Responder</span></div>
-    <div class="mf-step"><span class="mf-icon">📢</span><span class="mf-num">FASE 4</span><span class="mf-label">Reportar</span><span class="mf-role">Comunicador</span></div>
+    <div class="mf-step"><span class="mf-icon">🛡️</span><span class="mf-num">FASE 3</span><span class="mf-label">Mitigar</span><span class="mf-role">Técnico de Respuesta</span></div>
+    <div class="mf-step"><span class="mf-icon">📢</span><span class="mf-num">FASE 4</span><span class="mf-label">Reportar</span><span class="mf-role">Líder TIC</span></div>
   </div>
 
   <div class="steps" style="margin-top:24px">
@@ -417,9 +515,9 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="step"><div class="step-num teal">2</div><div class="step-content"><h5>Conoces tu rol y el ataque asignado</h5><p>El banner naranja te muestra el tipo de ataque y el nodo. Debajo, las 4 fases con el contenido específico de ese ataque — la tuya queda resaltada en verde.</p></div></div>
     <div class="step"><div class="step-num green">3</div><div class="step-content"><h5>T1-Monitor reporta primero</h5><p>Identifica el nodo afectado en el mapa y comunica qué métricas están fuera de rango.</p></div></div>
     <div class="step"><div class="step-num green">4</div><div class="step-content"><h5>T2-Analista investiga</h5><p>Revisa los logs, marca la línea IOC y comunica la IP atacante y el tipo de ataque al equipo.</p></div></div>
-    <div class="step"><div class="step-num yellow">5</div><div class="step-content"><h5>Responder actúa</h5><p>Con la causa confirmada, aplica la regla en Firewall o el protocolo correspondiente. Esto se publica automáticamente en el chat.</p></div></div>
+    <div class="step"><div class="step-num yellow">5</div><div class="step-content"><h5>Técnico de Respuesta actúa</h5><p>Con la causa confirmada, aplica la regla en Firewall o el protocolo correspondiente. Esto se publica automáticamente en el chat.</p></div></div>
     <div class="step"><div class="step-num yellow">6</div><div class="step-content"><h5>T1-Monitor confirma la mejora</h5><p>Reporta si las métricas vuelven a la normalidad. Si no mejoran, el equipo revisa si hay más causas activas.</p></div></div>
-    <div class="step"><div class="step-num red">7</div><div class="step-content"><h5>Comunicador redacta el cierre</h5><p>Publica el resumen final: nodo, causa, tiempo de respuesta y estado.</p></div></div>
+    <div class="step"><div class="step-num red">7</div><div class="step-content"><h5>Líder TIC redacta el cierre</h5><p>Publica el resumen final: nodo, causa, tiempo de respuesta y estado.</p></div></div>
     <div class="step"><div class="step-num red">8</div><div class="step-content"><h5>Todos completan su sección de la Bitácora Colaborativa</h5><p>Cada integrante llena su parte según su rol — la bitácora queda vinculada automáticamente a la sala.</p></div></div>
   </div>
 
@@ -475,13 +573,14 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 <!-- ═══ CATÁLOGO — RED ═══ -->
 <section class="section" id="cat-red">
   <h2><span class="icon">⚔️</span>Catálogo de Ataques — Red</h2>
-  <div class="cat-banner red">🔴 Estos incidentes siguen el flujo Terminal → Logs → Firewall. El Analista busca la IP, el Responder bloquea.</div>
+  <div class="cat-banner red">🔴 Estos incidentes siguen el flujo Terminal → Logs → Firewall. El Analista busca la IP, el Técnico de Respuesta bloquea.</div>
 
   <div class="attack-card">
     <div class="attack-header"><div class="attack-icon">💥</div><div><div class="attack-name">Ataque DoS</div><div class="attack-meta">Inundación desde una sola IP — satura el ancho de banda</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_in_mbps &gt; 800</li><li>latency_ms &gt; 200</li><li>packet_loss_pct &gt; 10</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar IP origen en logs del firewall</li><li>Aplicar ACL para bloquear IP atacante</li><li>Activar rate limiting en FW-01</li><li>Notificar al ISP si el ataque es externo</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>system</code> y <code>access</code> — busca "SYN flooding" y peticiones con status 503/499 desde 203.0.113.x</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (SYN_RECV desde 203.0.113.x) · <code>ps aux</code> (proceso <code>flood.sh</code>) · <code>tcpdump -i eth0</code></li></ul></div>
     </div></div>
   </div>
 
@@ -490,6 +589,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_in_mbps &gt; 900</li><li>connections &gt; 50.000</li><li>packet_loss_pct &gt; 25</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Activar scrubbing center / CDN DDoS protection</li><li>Implementar blackhole routing (RTBH)</li><li>Distribuir carga entre múltiples servidores</li><li>Contactar al proveedor de upstream</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>system</code> y <code>access</code> — "SYN flooding" + status 503/499 desde múltiples IPs 203.0.113.x</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (SYN_RECV masivo, 203.0.113.x) · <code>ps aux</code> (<code>flood.sh</code>) · <code>tcpdump -i eth0</code></li></ul></div>
     </div></div>
   </div>
 
@@ -498,6 +598,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>connections &gt; 60.000</li><li>cpu_pct &gt; 85</li><li>latency_ms &gt; 300</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Habilitar SYN Cookies en el kernel</li><li>Reducir timeout de conexiones TCP</li><li>Implementar SYN proxy en el firewall</li><li>Filtrar por geolocalización si aplica</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>system</code> y <code>access</code> — "possible SYN flooding on port 443"</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (SYN_RECV, 203.0.113.x) · <code>ps aux</code> (proceso <code>synflooder</code>) · <code>tcpdump -i eth0</code></li></ul></div>
     </div></div>
   </div>
 
@@ -506,6 +607,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>auth_failures &gt; 100/min</li><li>connections &gt; +200</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Bloquear IP atacante con fail2ban</li><li>Cambiar puerto SSH a no estándar</li><li>Deshabilitar login por contraseña (solo llaves)</li><li>Revisar /var/log/auth.log para IPs adicionales</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>auth</code> — "Failed password for [user] from [IP] port [N] ssh2" (repetido) · también en <code>access</code> (401 a /api/login) y <code>system</code></li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED desde 198.51.100.x puerto 22) · <code>ps aux</code> (proceso <code>hydra</code>) · <code>tail -f /var/log/syslog</code></li></ul></div>
     </div></div>
   </div>
 
@@ -514,6 +616,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_in_mbps en picos</li><li>conexiones desde 1 IP a múltiples puertos</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar IP origen en logs</li><li>Bloquear IP en firewall perimetral</li><li>Revisar qué puertos fueron escaneados</li><li>Verificar que no hay puertos innecesarios abiertos</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>access</code> — múltiples 404 a /admin, /.env, /wp-login.php desde la misma IP 198.51.100.x</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (SYN_SENT a múltiples puertos) · <code>ps aux</code> (proceso <code>nmap</code>) · <code>tcpdump -i eth0</code></li></ul></div>
     </div></div>
   </div>
 
@@ -522,6 +625,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>tablas ARP inconsistentes</li><li>latencia aumenta</li><li>advertencias SSL</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Activar Dynamic ARP Inspection en switches</li><li>Implementar ARP estático para IPs críticas</li><li>Aislar el segmento de red afectado</li><li>Identificar la MAC del atacante</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva — la evidencia está solo en Terminal.</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED desde IP interna 10.0.9.x — "IP interna no autorizada")</li></ul></div>
     </div></div>
   </div>
 
@@ -530,6 +634,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>tráfico entre VLANs sin gateway</li><li>doble encapsulación 802.1Q</li><li>VLAN nativa sin cifrar</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Deshabilitar trunking automático (DTP)</li><li>Cambiar VLAN nativa a una sin uso</li><li>Activar VLAN pruning</li><li>Auditar trunks con <code>show interfaces trunk</code></li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva.</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED desde IP interna 10.0.9.x)</li></ul></div>
     </div></div>
   </div>
 
@@ -538,6 +643,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>clientes con IPs inesperadas</li><li>gateway incorrecto asignado</li><li>múltiples DHCP OFFER en la red</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Activar DHCP Snooping en switches</li><li>Apagar el puerto del servidor falso</li><li>Marcar solo puertos legítimos como "trusted"</li><li>Renovar IPs de clientes afectados</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva.</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED desde IP interna 10.0.9.x)</li></ul></div>
     </div></div>
   </div>
 
@@ -546,6 +652,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>resoluciones DNS inconsistentes</li><li>certificado SSL no coincide con el dominio</li><li>usuarios reportan redirecciones</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Limpiar caché DNS (<code>rndc flush</code>)</li><li>Habilitar DNSSEC</li><li>Configurar DoH/DoT</li><li>Verificar integridad de <code>/etc/hosts</code></li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva.</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED desde IP interna 10.0.9.x)</li></ul></div>
     </div></div>
   </div>
 
@@ -554,6 +661,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>el Root Bridge cambia inesperadamente</li><li>bucles de red activos</li><li>tráfico interrumpido en el segmento</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Habilitar BPDU Guard en puertos de acceso</li><li>Configurar Root Guard en uplinks legítimos</li><li>Definir manualmente el Root Bridge (prioridad baja)</li><li>Monitorear con <code>show spanning-tree detail</code></li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva.</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED desde IP interna 10.0.9.x)</li></ul></div>
     </div></div>
   </div>
 
@@ -562,6 +670,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li><code>sudo</code> inusual en logs</li><li>proceso no-root con UID=0</li><li>cambios en /etc/sudoers</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar proceso/usuario con <code>ps aux</code></li><li>Revocar permisos inmediatamente</li><li>Auditar /etc/sudoers y /etc/passwd</li><li>Aislar el servidor si el compromiso fue exitoso</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva.</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED desde 10.0.8.x — "revisar con ps aux") · <code>ps aux</code> (busca procesos corriendo como root que no deberían)</li></ul></div>
     </div></div>
   </div>
 
@@ -570,6 +679,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>net_out_mbps alto sostenido</li><li>conexiones a IPs externas inusuales</li><li>acceso masivo a base de datos</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Bloquear IP destino en firewall</li><li>Identificar proceso con <code>netstat -tulnp</code></li><li>Capturar tráfico para evidencia forense</li><li>Notificar al DPO según normativa</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva.</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>netstat -an</code> (ESTABLISHED salientes desde 10.0.8.x — "posible exfiltración")</li></ul></div>
     </div></div>
   </div>
 </section>
@@ -584,6 +694,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>disk_io_mbps &gt; 400</li><li>errores SMART</li><li>pico de I/O wait</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Verificar RAID: <code>mdadm --detail /dev/md0</code></li><li>Identificar disco con <code>smartctl -a /dev/sdX</code></li><li>Iniciar reconstrucción con disco de repuesto</li><li>Crear snapshot de datos críticos</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>system</code> — "sd 2:0:0:0: [sda] FAILED Result: hostbyte=DID_OK driverbyte=DRIVER_SENSE"</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>df -h</code> (uso de disco &gt; 90%) · <code>tail -f /var/log/syslog</code></li></ul></div>
     </div></div>
   </div>
 
@@ -592,6 +703,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>ram_pct sube progresivamente</li><li>swap activo</li><li>OOM killer</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Identificar proceso con <code>top</code>/<code>htop</code></li><li>Verificar consumo: <code>ps aux --sort=-%mem</code></li><li>Reiniciar el servicio afectado</li><li>Implementar watchdog para reinicio automático</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>system</code> — "Out of memory: Killed process [PID] (leaky_app)"</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>free -m</code> (RAM &gt; 85%) · <code>ps aux</code> (proceso <code>leaky_app</code> con %MEM alto) · <code>tail -f /var/log/syslog</code></li></ul></div>
     </div></div>
   </div>
 </section>
@@ -599,13 +711,14 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
 <!-- ═══ CATÁLOGO — SST ═══ -->
 <section class="section" id="cat-sst">
   <h2><span class="icon">🏢</span>Catálogo de Ataques — Seguridad Física (SST)</h2>
-  <div class="cat-banner sst">🟡 No usan Terminal ni Firewall — son emergencias físicas. El Responder ejecuta el <strong>protocolo de respuesta físico</strong> correspondiente.</div>
+  <div class="cat-banner sst">🟡 No usan Terminal ni Firewall — son emergencias físicas. El Técnico de Respuesta ejecuta el <strong>protocolo de respuesta físico</strong> correspondiente.</div>
 
   <div class="attack-card">
     <div class="attack-header"><div class="attack-icon">🌡️</div><div><div class="attack-name">Sobrecalentamiento</div><div class="attack-meta">Falla de CRAC — temperatura sube 0.5°C/min</div></div><span class="badge critical" style="margin-left:auto">Crítico</span></div>
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>temperatura &gt; 28°C</li><li>throttling de CPU</li><li>ventiladores a velocidad máxima</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar unidades CRAC/CRAH</li><li>Activar enfriamiento de emergencia</li><li>Migrar cargas críticas a otros racks</li><li>Apagar servidores no críticos</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>system</code> — "CPU0: Core temperature above threshold, cpu clock throttled"</li><li><strong>Técnico de Respuesta (terminal):</strong> <code>tail -f /var/log/syslog</code> — no hay IP ni proceso, es un sensor físico. Responde con el protocolo, no con firewall.</li></ul></div>
     </div></div>
   </div>
 
@@ -614,6 +727,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>UPS activo</li><li>baterías drenando</li><li>generador no arranca</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar UPS: <code>apcupsd status</code></li><li>Intentar activar generador de emergencia</li><li>Apagar sistemas no críticos</li><li>Activar plan de continuidad</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera log ni señal de Terminal — es 100% un sensor físico (UPS/PDU).</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica — este incidente se resuelve con el <strong>protocolo físico</strong>, no con comandos de terminal.</li></ul></div>
     </div></div>
   </div>
 
@@ -622,6 +736,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>smoke_ppm &gt; 10</li><li>detector activado</li><li>temperatura anómala en la zona</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar la zona físicamente</li><li>Activar supresión FM-200 si se confirma</li><li>Evacuar personal del DC</li><li>Activar plan de evacuación</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera log ni señal de Terminal — sensor físico de humo.</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica — protocolo de evacuación/supresión, no terminal.</li></ul></div>
     </div></div>
   </div>
 
@@ -630,6 +745,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>ACCESS DENIED en zona restringida</li><li>badge inválido</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Revisar cámara CCTV del punto de acceso</li><li>Bloquear la tarjeta reportada</li><li>Notificar a seguridad física</li><li>Revisar logs de acceso de 24h</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> <code>auth</code> y <code>system</code> — "PAM: unauthorized access attempt — badge denied at RACK-A door"</li><li><strong>Técnico de Respuesta (terminal):</strong> Terminal no muestra esta IP en netstat (es un sensor de acceso físico, no de red) — la evidencia es 100% del log.</li></ul></div>
     </div></div>
   </div>
 
@@ -638,6 +754,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>ACCESS GRANTED con biometría sospechosa</li><li>hora inusual de acceso</li><li>badge + biometría no coinciden</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Bloquear el lector biométrico comprometido</li><li>Revisar CCTV de las últimas 2 horas</li><li>Revocar el template biométrico afectado</li><li>Escalar a seguridad física y RRHH</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera log ni señal de Terminal — evidencia física (CCTV + sistema de acceso, fuera del simulador de red).</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica — protocolo físico: bloquear el lector y escalar a seguridad.</li></ul></div>
     </div></div>
   </div>
 
@@ -646,6 +763,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>sensor de doble entrada activado</li><li>CCTV muestra 2 personas en 1 acceso</li><li>badge sin contrapartida de salida</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Activar bloqueo de mantrap</li><li>Identificar a la persona no autorizada en CCTV</li><li>Entrevistar al empleado que generó el acceso</li><li>Reforzar capacitación de escolta de visitantes</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera log ni señal de Terminal.</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica — protocolo físico: mantrap + identificar en CCTV.</li></ul></div>
     </div></div>
   </div>
 
@@ -654,6 +772,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>badge activo en dos ubicaciones simultáneas</li><li>acceso en horario no habitual</li><li>reporte de tarjeta robada</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Revocar el UID de la tarjeta comprometida</li><li>Emitir tarjeta nueva con UID diferente</li><li>Revisar accesos de las últimas 72h</li><li>Verificar lectores con posibles skimmers</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera log ni señal de Terminal.</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica — protocolo físico: revocar el UID de la tarjeta.</li></ul></div>
     </div></div>
   </div>
 
@@ -662,6 +781,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>señal de cámara perdida</li><li>imagen congelada</li><li>cámara girada sin mantenimiento</li></ul></div>
       <div class="info-box"><div class="label">Protocolo de respuesta</div><ul><li>Verificar la cámara físicamente</li><li>Activar cámara de respaldo si existe</li><li>Incrementar patrullaje mientras se restaura</li><li>Investigar si fue intencional</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera log ni señal de Terminal.</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica — protocolo físico: verificar la cámara y activar respaldo.</li></ul></div>
     </div></div>
   </div>
 </section>
@@ -676,6 +796,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>days_to_expire ≤ 0</li><li>error SSL en el navegador</li><li>HTTPS caído</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Generar nuevo CSR para el dominio</li><li>Renovar el certificado con la CA</li><li>Instalar certificado en el servidor</li><li>Reiniciar nginx/apache</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No usa Logs ni Terminal — la evidencia está en el panel SSL/certificados (días para vencer, versión TLS).</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica — la mitigación es renovar el certificado, no un comando de terminal.</li></ul></div>
     </div></div>
   </div>
 
@@ -684,6 +805,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>days_to_expire &lt; 30</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Programar la renovación</li><li>Verificar renovación automática (Let's Encrypt)</li><li>Notificar al equipo responsable</li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No usa Logs ni Terminal — revisa el panel SSL (días para vencer &lt; 30).</li><li><strong>Técnico de Respuesta (terminal):</strong> No aplica.</li></ul></div>
     </div></div>
   </div>
 
@@ -692,6 +814,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <div class="attack-body"><div class="info-grid">
       <div class="info-box"><div class="label">Cómo se detecta</div><ul><li>TLS 1.0 detectado</li><li>vulnerabilidad tipo POODLE/BEAST</li></ul></div>
       <div class="info-box"><div class="label">Mitigación</div><ul><li>Deshabilitar TLS 1.0/1.1</li><li>Forzar TLS 1.2 mínimo (idealmente 1.3)</li><li>Revisar cipher suites configuradas</li><li>Auditar con <code>testssl.sh</code></li></ul></div>
+      <div class="info-box" style="grid-column:1/-1;margin-top:2px;background:var(--code-bg);border-color:#1e2d50"><div class="label">🔬 Investigación en la sala</div><ul><li><strong>T2-Analista (logs):</strong> No genera línea de log distintiva — revisa el panel SSL (versión TLS negociada).</li><li><strong>Técnico de Respuesta (terminal):</strong> Terminal no muestra esta IP — la evidencia es la versión TLS insegura en el panel SSL, no en netstat.</li></ul></div>
     </div></div>
   </div>
 </section>
@@ -707,8 +830,8 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <tbody>
       <tr><td><span class="role-pill t1">📡 T1-Monitor</span></td><td>Síntomas observados</td><td>Métricas que viste: CPU, RAM, tráfico de red, qué nodo y desde cuándo.</td></tr>
       <tr><td><span class="role-pill t2">🔍 T2-Analista</span></td><td>Causa raíz</td><td>Qué encontraste en logs/terminal: IP, proceso, patrón. Por qué concluiste que era ese tipo de ataque.</td></tr>
-      <tr><td><span class="role-pill resp">🛡️ Responder</span></td><td>Acciones tomadas</td><td>Qué regla/protocolo aplicaste, en qué momento, y si funcionó a la primera o tuviste que ajustar.</td></tr>
-      <tr><td><span class="role-pill com">📢 Comunicador</span></td><td>Lecciones aprendidas</td><td>Qué aprendió el equipo, qué se podría mejorar en coordinación, y el resumen del cierre.</td></tr>
+      <tr><td><span class="role-pill resp">🛡️ Técnico de Respuesta</span></td><td>Acciones tomadas</td><td>Qué regla/protocolo aplicaste, en qué momento, y si funcionó a la primera o tuviste que ajustar.</td></tr>
+      <tr><td><span class="role-pill com">📢 Líder TIC</span></td><td>Lecciones aprendidas</td><td>Qué aprendió el equipo, qué se podría mejorar en coordinación, y el resumen del cierre.</td></tr>
     </tbody>
   </table>
 
@@ -717,8 +840,8 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <tbody>
       <tr><td><strong>Síntomas (T1)</strong></td><td>"A las 14:32 noté que WEB-01 subió a 920 Mbps de tráfico entrante y 50.300 conexiones simultáneas, muy por encima del umbral normal de 200 Mbps. Lo reporté al equipo de inmediato."</td></tr>
       <tr><td><strong>Causa raíz (T2)</strong></td><td>"Revisé los logs de acceso y encontré más de 12.000 solicitudes/min desde múltiples IPs en el rango 203.0.113.x, sin patrón geográfico único — coincide con DDoS distribuido, no con un solo atacante."</td></tr>
-      <tr><td><strong>Acciones (Responder)</strong></td><td>"Activé rate limiting en FW-01 y bloqueé el rango 203.0.113.0/24. El tráfico bajó de 920 a 110 Mbps en 90 segundos. No fue necesario reiniciar ningún servicio."</td></tr>
-      <tr><td><strong>Lecciones (Comunicador)</strong></td><td>"El equipo coordinó bien — T1 detectó en menos de 1 min y T2 confirmó la causa en 3 min. Para la próxima, acordar desde el inicio quién reporta primero evita mensajes cruzados."</td></tr>
+      <tr><td><strong>Acciones (Técnico de Respuesta)</strong></td><td>"Activé rate limiting en FW-01 y bloqueé el rango 203.0.113.0/24. El tráfico bajó de 920 a 110 Mbps en 90 segundos. No fue necesario reiniciar ningún servicio."</td></tr>
+      <tr><td><strong>Lecciones (Líder TIC)</strong></td><td>"El equipo coordinó bien — T1 detectó en menos de 1 min y T2 confirmó la causa en 3 min. Para la próxima, acordar desde el inicio quién reporta primero evita mensajes cruzados."</td></tr>
     </tbody>
   </table>
 
@@ -771,7 +894,7 @@ code { background: var(--code-bg); color: #79c0ff; padding: 1px 6px; border-radi
     <li><span class="chk">✔</span> Entré a la sala y confirmé mi rol y el ataque/nodo asignado.</li>
     <li><span class="chk">✔</span> Leí las 4 fases en el banner y entiendo qué hace cada rol.</li>
     <li><span class="chk">✔</span> Reporté por chat lo que correspondía a mi rol, con datos concretos (no solo "hay un ataque").</li>
-    <li><span class="chk">✔</span> Si soy Responder, esperé la confirmación del Analista antes de actuar.</li>
+    <li><span class="chk">✔</span> Si soy Técnico de Respuesta, esperé la confirmación del Analista antes de actuar.</li>
     <li><span class="chk">✔</span> Verifiqué que mis acciones técnicas (bloqueo, reinicio) quedaron reflejadas en el chat.</li>
     <li><span class="chk">✔</span> Completé mi sección de la Bitácora Colaborativa con detalle real del ejercicio.</li>
     <li><span class="chk">✔</span> Si el Modo Exclusivo está activo y no estoy en sala, avisé al instructor en vez de insistir.</li>
